@@ -1,0 +1,15 @@
+export const API_ENDPOINTS = {
+  LOGIN: "/user/auth/login",
+  REGISTER: "/user/auth/register",
+  OTP_REQUEST: "/user/auth/otp-request",
+  OTP_VERIFY: "/user/auth/otp-verify",
+  PROFILE: "/user/profile",
+  WALLET: "/user/wallet",
+  WALLET_TOP_UP: "/user/wallet/top-up",
+  RIDE_OPTIONS: "/user/rides/options",
+  RIDE_BOOK: "/user/rides/book",
+  RIDE_ACTIVE: "/user/rides/active",
+  RIDE_HISTORY: "/user/rides/history",
+  RIDE_DETAIL: (rideId: number | string) => `/user/rides/${rideId}`,
+  RIDE_CANCEL: (rideId: number | string) => `/user/rides/${rideId}/cancel`,
+};

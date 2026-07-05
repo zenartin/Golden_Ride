@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Golden Ride",
+    "slug": "golden-ride-user",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.goldenride.user"
+    },
+    "android": {
+      "package": "com.goldenride.user",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Golden Ride to access your location while you use the app."
+        }
+      ]
+    ]
+  }
+}
