@@ -37,6 +37,7 @@ def get_incoming_requests(
             fare_amount=245.0,
             payment_method="Online",
             pickup_eta="3 min away",
+            ride_class="sedan",
             status="pending"
         )
         db.add(mock_ride)

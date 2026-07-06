@@ -15,15 +15,15 @@ import { MainStackParamList } from "../../navigation/MainNavigator";
 type Props = NativeStackScreenProps<MainStackParamList, "Shell">;
 type TabKey = "Home" | "Trips" | "Wallet" | "Profile";
 
-export default function MainShellScreen({ navigation }: Props) {
+export default function MainShellScreen({ navigation, route }: Props) {
   const [tab, setTab] = useState<TabKey>("Home");
 
   const content = useMemo(() => {
     if (tab === "Trips") return <TripsScreen navigation={navigation} />;
     if (tab === "Wallet") return <WalletScreen />;
     if (tab === "Profile") return <ProfileScreen navigation={navigation} />;
-    return <HomeScreen navigation={navigation} openTab={setTab} />;
-  }, [navigation, tab]);
+    return <HomeScreen navigation={navigation} route={route} openTab={setTab} />;
+  }, [navigation, route, tab]);
 
   return (
     <View style={styles.wrap}>
@@ -31,7 +31,7 @@ export default function MainShellScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <UserQuickActions
           actions={[
-            { icon: "navigate", label: "Book", color: "#FEF3C7", onPress: () => setTab("Home") },
+            { icon: "car-sport-outline", label: "Book", color: "#FEF3C7", onPress: () => setTab("Home") },
             { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => setTab("Trips") },
             { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => setTab("Wallet") },
             { icon: "headset-outline", label: "Help", color: "#EDE9FE", onPress: () => setTab("Profile") },

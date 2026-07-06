@@ -5,6 +5,7 @@ import { apiRequest } from "../api/client";
 import { API_ENDPOINTS } from "../api/endpoints";
 
 export interface UserProfile {
+  id: number;
   name: string;
   email: string;
   phone: string;
@@ -27,6 +28,7 @@ interface AuthState {
 
 type AuthResponse = {
   access_token: string;
+  id: number;
   name: string;
   email: string;
   phone: string;
@@ -51,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
           const profile = await apiRequest<ProfileResponse>(API_ENDPOINTS.PROFILE);
           set({
             user: {
+              id: profile.id,
               name: profile.name,
               email: profile.email,
               phone: profile.phone,
@@ -80,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { name: response.name, email: response.email, phone: response.phone },
+            user: { id: response.id, name: response.name, email: response.email, phone: response.phone },
             isAuthenticated: true,
             error: null,
           });
@@ -104,7 +107,7 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { name: response.name, email: response.email, phone: response.phone },
+            user: { id: response.id, name: response.name, email: response.email, phone: response.phone },
             isAuthenticated: true,
             error: null,
           });
@@ -146,7 +149,7 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { name: response.name, email: response.email, phone: response.phone },
+            user: { id: response.id, name: response.name, email: response.email, phone: response.phone },
             isAuthenticated: true,
             error: null,
           });

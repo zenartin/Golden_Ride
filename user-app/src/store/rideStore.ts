@@ -4,8 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiRequest } from "../api/client";
 import { API_ENDPOINTS } from "../api/endpoints";
 
-type RideClass = "economy" | "comfort" | "premium";
-type RideStatus = "searching" | "confirmed" | "arriving" | "on_trip" | "completed" | "cancelled";
+type RideClass = "auto" | "sedan" | "xuv";
+export type RideStatus = "searching" | "confirmed" | "arriving" | "on_trip" | "completed" | "cancelled";
 
 export interface RideOption {
   id: RideClass;
@@ -31,6 +31,22 @@ export interface Trip {
   paymentMethod: string;
   status: RideStatus;
   createdAt: string;
+  driverPhone?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  driverLatitude?: number;
+  driverLongitude?: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  ride_id?: number;
+  is_support: boolean;
+  sender: "driver" | "rider" | "support" | "system";
+  content: string;
+  created_at: string;
 }
 
 interface WalletTransaction {
@@ -44,14 +60,17 @@ interface WalletTransaction {
 interface RideState {
   pickup: string;
   dropoff: string;
+  pickupCoords: { lat: number; lon: number } | null;
+  dropoffCoords: { lat: number; lon: number } | null;
   rideOptions: RideOption[];
   selectedRideClass: RideClass;
   activeTrip: Trip | null;
   history: Trip[];
   walletBalance: number;
   transactions: WalletTransaction[];
-  setPickup: (value: string) => void;
-  setDropoff: (value: string) => void;
+  chatMessages: ChatMessage[];
+  setPickup: (value: string, coords?: { lat: number; lon: number }) => void;
+  setDropoff: (value: string, coords?: { lat: number; lon: number }) => void;
   setSelectedRideClass: (value: RideClass) => void;
   searchRides: () => Promise<RideOption[]>;
   bookRide: (paymentMethod?: string) => Promise<Trip | null>;
@@ -59,16 +78,18 @@ interface RideState {
   refreshHistory: () => Promise<void>;
   fetchTripDetail: (tripId: string) => Promise<Trip | null>;
   refreshWallet: () => Promise<void>;
+  fetchMessages: (rideId: number) => Promise<void>;
+  sendMessage: (rideId: number, content: string) => Promise<boolean>;
   advanceActiveTrip: () => void;
   cancelActiveTrip: () => Promise<void>;
-  completeActiveTrip: () => void;
   topUpWallet: (amount: number) => Promise<void>;
+  setActiveTripStatus: (status: RideStatus, driverData?: any) => void;
 }
 
 const rideMeta: Record<RideClass, { title: string; subtitle: string; seats: number; multiplier: number; icon: string }> = {
-  economy: { title: "Ride Lite", subtitle: "Best for quick solo trips", seats: 3, multiplier: 1, icon: "car-outline" },
-  comfort: { title: "Comfort", subtitle: "More space and quieter rides", seats: 4, multiplier: 1.35, icon: "car-sport-outline" },
-  premium: { title: "Premier", subtitle: "Top-rated cars and drivers", seats: 4, multiplier: 1.8, icon: "diamond-outline" },
+  auto:  { title: "Auto",  subtitle: "Quick & budget-friendly 3-wheeler", seats: 3, multiplier: 1,    icon: "bicycle-outline" },
+  sedan: { title: "Sedan", subtitle: "Comfortable AC car for daily rides",  seats: 4, multiplier: 1.4,  icon: "car-sport-outline" },
+  xuv:   { title: "XUV",   subtitle: "Spacious SUV for groups & luggage",   seats: 6, multiplier: 1.85, icon: "car-outline" },
 };
 
 const estimateDistance = (pickup: string, dropoff: string) => {
@@ -105,135 +126,131 @@ type ApiRide = {
   payment_method: string;
   status: RideStatus | "pending" | "accepted" | "arrived" | "started" | "declined";
   created_at?: string;
+  driver_name?: string | null;
+  driver_phone?: string | null;
+  driver_vehicle_number?: string | null;
+  driver_vehicle_model?: string | null;
+  driver_vehicle_type?: string | null;
+  pickup_latitude?: number | null;
+  pickup_longitude?: number | null;
+  dropoff_latitude?: number | null;
+  dropoff_longitude?: number | null;
+  driver_latitude?: number | null;
+  driver_longitude?: number | null;
 };
 
 const mapApiStatus = (status: ApiRide["status"]): RideStatus => {
-  if (status === "pending" || status === "accepted") return "confirmed";
+  if (status === "pending") return "searching";
+  if (status === "accepted") return "confirmed";
   if (status === "arrived") return "arriving";
   if (status === "started") return "on_trip";
   if (status === "declined") return "cancelled";
-  return status;
+  return status as RideStatus;
 };
 
 const mapApiRide = (ride: ApiRide): Trip => {
-  const meta = rideMeta[ride.ride_class] ?? rideMeta.comfort;
+  const meta = rideMeta[ride.ride_class] ?? rideMeta.sedan;
+  
+  // Clean up driver vehicle type label
+  const vehicleType = ride.driver_vehicle_type ? `[${ride.driver_vehicle_type}]` : "";
+  const carDescription = ride.driver_vehicle_model 
+    ? `${ride.driver_vehicle_model} ${vehicleType}`.trim()
+    : meta.title + " cab";
+
   return {
     id: String(ride.id),
     pickup: ride.from_location,
     dropoff: ride.to_location,
     rideClass: ride.ride_class,
     rideTitle: meta.title,
-    driver: "Assigned after driver accepts",
-    car: ride.ride_class === "premium" ? "Premium cab" : ride.ride_class === "comfort" ? "Comfort cab" : "Ride Lite cab",
-    plate: "Pending",
+    driver: ride.driver_name || "Finding a driver…",
+    car: carDescription,
+    plate: ride.driver_vehicle_number || "—",
     price: ride.fare_amount,
     distance: ride.distance,
     duration: ride.duration,
     paymentMethod: ride.payment_method,
     status: mapApiStatus(ride.status),
     createdAt: ride.created_at || new Date().toISOString(),
+    driverPhone: ride.driver_phone || undefined,
+    pickupLatitude: ride.pickup_latitude ?? undefined,
+    pickupLongitude: ride.pickup_longitude ?? undefined,
+    dropoffLatitude: ride.dropoff_latitude ?? undefined,
+    dropoffLongitude: ride.dropoff_longitude ?? undefined,
+    driverLatitude: ride.driver_latitude ?? undefined,
+    driverLongitude: ride.driver_longitude ?? undefined,
   };
 };
 
 export const useRideStore = create<RideState>()(
   persist(
     (set, get) => ({
-      pickup: "Your current location",
-      dropoff: "MG Road, Bengaluru",
+      pickup: "",
+      dropoff: "",
+      pickupCoords: null,
+      dropoffCoords: null,
       rideOptions: [],
-      selectedRideClass: "comfort",
+      selectedRideClass: "sedan",
       activeTrip: null,
-      history: [
-        {
-          id: "trip-1",
-          pickup: "Indiranagar",
-          dropoff: "Koramangala",
-          rideClass: "comfort",
-          rideTitle: "Comfort",
-          driver: "Raghav S.",
-          car: "Hyundai Verna",
-          plate: "KA-05-AR-1122",
-          price: 248,
-          distance: "6.4 km",
-          duration: "24 min",
-          paymentMethod: "UPI",
-          status: "completed",
-          createdAt: new Date().toISOString(),
-        },
-      ],
-      walletBalance: 1780,
-      transactions: [
-        { id: "tx-1", title: "Ride to Koramangala", amount: 248, type: "debit", date: new Date().toISOString() },
-        { id: "tx-2", title: "Wallet top-up", amount: 1000, type: "credit", date: new Date().toISOString() },
-      ],
-      setPickup: (value) => set({ pickup: value }),
-      setDropoff: (value) => set({ dropoff: value }),
+      history: [],
+      walletBalance: 0,
+      transactions: [],
+      chatMessages: [],
+      setPickup: (value, coords) => set({ pickup: value, pickupCoords: coords ?? null, rideOptions: [] }),
+      setDropoff: (value, coords) => set({ dropoff: value, dropoffCoords: coords ?? null, rideOptions: [] }),
       setSelectedRideClass: (value) => set({ selectedRideClass: value }),
       searchRides: async () => {
-        const { pickup, dropoff } = get();
-        let rideOptions = createOptions(pickup, dropoff);
+        const { pickup, dropoff, pickupCoords, dropoffCoords } = get();
+        if (!pickup.trim() || !dropoff.trim()) return [];
         try {
           const response = await apiRequest<{ options: RideOption[] }>(API_ENDPOINTS.RIDE_OPTIONS, {
-            method: "POST",
-            body: { pickup, dropoff },
-          });
-          rideOptions = response.options;
-        } catch {
-          rideOptions = createOptions(pickup, dropoff);
-        }
-        set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0].id });
-        return rideOptions;
-      },
-      bookRide: async (paymentMethod = "Wallet") => {
-        const { pickup, dropoff, rideOptions, selectedRideClass } = get();
-        const chosen = rideOptions.find((item) => item.id === selectedRideClass) ?? rideOptions[0] ?? createOptions(pickup, dropoff)[1];
-        if (!chosen) return null;
-
-        const distance = estimateDistance(pickup, dropoff);
-        let trip: Trip = {
-          id: `trip-${Date.now()}`,
-          pickup,
-          dropoff,
-          rideClass: chosen.id,
-          rideTitle: chosen.title,
-          driver: "Aman Verma",
-          car: chosen.id === "premium" ? "Toyota Camry" : chosen.id === "comfort" ? "Honda City" : "Maruti Dzire",
-          plate: "KA-01-GR-2244",
-          price: chosen.price,
-          distance: `${distance.toFixed(1)} km`,
-          duration: `${Math.max(10, Math.round(distance * 4))} min`,
-          paymentMethod,
-          status: "confirmed",
-          createdAt: new Date().toISOString(),
-        };
-
-        try {
-          const ride = await apiRequest<ApiRide>(API_ENDPOINTS.RIDE_BOOK, {
             method: "POST",
             body: {
               pickup,
               dropoff,
-              ride_class: chosen.id,
-              payment_method: paymentMethod,
+              pickup_latitude: pickupCoords?.lat,
+              pickup_longitude: pickupCoords?.lon,
+              dropoff_latitude: dropoffCoords?.lat,
+              dropoff_longitude: dropoffCoords?.lon,
             },
           });
-          trip = mapApiRide(ride);
-        } catch {
-          trip = { ...trip, status: "confirmed" };
+          const rideOptions = response.options;
+          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "sedan" });
+          return rideOptions;
+        } catch (err: any) {
+          // Fallback: calculate fare locally if server is unreachable
+          const rideOptions = createOptions(pickup, dropoff);
+          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? "sedan" });
+          return rideOptions;
         }
+      },
+      bookRide: async (paymentMethod = "Cash") => {
+        const { pickup, dropoff, pickupCoords, dropoffCoords, rideOptions, selectedRideClass } = get();
+        if (!pickup.trim() || !dropoff.trim()) throw new Error("Please enter pickup and dropoff locations.");
 
-        if (paymentMethod === "Wallet") {
-          set((state) => ({
-            walletBalance: Math.max(0, state.walletBalance - trip.price),
-            transactions: [
-              { id: `tx-${Date.now()}`, title: `${trip.rideTitle} ride`, amount: trip.price, type: "debit", date: new Date().toISOString() },
-              ...state.transactions,
-            ],
-          }));
-        }
+        const chosen = rideOptions.find((item) => item.id === selectedRideClass) ?? rideOptions[0];
+        if (!chosen) throw new Error("Please tap 'Find rides' first to load ride options.");
 
-        set({ activeTrip: trip });
-        return trip;
+        // Call real API — no mock fallback so dispatch actually fires
+        const ride = await apiRequest<ApiRide>(API_ENDPOINTS.RIDE_BOOK, {
+          method: "POST",
+          body: {
+            pickup,
+            dropoff,
+            ride_class: chosen.id,
+            payment_method: paymentMethod,
+            pickup_latitude: pickupCoords?.lat,
+            pickup_longitude: pickupCoords?.lon,
+            dropoff_latitude: dropoffCoords?.lat,
+            dropoff_longitude: dropoffCoords?.lon,
+          },
+        });
+
+        const trip = mapApiRide(ride);
+        // Status after booking = "searching" (waiting for driver to accept)
+        const tripSearching: Trip = { ...trip, status: "searching" };
+        set({ activeTrip: tripSearching });
+        return tripSearching;
       },
       refreshActiveTrip: async () => {
         const ride = await apiRequest<ApiRide | null>(API_ENDPOINTS.RIDE_ACTIVE);
@@ -261,6 +278,28 @@ export const useRideStore = create<RideState>()(
           transactions: WalletTransaction[];
         }>(API_ENDPOINTS.WALLET);
         set({ walletBalance: wallet.wallet_balance, transactions: wallet.transactions });
+      },
+      fetchMessages: async (rideId) => {
+        try {
+          const response = await apiRequest<ChatMessage[]>(API_ENDPOINTS.MESSAGES_RIDE(rideId));
+          set({ chatMessages: response });
+        } catch (err) {
+          console.log("Fetch chat messages error:", err);
+        }
+      },
+      sendMessage: async (rideId, content) => {
+        if (!content.trim()) return false;
+        try {
+          const response = await apiRequest<ChatMessage>(API_ENDPOINTS.MESSAGES_SEND, {
+            method: "POST",
+            body: { ride_id: rideId, is_support: false, content: content.trim() },
+          });
+          set((state) => ({ chatMessages: [...state.chatMessages, response] }));
+          return true;
+        } catch (err) {
+          console.log("Send chat message error:", err);
+          return false;
+        }
       },
       advanceActiveTrip: () => {
         const activeTrip = get().activeTrip;
@@ -324,6 +363,31 @@ export const useRideStore = create<RideState>()(
             ...state.transactions,
           ],
         }));
+      },
+      setActiveTripStatus: (status, driverData) => {
+        set((state) => {
+          if (!state.activeTrip) return state;
+          const carDescription = driverData 
+            ? `${driverData.vehicle_model} ${driverData.vehicle_type ? `[${driverData.vehicle_type}]` : ""}`.trim()
+            : state.activeTrip.car;
+          const updated = { 
+            ...state.activeTrip, 
+            status,
+            driver: driverData ? driverData.name : state.activeTrip.driver,
+            car: carDescription,
+            plate: driverData ? driverData.vehicle_number : state.activeTrip.plate,
+            driverPhone: driverData ? driverData.phone : state.activeTrip.driverPhone,
+          };
+          
+          if (status === "completed" || status === "cancelled") {
+            return {
+              activeTrip: null,
+              history: [updated, ...state.history]
+            };
+          }
+          
+          return { activeTrip: updated };
+        });
       },
     }),
     {

@@ -3,26 +3,28 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database import get_db
-from app.models.driver import Driver
 from app.models.message import Message
+from app.models.ride import Ride
 from app.schemas.message import MessageResponse, MessageSend
-from app.utils.security import get_current_driver
+from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 @router.get("/ride/{ride_id}", response_model=List[MessageResponse])
 def get_ride_messages(
     ride_id: int,
-    current_driver: Driver = Depends(get_current_driver),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Fetch messages linked to a specific ride
+    ride = db.query(Ride).filter(Ride.id == ride_id, Ride.user_id == current_user.id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+
     messages = db.query(Message).filter(
         Message.ride_id == ride_id,
         Message.is_support == False
     ).order_by(Message.created_at.asc()).all()
 
-    # If empty, populate a typical ride pickup chat history
     if not messages:
         mock_messages = [
             Message(ride_id=ride_id, is_support=False, sender="rider", content="Hello, are you on the way?"),
@@ -38,13 +40,20 @@ def get_ride_messages(
 @router.post("", response_model=MessageResponse)
 def send_message(
     payload: MessageSend,
-    current_driver: Driver = Depends(get_current_driver),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if payload.ride_id is None:
+        raise HTTPException(status_code=400, detail="Ride ID is required for chat messages")
+
+    ride = db.query(Ride).filter(Ride.id == payload.ride_id, Ride.user_id == current_user.id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+
     new_message = Message(
         ride_id=payload.ride_id,
         is_support=payload.is_support,
-        sender="driver",
+        sender="rider",
         content=payload.content
     )
     db.add(new_message)
@@ -54,19 +63,17 @@ def send_message(
 
 @router.get("/support", response_model=List[MessageResponse])
 def get_support_messages(
-    current_driver: Driver = Depends(get_current_driver),
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Fetch messages linked to driver support logs
     messages = db.query(Message).filter(
         Message.is_support == True
     ).order_by(Message.created_at.asc()).all()
 
-    # If empty, inject initial system ticket messages
     if not messages:
         mock_messages = [
             Message(is_support=True, sender="system", content="Welcome to Golden Ride Support. How can we help you today?"),
-            Message(is_support=True, sender="support", content="Hi Rajesh, we saw you submitted a document verification ticket. Our typical verification time is 2 hours. Is there anything else?")
+            Message(is_support=True, sender="support", content="A support ticket has been created. Our team will contact you shortly.")
         ]
         db.add_all(mock_messages)
         db.commit()

@@ -12,4 +12,9 @@ export const API_ENDPOINTS = {
   RIDE_HISTORY: "/user/rides/history",
   RIDE_DETAIL: (rideId: number | string) => `/user/rides/${rideId}`,
   RIDE_CANCEL: (rideId: number | string) => `/user/rides/${rideId}/cancel`,
+
+  // Messages
+  MESSAGES_RIDE: (rideId: number | string) => `/messages/ride/${rideId}`,
+  MESSAGES_SEND: "/messages",
+  MESSAGES_SUPPORT: "/messages/support",
 };

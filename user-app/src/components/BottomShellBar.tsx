@@ -6,8 +6,8 @@ import { Colors, Spacing, Typography } from "../theme";
 type TabKey = "Home" | "Trips" | "Wallet" | "Profile";
 
 const tabs: Array<{ key: TabKey; icon: keyof typeof Ionicons.glyphMap; label: string }> = [
-  { key: "Home", icon: "navigate-outline", label: "Book" },
-  { key: "Trips", icon: "list-outline", label: "Trips" },
+  { key: "Home", icon: "car-sport-outline", label: "Book" },
+  { key: "Trips", icon: "receipt-outline", label: "Trips" },
   { key: "Wallet", icon: "wallet-outline", label: "Wallet" },
   { key: "Profile", icon: "person-outline", label: "Profile" },
 ];

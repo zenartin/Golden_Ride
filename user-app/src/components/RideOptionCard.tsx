@@ -1,8 +1,75 @@
 import React from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../theme";
 import { RideOption } from "../store/rideStore";
+
+// Maps each ride class id to a specific vehicle icon + badge
+const VEHICLE_CONFIG: Record<
+  string,
+  {
+    icon: React.ReactNode;
+    badge?: string;
+    badgeColor?: string;
+    accentColor: string;
+    bgColor: string;
+  }
+> = {
+  auto: {
+    icon: null, // filled below
+    badge: "Budget Pick",
+    badgeColor: "#16A34A",
+    accentColor: "#16A34A",
+    bgColor: "#F0FDF4",
+  },
+  sedan: {
+    icon: null,
+    badge: "Most Popular",
+    badgeColor: "#D97706",
+    accentColor: Colors.primary,
+    bgColor: "#FFFBEB",
+  },
+  xuv: {
+    icon: null,
+    badge: "Premium Space",
+    badgeColor: "#7C3AED",
+    accentColor: "#7C3AED",
+    bgColor: "#F5F3FF",
+  },
+};
+
+function VehicleIcon({ id, selected, size = 30 }: { id: string; selected: boolean; size?: number }) {
+  if (id === "auto") {
+    // Closest icon for 3-wheeler auto-rickshaw
+    return (
+      <MaterialCommunityIcons
+        name="rickshaw"
+        size={size}
+        color={selected ? "#fff" : "#16A34A"}
+      />
+    );
+  }
+  if (id === "sedan") {
+    return (
+      <MaterialCommunityIcons
+        name="car-back"
+        size={size}
+        color={selected ? "#fff" : Colors.primary}
+      />
+    );
+  }
+  if (id === "xuv") {
+    return (
+      <MaterialCommunityIcons
+        name="car-estate"
+        size={size}
+        color={selected ? "#fff" : "#7C3AED"}
+      />
+    );
+  }
+  // Fallback
+  return <Ionicons name="car-outline" size={size} color={selected ? "#fff" : Colors.primary} />;
+}
 
 export default function RideOptionCard({
   option,
@@ -13,24 +80,78 @@ export default function RideOptionCard({
   selected?: boolean;
   onPress: () => void;
 }) {
+  const config = VEHICLE_CONFIG[option.id] ?? {
+    badge: undefined,
+    badgeColor: Colors.primary,
+    accentColor: Colors.primary,
+    bgColor: Colors.surface,
+  };
+
   return (
-    <Pressable onPress={onPress} style={[styles.card, selected && styles.cardSelected]}>
-      <View style={styles.left}>
-        <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
-          <Ionicons
-            name={option.id === "economy" ? "car-outline" : option.id === "comfort" ? "car-sport-outline" : "diamond-outline"}
-            size={20}
-            color={selected ? Colors.white : Colors.primary}
-          />
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.card,
+        selected && { borderColor: config.accentColor, borderWidth: 2, backgroundColor: config.bgColor },
+      ]}
+    >
+      {/* Top row: icon + name + badge + price */}
+      <View style={styles.topRow}>
+        {/* Vehicle icon bubble */}
+        <View
+          style={[
+            styles.iconWrap,
+            { backgroundColor: selected ? config.accentColor : config.accentColor + "1A" },
+          ]}
+        >
+          <VehicleIcon id={option.id} selected={!!selected} size={26} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{option.title}</Text>
-          <Text style={styles.subtitle}>{option.subtitle}</Text>
+
+        {/* Name + subtitle */}
+        <View style={styles.nameBlock}>
+          <View style={styles.nameRow}>
+            <Text style={[styles.title, selected && { color: config.accentColor }]}>
+              {option.title}
+            </Text>
+            {config.badge && (
+              <View style={[styles.badge, { backgroundColor: config.badgeColor + "20" }]}>
+                <Text style={[styles.badgeText, { color: config.badgeColor }]}>{config.badge}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {option.subtitle}
+          </Text>
         </View>
+
+        {/* Price */}
+        <Text style={[styles.price, selected && { color: config.accentColor }]}>
+          ₹{option.price}
+        </Text>
       </View>
-      <View style={styles.right}>
-        <Text style={styles.price}>Rs. {option.price}</Text>
-        <Text style={styles.meta}>{option.eta} • {option.seats} seats</Text>
+
+      {/* Bottom row: ETA + seats + AC indicator */}
+      <View style={styles.metaRow}>
+        <View style={styles.metaChip}>
+          <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
+          <Text style={styles.metaText}>{option.eta}</Text>
+        </View>
+        <View style={styles.metaChip}>
+          <Ionicons name="people-outline" size={13} color={Colors.textSecondary} />
+          <Text style={styles.metaText}>{option.seats} seats</Text>
+        </View>
+        {/* AC badge for sedan & XUV */}
+        {option.id !== "auto" && (
+          <View style={styles.metaChip}>
+            <Ionicons name="snow-outline" size={13} color="#3B82F6" />
+            <Text style={[styles.metaText, { color: "#3B82F6" }]}>AC</Text>
+          </View>
+        )}
+        {/* Cash accepted chip */}
+        <View style={styles.metaChip}>
+          <Ionicons name="cash-outline" size={13} color={Colors.textSecondary} />
+          <Text style={styles.metaText}>Cash</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -39,26 +160,76 @@ export default function RideOptionCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: Spacing.md,
-    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.md,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     gap: 10,
   },
-  cardSelected: { borderColor: Colors.primary, backgroundColor: "#FFF8EB" },
-  left: { flexDirection: "row", gap: 12, alignItems: "center" },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   iconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: Colors.primary + "22",
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconWrapSelected: { backgroundColor: Colors.primary },
-  title: { color: Colors.textPrimary, fontSize: Typography.body, fontWeight: "800" },
-  subtitle: { color: Colors.textSecondary, fontSize: Typography.caption, marginTop: 2 },
-  right: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  price: { color: Colors.textPrimary, fontSize: Typography.body, fontWeight: "800" },
-  meta: { color: Colors.textSecondary, fontSize: Typography.small },
+  nameBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  title: {
+    color: Colors.textPrimary,
+    fontSize: Typography.body,
+    fontWeight: "800",
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  subtitle: {
+    color: Colors.textSecondary,
+    fontSize: Typography.caption,
+  },
+  price: {
+    color: Colors.textPrimary,
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  metaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  metaText: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: "600",
+  },
 });

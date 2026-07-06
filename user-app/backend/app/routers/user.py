@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.driver import Driver
+from app.models.message import Notification
 from app.models.ride import Ride
 from app.models.user import User
 from app.schemas.auth import LoginRequest, OtpRequest, OtpVerifyRequest, UserRegisterRequest, UserToken
@@ -21,9 +23,9 @@ from app.utils.security import create_access_token, get_current_user, get_passwo
 router = APIRouter(prefix="/user", tags=["user"])
 
 RIDE_META = {
-    "economy": {"title": "Ride Lite", "subtitle": "Best for quick solo trips", "seats": 3, "multiplier": 1.0},
-    "comfort": {"title": "Comfort", "subtitle": "More space and quieter rides", "seats": 4, "multiplier": 1.35},
-    "premium": {"title": "Premier", "subtitle": "Top-rated cars and drivers", "seats": 4, "multiplier": 1.8},
+    "auto":  {"title": "Auto",  "subtitle": "Quick & budget-friendly 3-wheeler", "seats": 3, "multiplier": 1.0},
+    "sedan": {"title": "Sedan", "subtitle": "Comfortable AC car for daily rides",  "seats": 4, "multiplier": 1.4},
+    "xuv":   {"title": "XUV",   "subtitle": "Spacious SUV for groups & luggage",   "seats": 6, "multiplier": 1.85},
 }
 
 
@@ -226,6 +228,19 @@ def book_ride(
     db.add(ride)
     db.commit()
     db.refresh(ride)
+
+    # Notify all online drivers about the new booking request
+    active_drivers = db.query(Driver).filter(Driver.is_online == True).all()
+    for driver in active_drivers:
+        notification = Notification(
+            driver_id=driver.id,
+            title="New ride request",
+            message=f"A new ride is available from {payload.pickup} to {payload.dropoff}.",
+            type="ride",
+        )
+        db.add(notification)
+    db.commit()
+
     return ride
 
 

@@ -1,2 +1,41 @@
-version: '3'
-services: {}
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: golden_ride_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: golden_ride
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./driver-app/backend
+      dockerfile: Dockerfile
+    container_name: golden_ride_backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:12345@postgres:5432/golden_ride
+      - SECRET_KEY=super_secret_key_change_me_in_production_123456789
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - RIDE_EXPIRY_SECONDS=60
+      - FARE_BASE_RATE=42.0
+      - FARE_PER_KM_ECONOMY=12.0
+      - FARE_PER_KM_COMFORT=16.2
+      - FARE_PER_KM_PREMIUM=21.6
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./driver-app/backend/uploads:/workspace/uploads
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

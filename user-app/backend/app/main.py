@@ -7,7 +7,7 @@ from sqlalchemy import inspect, text
 from app.config import settings
 from app.database import engine, Base
 from app.models import driver, message, ride, user as user_model  # noqa: F401
-from app.routers import user
+from app.routers import messages, user
 
 # Initialize Database tables if they do not exist
 # In production, migrations (using Alembic) are used. 
@@ -61,6 +61,7 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=settings.UPLOAD_DIR), name="static")
 
 app.include_router(user.router, prefix="/api")
+app.include_router(messages.router, prefix="/api")
 
 @app.get("/")
 def read_root():
