@@ -15,7 +15,7 @@ const VEHICLE_CONFIG: Record<
     bgColor: string;
   }
 > = {
-  auto: {
+  hatchback: {
     icon: null, // filled below
     badge: "Budget Pick",
     badgeColor: "#16A34A",
@@ -39,11 +39,10 @@ const VEHICLE_CONFIG: Record<
 };
 
 function VehicleIcon({ id, selected, size = 30 }: { id: string; selected: boolean; size?: number }) {
-  if (id === "auto") {
-    // Closest icon for 3-wheeler auto-rickshaw
+  if (id === "hatchback") {
     return (
       <MaterialCommunityIcons
-        name="rickshaw"
+        name="car-hatchback"
         size={size}
         color={selected ? "#fff" : "#16A34A"}
       />
@@ -141,12 +140,11 @@ export default function RideOptionCard({
           <Text style={styles.metaText}>{option.seats} seats</Text>
         </View>
         {/* AC badge for sedan & XUV */}
-        {option.id !== "auto" && (
-          <View style={styles.metaChip}>
-            <Ionicons name="snow-outline" size={13} color="#3B82F6" />
-            <Text style={[styles.metaText, { color: "#3B82F6" }]}>AC</Text>
-          </View>
-        )}
+        {/* AC badge for cars */}
+        <View style={styles.metaChip}>
+          <Ionicons name="snow-outline" size={13} color="#3B82F6" />
+          <Text style={[styles.metaText, { color: "#3B82F6" }]}>AC</Text>
+        </View>
         {/* Cash accepted chip */}
         <View style={styles.metaChip}>
           <Ionicons name="cash-outline" size={13} color={Colors.textSecondary} />

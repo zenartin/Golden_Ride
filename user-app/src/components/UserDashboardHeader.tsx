@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../store/authStore";
 import { Colors, Spacing, Typography } from "../theme";
@@ -13,9 +14,10 @@ type Props = {
 export default function UserDashboardHeader({ activeTab, onProfilePress }: Props) {
   const user = useAuthStore((state) => state.user);
   const firstName = user?.name?.split(" ")[0] || "Rider";
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
       <View style={styles.titleBlock}>
         <Text style={styles.greeting}>Good morning, {firstName}</Text>
         <Text style={styles.subtitle}>{activeTab === "Home" ? "Where are we going today?" : "Golden Ride passenger app"}</Text>
@@ -40,7 +42,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.lg,
     paddingBottom: Spacing.sm,
     backgroundColor: Colors.background,
   },

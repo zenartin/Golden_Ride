@@ -24,6 +24,8 @@ interface AuthState {
   verifyOtp: (payload: { phone: string; otp: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
+  updateProfile: (name: string, email: string, phone: string) => Promise<boolean>;
 }
 
 type AuthResponse = {
@@ -167,6 +169,44 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           error: null,
         });
+      },
+      fetchProfile: async () => {
+        try {
+          const profile = await apiRequest<ProfileResponse>(API_ENDPOINTS.PROFILE);
+          set({
+            user: {
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              phone: profile.phone,
+              avatar: profile.avatar,
+            },
+          });
+        } catch (error) {
+          console.log("Fetch profile error:", error);
+        }
+      },
+      updateProfile: async (name, email, phone) => {
+        try {
+          const updated = await apiRequest<ProfileResponse>(API_ENDPOINTS.UPDATE_PROFILE, {
+            method: "PUT",
+            body: { name, email, phone },
+          });
+          set({
+            user: {
+              id: updated.id,
+              name: updated.name,
+              email: updated.email,
+              phone: updated.phone,
+              avatar: updated.avatar,
+            },
+            error: null,
+          });
+          return true;
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : "Profile update failed" });
+          return false;
+        }
       },
     }),
     {

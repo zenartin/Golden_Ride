@@ -1,9 +1,11 @@
+import { moderateScale } from "react-native-size-matters";
+
 export const Typography = {
-  tiny: 11,
-  small: 12,
-  caption: 13,
-  body: 15,
-  subHeading: 18,
-  heading: 24,
-  hero: 32,
+  tiny: moderateScale(11),
+  small: moderateScale(12),
+  caption: moderateScale(13),
+  body: moderateScale(15),
+  subHeading: moderateScale(18),
+  heading: moderateScale(24),
+  hero: moderateScale(32),
 };

@@ -1,10 +1,14 @@
-import React from "react";
-import { Alert, Text, View, StyleSheet, Pressable, ScrollView } from "react-native";
+import React, { useState } from "react";
+import { Alert, Text, View, StyleSheet, Pressable, ScrollView, Image, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { MainStackParamList } from "../../navigation/MainNavigator";
 import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
+import { BASE_URL } from "../../api/client";
 
 type Props = {
   navigation: {
@@ -15,6 +19,8 @@ type Props = {
 export default function ProfileScreen({ navigation }: Props) {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const insets = useSafeAreaInsets();
+  const [uploading, setUploading] = useState(false);
 
   const signOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -29,91 +35,205 @@ export default function ProfileScreen({ navigation }: Props) {
     ]);
   };
 
+  const handleEditPhoto = () => {
+    Alert.alert(
+      "Profile Photo",
+      "Choose an option to update your profile photo:",
+      [
+        { text: "Take Photo", onPress: takePhoto },
+        { text: "Choose from Gallery", onPress: pickImage },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Required", "Please allow access to your photos to upload a profile picture.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      await uploadAvatar(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Required", "Please allow camera access to take a profile picture.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      await uploadAvatar(result.assets[0].uri);
+    }
+  };
+
+  const uploadAvatar = async (uri: string) => {
+    setUploading(true);
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      const formData = new FormData();
+      const filename = uri.split("/").pop() || "avatar.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append("file", {
+        uri,
+        name: filename,
+        type,
+      } as any);
+
+      const uploadUrl = `${BASE_URL}/profile/upload-avatar`;
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok && data.status === "success") {
+        Alert.alert("Success", "Profile photo uploaded successfully!");
+        await useAuthStore.getState().fetchProfile();
+      } else {
+        throw new Error(data.detail || "Upload failed");
+      }
+    } catch (err: any) {
+      Alert.alert("Upload Failed", err?.message || "Could not upload profile picture.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "R";
 
+  // Prepend Base URL to relative static static path
+  const hostUrl = BASE_URL.replace("/api", "");
+  const avatarUrl = user?.avatar ? `${hostUrl}${user.avatar}` : null;
+
   return (
-    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      {/* Profile Header */}
-      <View style={styles.headerCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+    <View style={styles.root}>
+      {/* Premium Header with Notch spacing */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={styles.headerTitle}>Profile & Settings</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Profile Header */}
+        <View style={styles.headerCard}>
+          <Pressable style={styles.avatarContainer} onPress={handleEditPhoto} disabled={uploading}>
+            {uploading ? (
+              <View style={styles.avatar}>
+                <ActivityIndicator size="small" color={Colors.white} />
+              </View>
+            ) : avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+            {/* Edit overlay badge */}
+            <View style={styles.editBadge}>
+              <Ionicons name="camera" size={14} color={Colors.white} />
+            </View>
+          </Pressable>
+          <Text style={styles.name}>{user?.name || "Golden Rider"}</Text>
+          <Text style={styles.metaEmail}>{user?.email || "rider@goldenride.com"}</Text>
+          <Text style={styles.metaPhone}>📞 {user?.phone || "+91 99999 88888"}</Text>
         </View>
-        <Text style={styles.name}>{user?.name || "Golden Rider"}</Text>
-        <Text style={styles.metaEmail}>{user?.email || "rider@goldenride.com"}</Text>
-        <Text style={styles.metaPhone}>📞 {user?.phone || "+91 99999 88888"}</Text>
-      </View>
 
-      {/* Account Section */}
-      <Text style={styles.sectionTitle}>Account settings</Text>
-      <View style={styles.menuGroup}>
-        {/* API Console Link */}
+        {/* Account Section */}
+        <Text style={styles.sectionTitle}>Account settings</Text>
+        <View style={styles.menuGroup}>
+
+
+          {/* Saved Places */}
+          <Pressable style={styles.menuItem}>
+            <View style={[styles.iconWrap, { backgroundColor: "#EBFDF5" }]}>
+              <Ionicons name="location-outline" size={20} color="#10B981" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuLabel}>Saved Locations</Text>
+              <Text style={styles.menuSublabel}>Home, Work and frequent destinations</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        {/* Support Section */}
+        <Text style={styles.sectionTitle}>Support & Information</Text>
+        <View style={styles.menuGroup}>
+          <Pressable style={styles.menuItem}>
+            <View style={[styles.iconWrap, { backgroundColor: "#FFFBEB" }]}>
+              <Ionicons name="help-circle-outline" size={20} color="#F59E0B" />
+            </View>
+            <Text style={[styles.menuLabel, { flex: 1 }]}>Help & Support Desk</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+
+          <View style={styles.separator} />
+
+          <Pressable style={styles.menuItem}>
+            <View style={[styles.iconWrap, { backgroundColor: "#FDF2F8" }]}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#EC4899" />
+            </View>
+            <Text style={[styles.menuLabel, { flex: 1 }]}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        {/* Logout Action */}
         <Pressable
-          style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-          onPress={() => navigation.navigate("ApiConsole")}
+          style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
+          onPress={signOut}
         >
-          <View style={[styles.iconWrap, { backgroundColor: "#EEF2F6" }]}>
-            <Ionicons name="code-working-outline" size={20} color={Colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.menuLabel}>Developer API Console</Text>
-            <Text style={styles.menuSublabel}>Test endpoints and see database state</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Sign Out</Text>
         </Pressable>
-
-        <View style={styles.separator} />
-
-        {/* Saved Places */}
-        <Pressable style={styles.menuItem}>
-          <View style={[styles.iconWrap, { backgroundColor: "#EBFDF5" }]}>
-            <Ionicons name="location-outline" size={20} color="#10B981" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.menuLabel}>Saved Locations</Text>
-            <Text style={styles.menuSublabel}>Home, Work and frequent destinations</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
-
-      {/* Support Section */}
-      <Text style={styles.sectionTitle}>Support & Information</Text>
-      <View style={styles.menuGroup}>
-        <Pressable style={styles.menuItem}>
-          <View style={[styles.iconWrap, { backgroundColor: "#FFFBEB" }]}>
-            <Ionicons name="help-circle-outline" size={20} color="#F59E0B" />
-          </View>
-          <Text style={[styles.menuLabel, { flex: 1 }]}>Help & Support Desk</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-        </Pressable>
-
-        <View style={styles.separator} />
-
-        <Pressable style={styles.menuItem}>
-          <View style={[styles.iconWrap, { backgroundColor: "#FDF2F8" }]}>
-            <Ionicons name="shield-checkmark-outline" size={20} color="#EC4899" />
-          </View>
-          <Text style={[styles.menuLabel, { flex: 1 }]}>Privacy Policy</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
-
-      {/* Logout Action */}
-      <Pressable
-        style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
-        onPress={signOut}
-      >
-        <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-        <Text style={styles.logoutText}>Sign Out</Text>
-      </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { gap: 14, paddingBottom: 32 },
+  root: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  headerTitle: {
+    fontSize: Typography.heading,
+    fontWeight: "900",
+    color: Colors.textPrimary,
+  },
+  scroll: {
+    padding: Spacing.lg,
+    paddingBottom: 40,
+    gap: 14,
+  },
   headerCard: {
     backgroundColor: Colors.surface,
     borderRadius: 24,
@@ -126,19 +246,47 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: 12,
+  },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
   },
   avatarText: {
     color: Colors.white,
     fontWeight: "900",
     fontSize: Typography.heading,
+  },
+  editBadge: {
+    position: "absolute",
+    bottom: -4,
+    right: -4,
+    backgroundColor: Colors.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   name: {
     color: Colors.textPrimary,

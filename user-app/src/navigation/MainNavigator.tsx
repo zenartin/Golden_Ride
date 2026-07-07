@@ -5,7 +5,6 @@ import MainShellScreen from "../screens/main/MainShellScreen";
 import TrackRideScreen from "../screens/main/TrackRideScreen";
 import TripDetailScreen from "../screens/main/TripDetailScreen";
 import ChatScreen from "../screens/main/ChatScreen";
-import ApiConsoleScreen from "../screens/main/ApiConsoleScreen";
 import LocationPickerScreen from "../screens/main/LocationPickerScreen";
 import { GeocodedPlace } from "../services/geocoding";
 
@@ -14,7 +13,6 @@ export type MainStackParamList = {
   TrackRide: undefined;
   TripDetail: { tripId: string };
   Chat: { rideId: string };
-  ApiConsole: undefined;
   LocationPicker: { mode: "pickup" | "dropoff" };
 };
 
@@ -27,7 +25,6 @@ export default function MainNavigator() {
       <Stack.Screen name="TrackRide" component={TrackRideScreen} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="ApiConsole" component={ApiConsoleScreen} />
       <Stack.Screen
         name="LocationPicker"
         component={LocationPickerScreen}

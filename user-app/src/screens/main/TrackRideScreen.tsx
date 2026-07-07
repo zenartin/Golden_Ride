@@ -15,7 +15,7 @@ type Props = NativeStackScreenProps<MainStackParamList, "TrackRide">;
 const statusSteps = [
   { key: "searching", label: "Searching", icon: "search-outline" },
   { key: "confirmed", label: "Confirmed", icon: "checkmark-circle-outline" },
-  { key: "arriving", label: "Driver En Route", icon: "car-outline" },
+  { key: "arriving", label: "Driver Arrived", icon: "car-outline" },
   { key: "on_trip", label: "On Trip", icon: "navigate-outline" },
   { key: "completed", label: "Completed", icon: "flag-outline" },
 ] as const;
@@ -31,11 +31,20 @@ const statusColors: Record<string, string> = {
 
 const statusDescriptions: Record<string, string> = {
   searching: "Sending your request to nearby drivers…",
-  confirmed: "A driver has accepted your ride!",
-  arriving: "Your driver is heading to your pickup location.",
+  confirmed: "Your driver is heading to your pickup location.",
+  arriving: "Your driver has arrived at the pickup location.",
   on_trip: "You're on the way to your destination.",
   completed: "You've arrived! Trip completed.",
   cancelled: "This trip was cancelled.",
+};
+
+const statusHeaders: Record<string, string> = {
+  searching: "Searching for driver…",
+  confirmed: "Ride Confirmed",
+  arriving: "Driver Arrived",
+  on_trip: "Trip Started",
+  completed: "Trip Completed",
+  cancelled: "Trip Cancelled",
 };
 
 export default function TrackRideScreen({ navigation }: Props) {
@@ -192,9 +201,7 @@ export default function TrackRideScreen({ navigation }: Props) {
             )}
             <View style={{ flex: 1 }}>
               <Text style={[styles.statusBig, { color: currentColor }]}>
-                {activeTrip.status === "searching"
-                  ? "Searching for driver…"
-                  : activeTrip.status.replace("_", " ").toUpperCase()}
+                {statusHeaders[activeTrip.status] ?? activeTrip.status.toUpperCase()}
               </Text>
               <Text style={styles.statusDesc}>{currentDesc}</Text>
             </View>
@@ -346,9 +353,10 @@ const styles = StyleSheet.create({
   timelineConnector: {
     position: "absolute",
     top: 10,
-    left: "60%",
-    right: "-60%",
-    height: 1.5,
+    left: "50%",
+    width: "100%",
+    height: 2,
+    zIndex: -1,
   },
   carMarker: {
     backgroundColor: Colors.primary,

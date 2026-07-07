@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiRequest } from "../api/client";
 import { API_ENDPOINTS } from "../api/endpoints";
 
-type RideClass = "auto" | "sedan" | "xuv";
+type RideClass = "hatchback" | "sedan" | "xuv";
 export type RideStatus = "searching" | "confirmed" | "arriving" | "on_trip" | "completed" | "cancelled";
 
 export interface RideOption {
@@ -69,6 +69,10 @@ interface RideState {
   walletBalance: number;
   transactions: WalletTransaction[];
   chatMessages: ChatMessage[];
+  appliedCoupon: string | null;
+  couponDiscount: number;
+  applyCoupon: (code: string, fare: number) => Promise<boolean>;
+  removeCoupon: () => void;
   setPickup: (value: string, coords?: { lat: number; lon: number }) => void;
   setDropoff: (value: string, coords?: { lat: number; lon: number }) => void;
   setSelectedRideClass: (value: RideClass) => void;
@@ -87,9 +91,9 @@ interface RideState {
 }
 
 const rideMeta: Record<RideClass, { title: string; subtitle: string; seats: number; multiplier: number; icon: string }> = {
-  auto:  { title: "Auto",  subtitle: "Quick & budget-friendly 3-wheeler", seats: 3, multiplier: 1,    icon: "bicycle-outline" },
-  sedan: { title: "Sedan", subtitle: "Comfortable AC car for daily rides",  seats: 4, multiplier: 1.4,  icon: "car-sport-outline" },
-  xuv:   { title: "XUV",   subtitle: "Spacious SUV for groups & luggage",   seats: 6, multiplier: 1.85, icon: "car-outline" },
+  hatchback: { title: "Hatchback", subtitle: "Budget compact AC hatchback", seats: 4, multiplier: 1.0, icon: "car-outline" },
+  sedan:     { title: "Sedan",     subtitle: "Comfortable AC car for daily rides", seats: 4, multiplier: 1.4,   icon: "car-sport-outline" },
+  xuv:       { title: "XUV",       subtitle: "Spacious SUV for groups & luggage",  seats: 6, multiplier: 1.85,  icon: "car-outline" },
 };
 
 const estimateDistance = (pickup: string, dropoff: string) => {
@@ -185,6 +189,8 @@ const mapApiRide = (ride: ApiRide): Trip => {
 export const useRideStore = create<RideState>()(
   persist(
     (set, get) => ({
+      appliedCoupon: null,
+      couponDiscount: 0,
       pickup: "",
       dropoff: "",
       pickupCoords: null,
@@ -196,8 +202,8 @@ export const useRideStore = create<RideState>()(
       walletBalance: 0,
       transactions: [],
       chatMessages: [],
-      setPickup: (value, coords) => set({ pickup: value, pickupCoords: coords ?? null, rideOptions: [] }),
-      setDropoff: (value, coords) => set({ dropoff: value, dropoffCoords: coords ?? null, rideOptions: [] }),
+      setPickup: (value, coords) => set({ pickup: value, pickupCoords: coords ?? null, rideOptions: [], appliedCoupon: null, couponDiscount: 0 }),
+      setDropoff: (value, coords) => set({ dropoff: value, dropoffCoords: coords ?? null, rideOptions: [], appliedCoupon: null, couponDiscount: 0 }),
       setSelectedRideClass: (value) => set({ selectedRideClass: value }),
       searchRides: async () => {
         const { pickup, dropoff, pickupCoords, dropoffCoords } = get();
@@ -215,17 +221,17 @@ export const useRideStore = create<RideState>()(
             },
           });
           const rideOptions = response.options;
-          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "sedan" });
+          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "sedan", appliedCoupon: null, couponDiscount: 0 });
           return rideOptions;
         } catch (err: any) {
           // Fallback: calculate fare locally if server is unreachable
           const rideOptions = createOptions(pickup, dropoff);
-          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? "sedan" });
+          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? "sedan", appliedCoupon: null, couponDiscount: 0 });
           return rideOptions;
         }
       },
       bookRide: async (paymentMethod = "Cash") => {
-        const { pickup, dropoff, pickupCoords, dropoffCoords, rideOptions, selectedRideClass } = get();
+        const { pickup, dropoff, pickupCoords, dropoffCoords, rideOptions, selectedRideClass, appliedCoupon } = get();
         if (!pickup.trim() || !dropoff.trim()) throw new Error("Please enter pickup and dropoff locations.");
 
         const chosen = rideOptions.find((item) => item.id === selectedRideClass) ?? rideOptions[0];
@@ -243,13 +249,14 @@ export const useRideStore = create<RideState>()(
             pickup_longitude: pickupCoords?.lon,
             dropoff_latitude: dropoffCoords?.lat,
             dropoff_longitude: dropoffCoords?.lon,
+            coupon_code: appliedCoupon || undefined,
           },
         });
 
         const trip = mapApiRide(ride);
         // Status after booking = "searching" (waiting for driver to accept)
         const tripSearching: Trip = { ...trip, status: "searching" };
-        set({ activeTrip: tripSearching });
+        set({ activeTrip: tripSearching, appliedCoupon: null, couponDiscount: 0 });
         return tripSearching;
       },
       refreshActiveTrip: async () => {
@@ -388,6 +395,37 @@ export const useRideStore = create<RideState>()(
           
           return { activeTrip: updated };
         });
+      },
+      applyCoupon: async (code, fare) => {
+        const { pickupCoords } = get();
+        try {
+          const response = await apiRequest<{
+            valid: boolean;
+            code: string;
+            discount_amount: number;
+            discounted_fare: number;
+            message: string;
+          }>(API_ENDPOINTS.COUPON_VALIDATE, {
+            method: "POST",
+            body: {
+              code,
+              fare_amount: fare,
+              latitude: pickupCoords?.lat,
+              longitude: pickupCoords?.lon,
+            },
+          });
+          if (response.valid) {
+            set({ appliedCoupon: response.code, couponDiscount: response.discount_amount });
+            return true;
+          }
+          return false;
+        } catch (error: any) {
+          set({ appliedCoupon: null, couponDiscount: 0 });
+          throw error;
+        }
+      },
+      removeCoupon: () => {
+        set({ appliedCoupon: null, couponDiscount: 0 });
       },
     }),
     {

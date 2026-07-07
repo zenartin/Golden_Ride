@@ -10,6 +10,7 @@ import {
   Platform,
   Keyboard,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -30,6 +31,7 @@ const INITIAL_REGION = {
 export default function LocationPickerScreen({ navigation, route }: Props) {
   const { mode } = route.params; // "pickup" | "dropoff"
   const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodedPlace[]>([]);
@@ -116,7 +118,7 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
         </Pressable>
@@ -204,7 +206,7 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
 
         {/* Confirm button */}
         {selected && (
-          <View style={styles.confirmWrap}>
+          <View style={[styles.confirmWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.selectedChip}>
               <View style={[styles.chipDot, { backgroundColor: pinColor }]} />
               <Text style={styles.chipText} numberOfLines={1}>{selected.shortName}</Text>
@@ -226,7 +228,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 56 : 48,
     paddingBottom: 12,
     paddingHorizontal: Spacing.lg,
     backgroundColor: Colors.surface,
@@ -309,7 +310,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: 12,
     borderTopWidth: 1, borderTopColor: Colors.border,
-    paddingBottom: 32,
   },
   selectedChip: {
     flexDirection: "row", alignItems: "center", gap: 8,

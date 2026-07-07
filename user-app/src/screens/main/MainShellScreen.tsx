@@ -1,10 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import BottomShellBar from "../../components/BottomShellBar";
-import UserDashboardHeader from "../../components/UserDashboardHeader";
-import UserQuickActions from "../../components/UserQuickActions";
 import { Colors } from "../../theme";
 import HomeScreen from "./HomeScreen";
 import TripsScreen from "./TripsScreen";
@@ -27,18 +25,9 @@ export default function MainShellScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <UserDashboardHeader activeTab={tab} onProfilePress={() => setTab("Profile")} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <UserQuickActions
-          actions={[
-            { icon: "car-sport-outline", label: "Book", color: "#FEF3C7", onPress: () => setTab("Home") },
-            { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => setTab("Trips") },
-            { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => setTab("Wallet") },
-            { icon: "headset-outline", label: "Help", color: "#EDE9FE", onPress: () => setTab("Profile") },
-          ]}
-        />
+      <View style={{ flex: 1 }}>
         {content}
-      </ScrollView>
+      </View>
       <BottomShellBar activeTab={tab} onTabPress={setTab} />
     </View>
   );
@@ -46,5 +35,4 @@ export default function MainShellScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: 16, paddingBottom: 24, gap: 16 },
 });

@@ -51,12 +51,12 @@ export function connectUserWebSocket(userId: number, token: string) {
       else if (msg.type === "ride_expired") {
         setActiveTripStatus("cancelled");
         Alert.alert("Ride Expired", "No driver accepted your request within 60 seconds.");
-        navigate("Home");
+        navigate("Shell");
       } 
       else if (msg.type === "ride_cancelled") {
         setActiveTripStatus("cancelled");
         Alert.alert("Ride Cancelled", "This ride request was cancelled.");
-        navigate("Home");
+        navigate("Shell");
       }
       else if (msg.type === "ride_status_update") {
         let mappedStatus: import("../store/rideStore").RideStatus = "confirmed";
@@ -88,7 +88,7 @@ export function connectUserWebSocket(userId: number, token: string) {
         }
         
         if (mappedStatus === "completed" || mappedStatus === "cancelled") {
-          navigate("Home");
+          navigate("Shell");
         }
       }
     } catch (err) {
@@ -113,6 +113,15 @@ export function connectUserWebSocket(userId: number, token: string) {
 
 export function disconnectUserWebSocket() {
   isExplicitDisconnect = true;
+  if (socket) {
+    socket.onopen = null;
+    socket.onmessage = null;
+    socket.onclose = null;
+    socket.onerror = null;
+    try {
+      socket.close();
+    } catch (e) {}
+  }
   cleanupSocket();
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
@@ -125,7 +134,12 @@ function cleanupSocket() {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
   }
-  socket = null;
+  if (socket) {
+    try {
+      socket.close();
+    } catch (err) {}
+    socket = null;
+  }
 }
 
 function scheduleReconnect(userId: number, token: string) {
