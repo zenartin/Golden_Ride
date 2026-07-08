@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { MainStackParamList } from "../../navigation/MainNavigator";
 import { Colors, Spacing, Typography } from "../../theme";
-import apiClient from "../../api/client";
+import { apiRequest } from "../../api/client";
 
 type ContentScreenRouteProp = RouteProp<MainStackParamList, 'Content'>;
 
@@ -20,8 +20,8 @@ export default function ContentScreen() {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const response = await apiClient.get(`/content/${slug}`);
-        setContent(response.data.content);
+        const response = await apiRequest<{ content: string }>(`/content/${slug}`);
+        setContent(response.content);
       } catch (err) {
         setError("Failed to load content. Please try again later.");
       } finally {
