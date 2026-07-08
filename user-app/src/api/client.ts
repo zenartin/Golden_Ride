@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.218.189.121:8001/api";
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.233.162.121:8001/api";
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
