@@ -352,24 +352,12 @@ export const useRideStore = create<RideState>()(
             method: "POST",
             body: { amount },
           });
-          set((state) => ({
-            walletBalance: response.wallet_balance,
-            transactions: [
-              { id: `tx-${Date.now()}`, title: "Wallet top-up", amount, type: "credit", date: new Date().toISOString() },
-              ...state.transactions,
-            ],
-          }));
-          return;
-        } catch {
-          // Fall back to local state for offline UI demos.
+          set({ walletBalance: response.wallet_balance });
+          await get().refreshWallet();
+        } catch (err) {
+          console.log("Top-up failed", err);
+          throw err;
         }
-        set((state) => ({
-          walletBalance: state.walletBalance + amount,
-          transactions: [
-            { id: `tx-${Date.now()}`, title: "Wallet top-up", amount, type: "credit", date: new Date().toISOString() },
-            ...state.transactions,
-          ],
-        }));
       },
       setActiveTripStatus: (status, driverData) => {
         set((state) => {

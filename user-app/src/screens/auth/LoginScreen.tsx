@@ -11,14 +11,18 @@ export default function LoginScreen({ navigation }: any) {
   const requestOtp = useAuthStore((state) => state.requestOtp);
   const verifyOtp = useAuthStore((state) => state.verifyOtp);
   const error = useAuthStore((state) => state.error);
-  const [email, setEmail] = useState("user@goldenride.com");
-  const [password, setPassword] = useState("123456");
-  const [phone, setPhone] = useState("9876543210");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
 
   const submit = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Missing credentials", "Please enter both email and password.");
+      return;
+    }
     setLoading(true);
     const ok = await login({ email, password });
     setLoading(false);
@@ -28,6 +32,10 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   const sendOtp = async () => {
+    if (!phone.trim()) {
+      Alert.alert("Missing phone", "Please enter a valid phone number.");
+      return;
+    }
     setOtpLoading(true);
     const sandboxOtp = await requestOtp(phone);
     setOtpLoading(false);
@@ -40,6 +48,10 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   const submitOtp = async () => {
+    if (!phone.trim() || !otp.trim()) {
+      Alert.alert("Missing credentials", "Please enter phone and OTP.");
+      return;
+    }
     setOtpLoading(true);
     const ok = await verifyOtp({ phone, otp });
     setOtpLoading(false);

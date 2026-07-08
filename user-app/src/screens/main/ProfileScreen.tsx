@@ -36,15 +36,35 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const handleEditPhoto = () => {
+    const options = [
+      { text: "Take Photo", onPress: takePhoto },
+      { text: "Choose from Gallery", onPress: pickImage },
+    ];
+    if (user?.avatar) {
+      options.push({ text: "Remove Photo", style: "destructive", onPress: removePhoto });
+    }
+    options.push({ text: "Cancel", style: "cancel" });
+
     Alert.alert(
       "Profile Photo",
       "Choose an option to update your profile photo:",
-      [
-        { text: "Take Photo", onPress: takePhoto },
-        { text: "Choose from Gallery", onPress: pickImage },
-        { text: "Cancel", style: "cancel" },
-      ]
+      options
     );
+  };
+
+  const removePhoto = async () => {
+    Alert.alert("Remove Photo", "Are you sure you want to remove your profile photo?", [
+      { text: "Cancel", style: "cancel" },
+      { 
+        text: "Remove", 
+        style: "destructive", 
+        onPress: async () => {
+          setUploading(true);
+          await useAuthStore.getState().removeAvatar();
+          setUploading(false);
+        }
+      }
+    ]);
   };
 
   const pickImage = async () => {

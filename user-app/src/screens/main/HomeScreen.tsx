@@ -11,7 +11,9 @@ import {
   TextInput,
   KeyboardAvoidingView,
   ScrollView,
+  BackHandler,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
@@ -76,6 +78,22 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
       );
     }
   }, [pickupCoords, dropoffCoords]);
+
+  // Handle hardware back button to clear ride options instead of exiting
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (rideOptions && rideOptions.length > 0) {
+          useRideStore.setState({ rideOptions: [] });
+          return true; // handled
+        }
+        return false; // let default behavior happen
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [rideOptions?.length])
+  );
 
   const handleSearch = async () => {
     if (!pickup.trim() || !dropoff.trim()) {
@@ -268,16 +286,20 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      <UserDashboardHeader activeTab="Home" onProfilePress={() => openTab("Profile")} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <UserQuickActions
-          actions={[
-            { icon: "car-sport-outline", label: "Book", color: "#FEF3C7", onPress: () => openTab("Home") },
-            { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => openTab("Trips") },
-            { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => openTab("Wallet") },
-            { icon: "headset-outline", label: "Help", color: "#EDE9FE", onPress: () => openTab("Profile") },
-          ]}
-        />
+      {rideOptions.length === 0 && (
+        <UserDashboardHeader activeTab="Home" onProfilePress={() => openTab("Profile")} />
+      )}
+      <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        {rideOptions.length === 0 && (
+          <UserQuickActions
+            actions={[
+              { icon: "car-sport-outline", label: "Book", color: "#FEF3C7", onPress: () => openTab("Home") },
+              { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => openTab("Trips") },
+              { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => openTab("Wallet") },
+              { icon: "headset-outline", label: "Help", color: "#EDE9FE", onPress: () => openTab("Profile") },
+            ]}
+          />
+        )}
 
         {/* Active ride banner */}
         {isActiveRide && (
@@ -289,7 +311,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
         )}
 
         {/* Map Card */}
-        <View style={styles.mapCard}>
+        <View style={[styles.mapCard, { height: rideOptions.length > 0 ? 300 : 250 }]}>
           <MapView
             ref={mapRef}
             style={styles.map}
@@ -330,58 +352,75 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           </MapView>
         </View>
 
-        {/* Location inputs */}
-        <View style={styles.card}>
-          <SectionHeader title="Where are you going?" />
-
-          <View style={styles.inputRow}>
-            <View style={styles.dotLine}>
-              <View style={[styles.dot, { backgroundColor: "#10B981" }]} />
-              <View style={styles.line} />
-              <View style={[styles.dot, { backgroundColor: Colors.primary }]} />
+        {/* Location inputs or Summary */}
+        {rideOptions.length > 0 ? (
+          <View style={styles.summaryCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.summaryLabel}>Pickup</Text>
+              <Text style={styles.summaryValue} numberOfLines={1}>{pickup}</Text>
             </View>
-
-            <View style={{ flex: 1, gap: 10 }}>
-              {/* Pickup */}
-              <Pressable
-                style={[styles.inputBox, pickup ? styles.inputBoxFilled : null]}
-                onPress={() => navigation.navigate("LocationPicker", { mode: "pickup" })}
-              >
-                <Text style={pickup ? styles.inputText : styles.inputPlaceholder} numberOfLines={1}>
-                  {pickup || "Tap to set pickup location"}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-              </Pressable>
-
-              {/* Dropoff */}
-              <Pressable
-                style={[styles.inputBox, dropoff ? styles.inputBoxFilled : null]}
-                onPress={() => navigation.navigate("LocationPicker", { mode: "dropoff" })}
-              >
-                <Text style={dropoff ? styles.inputText : styles.inputPlaceholder} numberOfLines={1}>
-                  {dropoff || "Tap to set destination"}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-              </Pressable>
+            <Ionicons name="arrow-forward" size={20} color={Colors.textSecondary} style={{ marginHorizontal: 12 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.summaryLabel}>Dropoff</Text>
+              <Text style={styles.summaryValue} numberOfLines={1}>{dropoff}</Text>
             </View>
+            <Pressable onPress={() => useRideStore.setState({ rideOptions: [] })} style={styles.editBtn}>
+              <Ionicons name="pencil" size={18} color={Colors.primary} />
+            </Pressable>
           </View>
+        ) : (
+          <View style={styles.card}>
+            <SectionHeader title="Where are you going?" />
 
-          <AppButton
-            title={searching ? "Calculating fare…" : "Get Fare"}
-            onPress={handleSearch}
-            style={{ opacity: searching ? 0.7 : 1 }}
-          />
-          {searching && (
-            <View style={styles.row}>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.muted}>Fetching real route via OpenStreetMap…</Text>
+            <View style={styles.inputRow}>
+              <View style={styles.dotLine}>
+                <View style={[styles.dot, { backgroundColor: "#10B981" }]} />
+                <View style={styles.line} />
+                <View style={[styles.dot, { backgroundColor: Colors.primary }]} />
+              </View>
+
+              <View style={{ flex: 1, gap: 10 }}>
+                {/* Pickup */}
+                <Pressable
+                  style={[styles.inputBox, pickup ? styles.inputBoxFilled : null]}
+                  onPress={() => navigation.navigate("LocationPicker", { mode: "pickup" })}
+                >
+                  <Text style={pickup ? styles.inputText : styles.inputPlaceholder} numberOfLines={1}>
+                    {pickup || "Tap to set pickup location"}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </Pressable>
+
+                {/* Dropoff */}
+                <Pressable
+                  style={[styles.inputBox, dropoff ? styles.inputBoxFilled : null]}
+                  onPress={() => navigation.navigate("LocationPicker", { mode: "dropoff" })}
+                >
+                  <Text style={dropoff ? styles.inputText : styles.inputPlaceholder} numberOfLines={1}>
+                    {dropoff || "Tap to set destination"}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
             </View>
-          )}
-        </View>
+
+            <AppButton
+              title={searching ? "Calculating fare…" : "Get Fare"}
+              onPress={handleSearch}
+              style={{ opacity: searching ? 0.7 : 1 }}
+            />
+            {searching && (
+              <View style={styles.row}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.muted}>Fetching real route via OpenStreetMap…</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Ride options */}
         {rideOptions.length > 0 && (
-          <View style={[styles.card, { marginTop: 12 }]}>
+          <View style={[styles.card, { marginTop: 12, flex: 1 }]}>
             <SectionHeader title="Choose your ride" />
             <View style={{ gap: 10 }}>
               {rideOptions.map((option) => (
@@ -769,6 +808,17 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     gap: 12,
   },
+  summaryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  summaryLabel: { fontSize: 10, color: Colors.textSecondary, textTransform: "uppercase", fontWeight: "700" },
+  summaryValue: { fontSize: 13, fontWeight: "800", color: Colors.textPrimary, marginTop: 2 },
+  editBtn: { padding: 8, marginLeft: 8, backgroundColor: Colors.primary + "1A", borderRadius: 20 },
   inputRow: { flexDirection: "row", gap: 12, alignItems: "stretch" },
   dotLine: { alignItems: "center", paddingTop: 14, gap: 0 },
   dot: { width: 10, height: 10, borderRadius: 5 },

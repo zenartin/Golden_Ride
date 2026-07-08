@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   RIDE_CANCEL: (rideId: number | string) => `/user/rides/${rideId}/cancel`,
   COUPON_VALIDATE: "/user/coupons/validate",
   UPDATE_PROFILE: "/user/profile",
+  UPLOAD_AVATAR: "/user/profile/upload-avatar",
+  REMOVE_AVATAR: "/user/profile/remove-avatar",
 
   // Messages
   MESSAGES_RIDE: (rideId: number | string) => `/messages/ride/${rideId}`,

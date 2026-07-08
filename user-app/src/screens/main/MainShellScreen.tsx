@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, BackHandler } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -25,6 +26,21 @@ export default function MainShellScreen({ navigation, route }: Props) {
       setHasLocationPermission(status === "granted");
     })();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (tab !== "Home") {
+          setTab("Home");
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [tab])
+  );
 
   const content = useMemo(() => {
     if (tab === "Trips") return <TripsScreen navigation={navigation} />;

@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { apiRequest } from "../api/client";
+import { apiRequest, BASE_URL } from "../api/client";
 import { API_ENDPOINTS } from "../api/endpoints";
 
 export interface UserProfile {
@@ -26,6 +26,8 @@ interface AuthState {
   initialize: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (name: string, email: string, phone: string) => Promise<boolean>;
+  uploadAvatar: (uri: string) => Promise<boolean>;
+  removeAvatar: () => Promise<boolean>;
 }
 
 type AuthResponse = {
@@ -212,6 +214,49 @@ export const useAuthStore = create<AuthState>()(
           return true;
         } catch (error) {
           set({ error: error instanceof Error ? error.message : "Profile update failed" });
+          return false;
+        }
+      },
+      uploadAvatar: async (uri: string) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", { uri, type: "image/jpeg", name: "avatar.jpg" } as any);
+          
+          const token = await AsyncStorage.getItem("userToken");
+          
+          const response = await fetch(`${BASE_URL}${API_ENDPOINTS.UPLOAD_AVATAR}`, {
+            method: "POST",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            set((state) => ({
+              user: state.user ? { ...state.user, avatar: data.avatar_url } : null
+            }));
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
+      removeAvatar: async () => {
+        try {
+          const response = await apiRequest<{ status: string }>(API_ENDPOINTS.REMOVE_AVATAR, {
+            method: "POST"
+          });
+          if (response.status === "success") {
+            set((state) => ({
+              user: state.user ? { ...state.user, avatar: undefined } : null
+            }));
+            return true;
+          }
+          return false;
+        } catch {
           return false;
         }
       },

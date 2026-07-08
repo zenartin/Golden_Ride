@@ -1,25 +1,19 @@
 import React from "react";
-import { Text, TextInput, View, StyleSheet } from "react-native";
+import { Text, TextInput, View, StyleSheet, TextInputProps } from "react-native";
 import { Colors, Spacing, Typography } from "../theme";
 
-interface AppInputProps {
+interface AppInputProps extends TextInputProps {
   label?: string;
   value: string;
   onChangeText: (text: string) => void;
-  placeholder?: string;
-  secureTextEntry?: boolean;
-  multiline?: boolean;
-  numberOfLines?: number;
 }
 
 export default function AppInput({
   label,
   value,
   onChangeText,
-  placeholder,
-  secureTextEntry,
-  multiline,
-  numberOfLines,
+  style,
+  ...rest
 }: AppInputProps) {
   return (
     <View style={styles.wrap}>
@@ -27,12 +21,9 @@ export default function AppInput({
       <TextInput
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder}
         placeholderTextColor={Colors.textMuted}
-        secureTextEntry={secureTextEntry}
-        multiline={multiline}
-        numberOfLines={numberOfLines}
-        style={[styles.input, multiline && styles.multi]}
+        style={[styles.input, rest.multiline && styles.multi, style]}
+        {...rest}
       />
     </View>
   );
