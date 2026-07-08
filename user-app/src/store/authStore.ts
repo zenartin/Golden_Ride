@@ -64,9 +64,13 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             error: null,
           });
-        } catch {
-          const token = await AsyncStorage.getItem("userToken");
-          set({ isAuthenticated: Boolean(token) });
+        } catch (error) {
+          if (error instanceof Error && error.message === "UNAUTHORIZED") {
+            set({ isAuthenticated: false, token: null, user: null });
+          } else {
+            const token = await AsyncStorage.getItem("userToken");
+            set({ isAuthenticated: Boolean(token) });
+          }
         } finally {
           set({ isLoading: false });
         }
@@ -184,6 +188,9 @@ export const useAuthStore = create<AuthState>()(
           });
         } catch (error) {
           console.log("Fetch profile error:", error);
+          if (error instanceof Error && error.message === "UNAUTHORIZED") {
+            set({ isAuthenticated: false, token: null, user: null });
+          }
         }
       },
       updateProfile: async (name, email, phone) => {

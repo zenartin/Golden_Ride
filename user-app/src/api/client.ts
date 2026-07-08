@@ -23,6 +23,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const data = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
+    if (response.status === 401) {
+      // Clear token on 401
+      await AsyncStorage.removeItem("userToken");
+      throw new Error("UNAUTHORIZED");
+    }
     const detail = data?.detail || "Request failed";
     throw new Error(Array.isArray(detail) ? detail.map((item) => item.msg).join(", ") : detail);
   }
