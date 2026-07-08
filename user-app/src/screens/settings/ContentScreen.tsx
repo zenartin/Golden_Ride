@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Platform, StatusBar } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { MainStackParamList } from "../../navigation/MainNavigator";
@@ -32,13 +33,14 @@ export default function ContentScreen() {
   }, [slug]);
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        <View style={{ width: 44 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       {loading ? (
@@ -91,27 +93,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   backBtn: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.background,
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.background,
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary },
-  scroll: { padding: Spacing.lg, paddingBottom: 60 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary, letterSpacing: 0.5 },
+  scroll: { padding: Spacing.xl, paddingBottom: 80 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
   errorText: { color: Colors.textSecondary, marginTop: 12, textAlign: "center", lineHeight: 22 },
   retryBtn: { marginTop: 20, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: Colors.primaryLight, borderRadius: 12 },
   retryText: { color: Colors.primaryDark, fontWeight: "700" },
   
-  h1: { fontSize: 24, fontWeight: "900", color: Colors.textPrimary, marginBottom: 16, marginTop: 8 },
-  h2: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary, marginBottom: 12, marginTop: 24 },
-  paragraph: { fontSize: 15, color: Colors.textSecondary, lineHeight: 24, marginBottom: 6 },
-  spacer: { height: 8 },
-  boldText: { fontSize: 15, fontWeight: "700", color: Colors.textPrimary, marginBottom: 6 },
+  h1: { fontSize: 26, fontWeight: "900", color: Colors.primaryDark, marginBottom: 16, marginTop: 12, letterSpacing: -0.5 },
+  h2: { fontSize: 20, fontWeight: "800", color: Colors.textPrimary, marginBottom: 12, marginTop: 28, borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: 8 },
+  paragraph: { fontSize: 16, color: Colors.textSecondary, lineHeight: 26, marginBottom: 8, letterSpacing: 0.2 },
+  spacer: { height: 12 },
+  boldText: { fontSize: 16, fontWeight: "700", color: Colors.textPrimary, marginBottom: 8, marginTop: 4 },
   boldTextInline: { fontWeight: "800", color: Colors.textPrimary },
 });
