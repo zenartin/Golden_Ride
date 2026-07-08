@@ -7,6 +7,10 @@ import TripDetailScreen from "../screens/main/TripDetailScreen";
 import ChatScreen from "../screens/main/ChatScreen";
 import LocationPickerScreen from "../screens/main/LocationPickerScreen";
 import { GeocodedPlace } from "../services/geocoding";
+import ContentScreen from "../screens/settings/ContentScreen";
+import EditProfileScreen from "../screens/settings/EditProfileScreen";
+import SavedLocationsScreen from "../screens/settings/SavedLocationsScreen";
+import PaymentMethodsScreen from "../screens/settings/PaymentMethodsScreen";
 
 export type MainStackParamList = {
   Shell: { pickedLocation?: { mode: "pickup" | "dropoff"; place: GeocodedPlace } } | undefined;
@@ -14,6 +18,10 @@ export type MainStackParamList = {
   TripDetail: { tripId: string };
   Chat: { rideId: string };
   LocationPicker: { mode: "pickup" | "dropoff" };
+  Content: { slug: string; title: string };
+  EditProfile: undefined;
+  SavedLocations: undefined;
+  PaymentMethods: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -30,6 +38,10 @@ export default function MainNavigator() {
         component={LocationPickerScreen}
         options={{ animation: "slide_from_bottom" }}
       />
+      <Stack.Screen name="Content" component={ContentScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="SavedLocations" component={SavedLocationsScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} options={{ animation: "slide_from_right" }} />
     </Stack.Navigator>
   );
 }

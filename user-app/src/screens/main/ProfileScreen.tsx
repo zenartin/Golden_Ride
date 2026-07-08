@@ -160,6 +160,9 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.name}>{user?.name || "Golden Rider"}</Text>
           <Text style={styles.metaEmail}>{user?.email || "rider@goldenride.com"}</Text>
           <Text style={styles.metaPhone}>📞 {user?.phone || "+91 99999 88888"}</Text>
+          <Pressable style={styles.editProfileBtn} onPress={() => navigation.navigate("EditProfile")}>
+            <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+          </Pressable>
         </View>
 
         {/* Account Section */}
@@ -168,7 +171,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
 
           {/* Saved Places */}
-          <Pressable style={styles.menuItem}>
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("SavedLocations")}>
             <View style={[styles.iconWrap, { backgroundColor: "#EBFDF5" }]}>
               <Ionicons name="location-outline" size={20} color="#10B981" />
             </View>
@@ -178,12 +181,26 @@ export default function ProfileScreen({ navigation }: Props) {
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
           </Pressable>
+
+          <View style={styles.separator} />
+
+          {/* Payment Methods */}
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("PaymentMethods")}>
+            <View style={[styles.iconWrap, { backgroundColor: "#EEF2FF" }]}>
+              <Ionicons name="card-outline" size={20} color="#6366F1" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuLabel}>Payment Methods</Text>
+              <Text style={styles.menuSublabel}>Manage credit cards and wallet</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
         </View>
 
         {/* Support Section */}
         <Text style={styles.sectionTitle}>Support & Information</Text>
         <View style={styles.menuGroup}>
-          <Pressable style={styles.menuItem}>
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Content", { slug: "support", title: "Help & Support" })}>
             <View style={[styles.iconWrap, { backgroundColor: "#FFFBEB" }]}>
               <Ionicons name="help-circle-outline" size={20} color="#F59E0B" />
             </View>
@@ -193,11 +210,31 @@ export default function ProfileScreen({ navigation }: Props) {
 
           <View style={styles.separator} />
 
-          <Pressable style={styles.menuItem}>
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Content", { slug: "privacy-policy", title: "Privacy Policy" })}>
             <View style={[styles.iconWrap, { backgroundColor: "#FDF2F8" }]}>
               <Ionicons name="shield-checkmark-outline" size={20} color="#EC4899" />
             </View>
             <Text style={[styles.menuLabel, { flex: 1 }]}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+          
+          <View style={styles.separator} />
+
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Content", { slug: "terms", title: "Terms of Service" })}>
+            <View style={[styles.iconWrap, { backgroundColor: "#EFF6FF" }]}>
+              <Ionicons name="document-text-outline" size={20} color="#3B82F6" />
+            </View>
+            <Text style={[styles.menuLabel, { flex: 1 }]}>Terms of Service</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+
+          <View style={styles.separator} />
+
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Content", { slug: "about", title: "About Us" })}>
+            <View style={[styles.iconWrap, { backgroundColor: "#F3F4F6" }]}>
+              <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
+            </View>
+            <Text style={[styles.menuLabel, { flex: 1 }]}>About Us</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
           </Pressable>
         </View>
@@ -319,6 +356,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: "hidden",
+  },
+  editProfileBtn: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  editProfileBtnText: {
+    color: Colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "700",
   },
   menuItem: {
     flexDirection: "row",
