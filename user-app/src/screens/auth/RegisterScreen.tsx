@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, ScrollView, Text, StyleSheet } from "react-native";
+import { Alert, ScrollView, Text, StyleSheet, View } from "react-native";
 
 import AppButton from "../../components/AppButton";
 import AppInput from "../../components/AppInput";
