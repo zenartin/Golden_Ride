@@ -21,11 +21,20 @@ import { Colors, Spacing, Typography } from "../../theme";
 
 type Props = NativeStackScreenProps<MainStackParamList, "LocationPicker">;
 
-const INITIAL_REGION = {
+import { useAuthStore } from "../../store/authStore";
+
+const INITIAL_REGION_INDIA = {
   latitude: 20.5937,
   longitude: 78.9629,
   latitudeDelta: 20,
   longitudeDelta: 20,
+};
+
+const INITIAL_REGION_USA = {
+  latitude: 39.8283,
+  longitude: -98.5795,
+  latitudeDelta: 30,
+  longitudeDelta: 30,
 };
 
 export default function LocationPickerScreen({ navigation, route }: Props) {
@@ -37,7 +46,8 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
   const [results, setResults] = useState<GeocodedPlace[]>([]);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<GeocodedPlace | null>(null);
-  const [mapRegion, setMapRegion] = useState(INITIAL_REGION);
+  const user = useAuthStore((s) => s.user);
+  const [mapRegion, setMapRegion] = useState(user?.country === "USA" ? INITIAL_REGION_USA : INITIAL_REGION_INDIA);
   const [locating, setLocating] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);

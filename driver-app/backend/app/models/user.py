@@ -17,6 +17,7 @@ class User(Base):
     avatar = Column(String, nullable=True)
     wallet_balance = Column(Float, default=1780.0)
     rating = Column(Float, default=4.8)
+    country = Column(String, default="USA")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

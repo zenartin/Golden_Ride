@@ -10,6 +10,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     phone: str
     password: str
+    country: str = "USA"
 
 class OtpRequest(BaseModel):
     phone: Optional[str] = None
@@ -25,6 +26,7 @@ class Token(BaseModel):
     name: str
     phone: str
     email: str
+    country: str
     role: Optional[str] = None
 
 class TokenData(BaseModel):
@@ -37,6 +39,7 @@ class UserRegisterRequest(BaseModel):
     email: EmailStr
     phone: str
     password: str
+    country: str = "USA"
 
 class UserToken(BaseModel):
     access_token: str
@@ -45,6 +48,7 @@ class UserToken(BaseModel):
     name: str
     phone: str
     email: str
+    country: str
     wallet_balance: float
 
 class ProfileUpdateRequest(BaseModel):

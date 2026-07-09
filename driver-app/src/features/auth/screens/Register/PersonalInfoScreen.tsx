@@ -25,6 +25,7 @@ const SignupScreen = ({ navigation }: any) => {
     phone: "",
     password: "",
     confirmPassword: "",
+    country: "USA",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -53,6 +54,7 @@ const SignupScreen = ({ navigation }: any) => {
       email: form.email,
       phone: form.phone,
       password: form.password,
+      country: form.country,
     });
     setIsSubmitting(false);
 
@@ -157,6 +159,25 @@ const SignupScreen = ({ navigation }: any) => {
                   color="#666"
                 />
               </TouchableOpacity>
+            </View>
+
+            {/* COUNTRY */}
+            <View style={styles.countryPicker}>
+              <Text style={styles.countryLabel}>Operating Country:</Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  style={[styles.countryBtn, form.country === "USA" && styles.countryBtnActive]}
+                  onPress={() => handleChange("country", "USA")}
+                >
+                  <Text style={[styles.countryBtnText, form.country === "USA" && styles.countryBtnTextActive]}>USA</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.countryBtn, form.country === "India" && styles.countryBtnActive]}
+                  onPress={() => handleChange("country", "India")}
+                >
+                  <Text style={[styles.countryBtnText, form.country === "India" && styles.countryBtnTextActive]}>India</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* BUTTON */}
@@ -295,4 +316,10 @@ const styles = StyleSheet.create({
     color: "#FFD000",
     fontWeight: "bold",
   },
+  countryPicker: { marginBottom: 15, marginTop: 5 },
+  countryLabel: { color: "#0E2A5A", fontSize: 14, fontWeight: "bold", marginBottom: 8 },
+  countryBtn: { flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#EEE", alignItems: "center" },
+  countryBtnActive: { backgroundColor: "#0E2A5A", borderColor: "#0E2A5A" },
+  countryBtnText: { color: "#666", fontWeight: "600" },
+  countryBtnTextActive: { color: "#fff" },
 });

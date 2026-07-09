@@ -186,12 +186,8 @@ def get_dashboard(
     
     today_earnings_val = sum(t.fare_amount for t in today_trips)
     
-    # Determine currency from the most recent ride
-    currency_sym = "$"
-    if completed_trips:
-        latest = sorted(completed_trips, key=lambda x: x.created_at, reverse=True)[0]
-        if latest.fare and "₹" in latest.fare:
-            currency_sym = "₹"
+    # Currency based on driver's registered country
+    currency_sym = "$" if current_driver.country == "USA" else "₹"
             
     today_earnings_str = f"{currency_sym}{today_earnings_val:.2f}" if currency_sym == "$" else f"{currency_sym}{int(today_earnings_val)}"
     trips_count_str = str(len(completed_trips))
@@ -255,12 +251,8 @@ def get_earnings(
     completed_trips = [t for t in driver_trips if t.status == "completed"]
     total_db_earnings = sum(t.fare_amount for t in completed_trips)
     
-    # Determine currency
-    currency_sym = "$"
-    if completed_trips:
-        latest = sorted(completed_trips, key=lambda x: x.created_at, reverse=True)[0]
-        if latest.fare and "₹" in latest.fare:
-            currency_sym = "₹"
+    # Currency based on driver's registered country
+    currency_sym = "$" if current_driver.country == "USA" else "₹"
             
     weekly_total = f"{currency_sym}{total_db_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(total_db_earnings)}"
     available_balance = current_driver.balance or 0.0

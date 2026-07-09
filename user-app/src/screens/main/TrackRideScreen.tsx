@@ -120,12 +120,14 @@ export default function TrackRideScreen({ navigation }: Props) {
   const currentDesc = statusDescriptions[activeTrip.status] ?? activeTrip.status;
   const currentStepIndex = statusSteps.findIndex((s) => s.key === activeTrip.status);
 
+  const user = useAuthStore((s) => s.user);
+
   // Map Region defaults
   const pickupRegion = {
-    latitude: activeTrip.pickupLatitude ?? 20.5937,
-    longitude: activeTrip.pickupLongitude ?? 78.9629,
-    latitudeDelta: 0.08,
-    longitudeDelta: 0.08,
+    latitude: activeTrip.pickupLatitude ?? (user?.country === "USA" ? 39.8283 : 20.5937),
+    longitude: activeTrip.pickupLongitude ?? (user?.country === "USA" ? -98.5795 : 78.9629),
+    latitudeDelta: activeTrip.pickupLatitude ? 0.08 : (user?.country === "USA" ? 30 : 20),
+    longitudeDelta: activeTrip.pickupLatitude ? 0.08 : (user?.country === "USA" ? 30 : 20),
   };
 
   return (

@@ -9,6 +9,7 @@ export interface UserProfile {
   name: string;
   email: string;
   phone: string;
+  country: string;
   avatar?: string;
 }
 
@@ -19,7 +20,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (payload: { email: string; password: string }) => Promise<boolean>;
-  register: (payload: { name: string; email: string; phone: string; password: string }) => Promise<boolean>;
+  register: (payload: { name: string; email: string; phone: string; password: string; country: string }) => Promise<boolean>;
   requestOtp: (phone: string) => Promise<string | null>;
   verifyOtp: (payload: { phone: string; otp: string }) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -36,6 +37,7 @@ type AuthResponse = {
   name: string;
   email: string;
   phone: string;
+  country: string;
 };
 
 type ProfileResponse = UserProfile & {
@@ -61,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
               name: profile.name,
               email: profile.email,
               phone: profile.phone,
+              country: profile.country,
               avatar: profile.avatar,
             },
             isAuthenticated: true,
@@ -91,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { id: response.id, name: response.name, email: response.email, phone: response.phone },
+            user: { id: response.id, name: response.name, email: response.email, phone: response.phone, country: (response as any).country || "USA" },
             isAuthenticated: true,
             error: null,
           });
@@ -101,8 +104,8 @@ export const useAuthStore = create<AuthState>()(
           return false;
         }
       },
-      register: async ({ name, email, phone, password }) => {
-        if (!name.trim() || !email.trim() || !phone.trim() || !password.trim()) {
+      register: async ({ name, email, phone, password, country }) => {
+        if (!name.trim() || !email.trim() || !phone.trim() || !password.trim() || !country) {
           set({ error: "Complete all registration fields" });
           return false;
         }
@@ -110,12 +113,12 @@ export const useAuthStore = create<AuthState>()(
           const response = await apiRequest<AuthResponse>(API_ENDPOINTS.REGISTER, {
             method: "POST",
             auth: false,
-            body: { name, email, phone, password },
+            body: { name, email, phone, password, country },
           });
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { id: response.id, name: response.name, email: response.email, phone: response.phone },
+            user: { id: response.id, name: response.name, email: response.email, phone: response.phone, country: (response as any).country || "USA" },
             isAuthenticated: true,
             error: null,
           });
@@ -157,7 +160,7 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { id: response.id, name: response.name, email: response.email, phone: response.phone },
+            user: { id: response.id, name: response.name, email: response.email, phone: response.phone, country: (response as any).country || "USA" },
             isAuthenticated: true,
             error: null,
           });
@@ -185,6 +188,7 @@ export const useAuthStore = create<AuthState>()(
               name: profile.name,
               email: profile.email,
               phone: profile.phone,
+              country: profile.country,
               avatar: profile.avatar,
             },
           });
@@ -207,6 +211,7 @@ export const useAuthStore = create<AuthState>()(
               name: updated.name,
               email: updated.email,
               phone: updated.phone,
+              country: updated.country,
               avatar: updated.avatar,
             },
             error: null,

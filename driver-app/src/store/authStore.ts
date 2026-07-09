@@ -11,6 +11,7 @@ export interface DriverProfile {
   is_online: boolean;
   is_approved: boolean;
   profile_completed: boolean;
+  country: string;
   date_of_birth?: string | null;
   residential_address?: string | null;
   avatar?: string;

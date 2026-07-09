@@ -33,6 +33,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         email=payload.email,
         phone=payload.phone,
         password_hash=get_password_hash(payload.password),
+        country=payload.country,
         is_online=False,
         is_approved=False
     )
@@ -55,6 +56,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         "name": new_driver.name,
         "phone": new_driver.phone,
         "email": new_driver.email,
+        "country": new_driver.country,
         "role": "driver",
     }
 
@@ -77,6 +79,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         "name": driver.name,
         "phone": driver.phone,
         "email": driver.email,
+        "country": driver.country,
         "role": "driver",
     }
 
@@ -113,6 +116,7 @@ def otp_verify(payload: OtpVerifyRequest, db: Session = Depends(get_db)):
             email=f"driver_{payload.phone.replace(' ', '_').replace('+', '')}@goldenride.com",
             phone=payload.phone,
             password_hash=get_password_hash(mock_password),
+            country="India",
             is_online=True,
             is_approved=True  # Auto-approve mock phone profiles for quick start
         )
@@ -133,5 +137,6 @@ def otp_verify(payload: OtpVerifyRequest, db: Session = Depends(get_db)):
         "name": driver.name,
         "phone": driver.phone,
         "email": driver.email,
+        "country": driver.country,
         "role": "driver",
     }

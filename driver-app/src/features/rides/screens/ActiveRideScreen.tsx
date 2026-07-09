@@ -181,11 +181,12 @@ export default function ActiveRideScreen({ navigation, route }: any) {
 
   const handleSOS = () => Alert.alert("SOS", "Emergency services have been notified.");
 
+  const driver = useAuthStore((s) => s.driver);
   const pickupRegion = {
-    latitude: RIDE.pickup_latitude ?? 20.5937,
-    longitude: RIDE.pickup_longitude ?? 78.9629,
-    latitudeDelta: 0.08,
-    longitudeDelta: 0.08,
+    latitude: RIDE.pickup_latitude ?? (driver?.country === "USA" ? 39.8283 : 20.5937),
+    longitude: RIDE.pickup_longitude ?? (driver?.country === "USA" ? -98.5795 : 78.9629),
+    latitudeDelta: RIDE.pickup_latitude ? 0.08 : (driver?.country === "USA" ? 30 : 20),
+    longitudeDelta: RIDE.pickup_latitude ? 0.08 : (driver?.country === "USA" ? 30 : 20),
   };
 
   return (

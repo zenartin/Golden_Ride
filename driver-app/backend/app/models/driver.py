@@ -20,6 +20,7 @@ class Driver(Base):
     longitude = Column(Float, nullable=True, default=77.5946) # Default Bangalore lng
     balance = Column(Float, default=0.0)
     profile_completed = Column(Boolean, default=False)
+    country = Column(String, default="USA")
     date_of_birth = Column(String, nullable=True)
     residential_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -269,6 +269,8 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     on_trip: "#8B5CF6",
   };
 
+  const user = useAuthStore((s) => s.user);
+
   const mapRegion =
     pickupCoords
       ? {
@@ -276,6 +278,13 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           longitude: pickupCoords.lon,
           latitudeDelta: 0.08,
           longitudeDelta: 0.08,
+        }
+      : user?.country === "USA"
+      ? {
+          latitude: 39.8283,
+          longitude: -98.5795,
+          latitudeDelta: 30,
+          longitudeDelta: 30,
         }
       : {
           latitude: 20.5937,
