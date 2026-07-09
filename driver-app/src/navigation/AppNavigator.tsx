@@ -11,13 +11,7 @@ import { connectDriverWebSocket, disconnectDriverWebSocket } from "../services/w
 import NetInfo from "@react-native-community/netinfo";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-const ProfileStack = createNativeStackNavigator();
-
-const ProfileNavigator = () => (
-  <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-    <ProfileStack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
-  </ProfileStack.Navigator>
-);
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 export default function AppNavigator() {
   const initialize = useAuthStore((s) => s.initialize);
@@ -61,10 +55,8 @@ export default function AppNavigator() {
         <NavigationContainer ref={navigationRef}>
           {!isAuthenticated ? (
             <AuthNavigator />
-          ) : driver?.profile_completed ? (
-            <MainNavigator />
           ) : (
-            <ProfileNavigator />
+            <MainNavigator />
           )}
         </NavigationContainer>
       </RegistrationProvider>

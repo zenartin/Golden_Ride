@@ -10,6 +10,7 @@ import SettingsScreen from "../features/profile/screens/SettingsScreen";
 import SupportScreen from "../features/profile/screens/SupportScreen";
 import EditProfileScreen from "../features/profile/screens/EditProfileScreen";
 import ChatDetailScreen from "../features/home/screens/ChatDetailScreen";
+import CompleteProfileScreen from "../features/profile/screens/CompleteProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,7 @@ export default function MainNavigator() {
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+      <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
     </Stack.Navigator>
   );
 }

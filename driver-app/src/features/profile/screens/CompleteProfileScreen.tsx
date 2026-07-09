@@ -197,8 +197,8 @@ export default function CompleteProfileScreen({ navigation }: any) {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => useAuthStore.getState().logout()} style={styles.backBtn}>
-            <Ionicons name="log-out-outline" size={24} color={Colors.textPrimary} />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="close-outline" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Complete Profile</Text>
           <View style={{ width: 44 }} />
