@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import AppButton from "../../components/AppButton";
 import { MainStackParamList } from "../../navigation/MainNavigator";
 import { useRideStore } from "../../store/rideStore";
+import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { openDirectionsInMaps } from "../../utils/openMaps";
 

@@ -24,6 +24,7 @@ import SectionHeader from "../../components/SectionHeader";
 import UserDashboardHeader from "../../components/UserDashboardHeader";
 import UserQuickActions from "../../components/UserQuickActions";
 import { useRideStore } from "../../store/rideStore";
+import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { MainStackParamList } from "../../navigation/MainNavigator";
 
