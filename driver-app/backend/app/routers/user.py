@@ -49,7 +49,7 @@ def _build_options_from_route(distance_km: float, duration_min: float, currency:
     eta_base = max(3, round(distance_km / 6))  # rough driver ETA in minutes
     options = []
     for index, (ride_class, meta) in enumerate(RIDE_META.items()):
-        fare_amount, _ = RideService.calculate_fare(distance_km, ride_class, currency)
+        fare_amount, _ = RideService.calculate_fare(distance_km, duration_min, ride_class, currency)
         # Format price as integer (INR) or 2-decimal (USD)
         price_display = int(fare_amount) if currency == "INR" else fare_amount
         options.append(

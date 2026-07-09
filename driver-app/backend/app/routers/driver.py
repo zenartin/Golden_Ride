@@ -275,25 +275,26 @@ def get_earnings(
         today_trips = [t for t in completed_trips if (t.updated_at or t.created_at).date() == today]
         
     today_earnings = sum(t.fare_amount for t in today_trips)
-    base_fare = round(today_earnings * 0.90)
-    surge_bonus = round(today_earnings * 0.08)
-    tips = today_earnings - base_fare - surge_bonus
+    # Drivers get 80% of total
+    net_earnings = round(today_earnings * 0.80, 2)
+    platform_fee = round(today_earnings * 0.20, 2)
+    # Tips (currently no tip field in DB, assuming 0 for now)
+    tips = 0.0
 
     daily_breakdown = [
-        EarningBreakdownItem(label="Base Fare", amount=f"₹{base_fare}", icon="car-outline", color="#3B5FC0"),
-        EarningBreakdownItem(label="Surge Bonus", amount=f"₹{surge_bonus}", icon="flash-outline", color="#F59E0B"),
-        EarningBreakdownItem(label="Tips & Incentive", amount=f"₹{tips}", icon="heart-outline", color="#10B981"),
+        EarningBreakdownItem(label="Total Fares Collected", amount=f"{'₹' if total_db_earnings > 1000 else '$'}{today_earnings}", icon="cash-outline", color="#22C55E"),
+        EarningBreakdownItem(label="Driver Earnings (80%)", amount=f"{'₹' if total_db_earnings > 1000 else '$'}{net_earnings}", icon="car-outline", color="#3B5FC0"),
+        EarningBreakdownItem(label="Platform Fee (20%)", amount=f"-{'₹' if total_db_earnings > 1000 else '$'}{platform_fee}", icon="pie-chart-outline", color="#EF4444"),
+        EarningBreakdownItem(label="Tips (100%)", amount=f"{'₹' if total_db_earnings > 1000 else '$'}{tips}", icon="heart-outline", color="#10B981"),
     ]
 
-    fee_val = float(available_balance) * 0.10
-    tax_val = float(available_balance) * 0.02
-    net_val = float(available_balance) - fee_val - tax_val
+    fee_val = round(float(available_balance) * 0.20, 2)
+    net_val = round(float(available_balance) - fee_val, 2)
 
     payment_summary = [
-        PaymentSummaryRow(label="Net Earnings", value=f"₹{int(available_balance)}", bold=True),
-        PaymentSummaryRow(label="Platform Fee (10%)", value=f"−₹{int(fee_val)}"),
-        PaymentSummaryRow(label="Tax (2%)", value=f"−₹{int(tax_val)}"),
-        PaymentSummaryRow(label="Available to Withdraw", value=f"₹{int(net_val)}", bold=True, color="#22C55E"),
+        PaymentSummaryRow(label="Gross Wallet Balance", value=f"{'₹' if total_db_earnings > 1000 else '$'}{int(available_balance)}", bold=True),
+        PaymentSummaryRow(label="Platform Fees (20%)", value=f"−{'₹' if total_db_earnings > 1000 else '$'}{int(fee_val)}"),
+        PaymentSummaryRow(label="Available to Withdraw", value=f"{'₹' if total_db_earnings > 1000 else '$'}{int(net_val)}", bold=True, color="#22C55E"),
     ]
 
     return EarningsResponse(

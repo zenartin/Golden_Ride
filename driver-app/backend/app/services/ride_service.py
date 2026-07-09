@@ -16,20 +16,20 @@ from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAccep
 logger = logging.getLogger("app")
 
 class RideService:
-    # Fare rates: base + per-km for each ride class
-    # India rates (INR) — city-tier pricing
-    INR_RATES = {
-        "auto":      {"base": 30.0,  "per_km": 9.0},
-        "hatchback": {"base": 35.0,  "per_km": 10.0},
-        "sedan":     {"base": 50.0,  "per_km": 14.0},
-        "xuv":       {"base": 80.0,  "per_km": 20.0},
-    }
-    # USA rates (USD) — typical ride-share pricing
+    # USA rates (USD) — Algorithm: Base + ($0.70/mile) + ($0.10/min) + $2.00 Booking Fee. Min $3.50
     USD_RATES = {
-        "auto":      {"base": 1.50, "per_km": 0.70},
-        "hatchback": {"base": 1.80, "per_km": 0.85},
-        "sedan":     {"base": 2.50, "per_km": 1.10},
-        "xuv":       {"base": 4.50, "per_km": 1.65},
+        "auto":      {"base": 0.50, "per_mile": 0.70, "per_min": 0.10, "booking_fee": 2.00, "min_fare": 3.50},
+        "hatchback": {"base": 0.60, "per_mile": 0.70, "per_min": 0.10, "booking_fee": 2.00, "min_fare": 3.50},
+        "sedan":     {"base": 1.00, "per_mile": 0.90, "per_min": 0.15, "booking_fee": 2.00, "min_fare": 4.50},
+        "xuv":       {"base": 2.00, "per_mile": 1.10, "per_min": 0.20, "booking_fee": 2.00, "min_fare": 6.50},
+    }
+    
+    # India rates (INR) — Converted approx (Base + ₹36/km + ₹8/min + ₹40 Booking Fee. Min ₹150)
+    INR_RATES = {
+        "auto":      {"base": 30.0, "per_km": 15.0, "per_min": 3.0, "booking_fee": 20.0, "min_fare": 50.0},
+        "hatchback": {"base": 50.0, "per_km": 20.0, "per_min": 8.0, "booking_fee": 40.0, "min_fare": 150.0},
+        "sedan":     {"base": 80.0, "per_km": 25.0, "per_min": 10.0, "booking_fee": 40.0, "min_fare": 200.0},
+        "xuv":       {"base": 150.0, "per_km": 35.0, "per_min": 15.0, "booking_fee": 40.0, "min_fare": 300.0},
     }
 
     @staticmethod
@@ -45,15 +45,20 @@ class RideService:
         return "USD"
 
     @classmethod
-    def calculate_fare(cls, distance_km: float, ride_class: str, currency: str = "INR") -> tuple:
+    def calculate_fare(cls, distance_km: float, duration_min: float, ride_class: str, currency: str = "INR") -> tuple:
         """Returns (fare_amount: float, fare_str: str)"""
         if currency == "INR":
             rates = cls.INR_RATES.get(ride_class, cls.INR_RATES["sedan"])
-            amount = round(rates["base"] + distance_km * rates["per_km"], 2)
+            amount = rates["base"] + (distance_km * rates["per_km"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
+            amount = max(amount, rates["min_fare"])
+            amount = round(amount, 2)
             return amount, f"₹{int(amount)}"
         else:
             rates = cls.USD_RATES.get(ride_class, cls.USD_RATES["sedan"])
-            amount = round(rates["base"] + distance_km * rates["per_km"], 2)
+            distance_miles = distance_km * 0.621371
+            amount = rates["base"] + (distance_miles * rates["per_mile"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
+            amount = max(amount, rates["min_fare"])
+            amount = round(amount, 2)
             return amount, f"${amount:.2f}"
 
     @classmethod
@@ -93,7 +98,7 @@ class RideService:
         distance_str = f"{distance_val:.1f} km"
         duration_str = f"{duration_min} min"
 
-        fare_amount, fare_str = cls.calculate_fare(distance_val, ride_class, currency)
+        fare_amount, fare_str = cls.calculate_fare(distance_val, duration_min, ride_class, currency)
 
         discount_amount = 0.0
         if coupon_code:
