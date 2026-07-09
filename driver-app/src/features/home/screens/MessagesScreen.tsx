@@ -58,7 +58,7 @@ export default function MessagesScreen({ navigation }: any) {
       online: true,
       avatarColor: Colors.primary,
       isSupport: true,
-      rideId: undefined,
+      rideId: undefined as number | undefined,
     },
   ];
 

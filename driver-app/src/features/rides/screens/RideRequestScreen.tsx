@@ -133,7 +133,7 @@ export default function RideRequestScreen({ navigation, route }: any) {
             </View>
             {/* Ride type/class badge */}
             <View style={styles.rideClassBadge}>
-              <Text style={styles.rideClassText}>{String(RIDE.ride_class || "sedan").toUpperCase()}</Text>
+              <Text style={styles.rideClassText}>{String((RIDE as any).ride_class || "sedan").toUpperCase()}</Text>
             </View>
           </View>
           <View style={styles.fareBadge}>

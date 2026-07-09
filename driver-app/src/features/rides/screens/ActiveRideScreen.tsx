@@ -13,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useRideStore } from "../../../store/rideStore";
+import { useAuthStore } from "../../../store/authStore";
 import { openDirectionsInMaps } from "../../../utils/openMaps";
 import { getCurrentDeviceLocation } from "../../../utils/deviceLocation";
 import { getRoutePolyline } from "../../../utils/routing";
@@ -181,7 +182,7 @@ export default function ActiveRideScreen({ navigation, route }: any) {
 
   const handleSOS = () => Alert.alert("SOS", "Emergency services have been notified.");
 
-  const driver = useAuthStore((s) => s.driver);
+  const driver = useAuthStore((s: any) => s.driver);
   const pickupRegion = {
     latitude: RIDE.pickup_latitude ?? (driver?.country === "USA" ? 39.8283 : 20.5937),
     longitude: RIDE.pickup_longitude ?? (driver?.country === "USA" ? -98.5795 : 78.9629),
