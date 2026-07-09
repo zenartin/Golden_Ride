@@ -236,7 +236,14 @@ async def get_ride_options(payload: RideEstimateRequest, current_user: User = De
         seed = len(payload.pickup.strip()) + len(payload.dropoff.strip())
         distance_km = max(2.1, min(30.0, (seed % 25) + 3.0))
         duration_min = max(5, round(distance_km * 3))
-        currency = "INR"  # default
+        
+        # Simple heuristic to allow testing USD vs INR without real GPS coords
+        text_lower = (payload.pickup + " " + payload.dropoff).lower()
+        us_keywords = ["usa", "united states", "new york", "ny", "california", "ca", "texas", "tx", "united nations", "washington", "florida"]
+        if any(kw in text_lower for kw in us_keywords):
+            currency = "USD"
+        else:
+            currency = "INR"  # default
 
     options = _build_options_from_route(distance_km, duration_min, currency)
     return RideEstimateResponse(options=options)
