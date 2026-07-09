@@ -13,10 +13,15 @@ export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [country, setCountry] = useState("USA");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match.");
+      return;
+    }
     setLoading(true);
     const ok = await register({ name, email, phone, password, country });
     setLoading(false);
@@ -35,6 +40,7 @@ export default function RegisterScreen({ navigation }: any) {
         <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
         <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" />
         <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+        <AppInput label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" secureTextEntry />
         
         <View style={styles.countryPicker}>
           <Text style={styles.countryLabel}>Operating Country:</Text>
