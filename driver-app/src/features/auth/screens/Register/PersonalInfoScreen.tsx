@@ -37,7 +37,7 @@ const SignupScreen = ({ navigation }: any) => {
   const registerFn = useAuthStore((state) => state.register);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!form.name || !form.email || !form.phone || !form.password) {
       alert("Please fill in all fields.");
       return;
@@ -47,14 +47,20 @@ const SignupScreen = ({ navigation }: any) => {
       return;
     }
     
-    update("personal", {
+    setIsSubmitting(true);
+    const success = await registerFn({
       name: form.name,
       email: form.email,
       phone: form.phone,
       password: form.password,
     });
-    
-    navigation.navigate("License");
+    setIsSubmitting(false);
+
+    if (success) {
+      // login automatically or authStore will handle navigation if login is successful inside register
+    } else {
+      alert("Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -154,9 +160,9 @@ const SignupScreen = ({ navigation }: any) => {
             </View>
 
             {/* BUTTON */}
-            <TouchableOpacity activeOpacity={0.8} onPress={handleSignUp}>
-              <LinearGradient colors={["#FFD000", "#FFB800"]} style={styles.button}>
-                <Text style={styles.buttonText}>SIGN UP</Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={handleSignUp} disabled={isSubmitting}>
+              <LinearGradient colors={["#FFD000", "#FFB800"]} style={[styles.button, isSubmitting && { opacity: 0.7 }]}>
+                <Text style={styles.buttonText}>{isSubmitting ? "SIGNING UP..." : "SIGN UP"}</Text>
                 <View style={styles.arrow}>
                   <Ionicons name="arrow-forward" size={20} color="#000" />
                 </View>
