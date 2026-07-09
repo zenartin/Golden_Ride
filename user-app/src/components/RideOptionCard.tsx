@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuthStore } from "../store/authStore";
 import { Colors, Spacing, Typography } from "../theme";
 import { RideOption } from "../store/rideStore";
 
@@ -79,6 +80,9 @@ export default function RideOptionCard({
   selected?: boolean;
   onPress: () => void;
 }) {
+  const user = useAuthStore((s) => s.user);
+  const symbol = user?.country === "USA" ? "$" : "₹";
+  
   const config = VEHICLE_CONFIG[option.id] ?? {
     badge: undefined,
     badgeColor: Colors.primary,
@@ -125,7 +129,7 @@ export default function RideOptionCard({
 
         {/* Price */}
         <Text style={[styles.price, selected && { color: config.accentColor }]}>
-          ₹{option.price}
+          {symbol}{option.price}
         </Text>
       </View>
 

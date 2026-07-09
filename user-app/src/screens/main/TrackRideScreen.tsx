@@ -232,7 +232,7 @@ export default function TrackRideScreen({ navigation }: Props) {
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.fareText}>₹{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
+              <Text style={styles.fareText}>{user?.country === "USA" ? "$" : "₹"}{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
             </View>
           </View>
         )}
@@ -247,7 +247,7 @@ export default function TrackRideScreen({ navigation }: Props) {
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.fareText}>₹{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
+              <Text style={styles.fareText}>{user?.country === "USA" ? "$" : "₹"}{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="card-outline" size={16} color={Colors.textSecondary} />

@@ -452,7 +452,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                 <View>
                   <Text style={styles.paymentMethodTitle}>Payment Method</Text>
                   <Text style={styles.paymentMethodValue}>
-                    {paymentMethod === "Wallet" ? `Wallet (Balance: ₹${walletBalance})` : paymentMethod}
+                    {paymentMethod === "Wallet" ? `Wallet (Balance: ${user?.country === "USA" ? "$" : "₹"}${walletBalance})` : paymentMethod}
                     {paymentMethod === "Card" && cardDetails.number ? ` (ending in ${cardDetails.number.slice(-4)})` : ""}
                     {paymentMethod === "UPI" && upiId ? ` (${upiId})` : ""}
                   </Text>
@@ -529,7 +529,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.optionName}>Wallet Balance</Text>
-                  <Text style={styles.optionSub}>Available: ₹{walletBalance}</Text>
+                  <Text style={styles.optionSub}>Available: {user?.country === "USA" ? "$" : "₹"}{walletBalance}</Text>
                 </View>
                 {paymentMethod === "Wallet" && <Ionicons name="checkmark-circle" size={20} color="#3B82F6" />}
               </Pressable>

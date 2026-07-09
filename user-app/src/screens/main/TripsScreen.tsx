@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../../theme";
 import { useRideStore } from "../../store/rideStore";
+import { useAuthStore } from "../../store/authStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type TripStatus = "completed" | "cancelled" | "searching" | "confirmed" | "arriving" | "on_trip";
@@ -33,6 +34,7 @@ type Props = {
 
 export default function TripsScreen({ navigation }: Props) {
   const { history, activeTrip, refreshActiveTrip, refreshHistory } = useRideStore();
+  const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<"all" | TripStatus>("all");
   const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
@@ -148,7 +150,7 @@ export default function TripsScreen({ navigation }: Props) {
                   <Ionicons name="cash-outline" size={14} color={Colors.textSecondary} style={{ marginLeft: 8 }} />
                   <Text style={styles.metaText}>{item.paymentMethod}</Text>
                 </View>
-                <Text style={styles.fareText}>₹ {item.price}</Text>
+                <Text style={styles.fareText}>{user?.country === "USA" ? "$" : "₹"} {item.price}</Text>
               </View>
             </TouchableOpacity>
           );

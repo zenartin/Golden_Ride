@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo } from "react";
-import { Pressable, Text, View, StyleSheet, ScrollView } from "react-native";
+import { Pressable, Text, View, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import SectionHeader from "../../components/SectionHeader";
 import { useRideStore } from "../../store/rideStore";
+import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 
 const topUps = [200, 500, 1000];
@@ -14,6 +15,7 @@ export default function WalletScreen() {
   const transactions = useRideStore((state) => state.transactions);
   const topUpWallet = useRideStore((state) => state.topUpWallet);
   const refreshWallet = useRideStore((state) => state.refreshWallet);
+  const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function WalletScreen() {
         {/* Balance Card */}
         <View style={styles.balanceCard}>
           <Text style={styles.kicker}>Wallet balance</Text>
-          <Text style={styles.balance}>₹{balance}</Text>
+          <Text style={styles.balance}>{user?.country === "USA" ? "$" : "₹"}{balance}</Text>
           <Text style={styles.note}>Use wallet for instant ride payments.</Text>
         </View>
 
@@ -42,9 +44,9 @@ export default function WalletScreen() {
           <SectionHeader title="Quick top up" />
           <View style={styles.topUpRow}>
             {topUps.map((amount) => (
-              <Pressable key={amount} style={styles.topUpButton} onPress={() => topUpWallet(amount)}>
-                <Text style={styles.topUpText}>+₹{amount}</Text>
-              </Pressable>
+              <TouchableOpacity key={amount} style={styles.topUpButton} onPress={() => topUpWallet(amount)}>
+                <Text style={styles.topUpText}>+{user?.country === "USA" ? "$" : "₹"}{amount}</Text>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -68,7 +70,7 @@ export default function WalletScreen() {
                     <Text style={styles.txMeta}>{tx.date.slice(0, 10)}</Text>
                   </View>
                   <Text style={[styles.txAmount, { color: tx.type === "credit" ? "#10B981" : "#EF4444" }]}>
-                    {tx.type === "credit" ? "+" : "-"}₹{tx.amount}
+                    {tx.type === "credit" ? "+" : "-"}{user?.country === "USA" ? "$" : "₹"}{tx.amount}
                   </Text>
                 </View>
               ))
