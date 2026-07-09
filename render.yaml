@@ -13,6 +13,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
 
-  - type: psql
-    name: golden-ride-db
+databases:
+  - name: golden-ride-db
     plan: free
