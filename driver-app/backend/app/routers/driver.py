@@ -185,7 +185,15 @@ def get_dashboard(
         today_trips = [t for t in completed_trips if (t.updated_at or t.created_at).date() == today]
     
     today_earnings_val = sum(t.fare_amount for t in today_trips)
-    today_earnings_str = f"₹{int(today_earnings_val)}"
+    
+    # Determine currency from the most recent ride
+    currency_sym = "$"
+    if completed_trips:
+        latest = sorted(completed_trips, key=lambda x: x.created_at, reverse=True)[0]
+        if latest.fare and "₹" in latest.fare:
+            currency_sym = "₹"
+            
+    today_earnings_str = f"{currency_sym}{today_earnings_val:.2f}" if currency_sym == "$" else f"{currency_sym}{int(today_earnings_val)}"
     trips_count_str = str(len(completed_trips))
     rating_str = f"{current_driver.rating:.1f}"
     total_km = sum(float(t.distance.replace(' km', '').replace('km', '').strip()) if t.distance else 0.0 for t in completed_trips)
@@ -247,7 +255,14 @@ def get_earnings(
     completed_trips = [t for t in driver_trips if t.status == "completed"]
     total_db_earnings = sum(t.fare_amount for t in completed_trips)
     
-    weekly_total = f"₹{int(total_db_earnings)}"
+    # Determine currency
+    currency_sym = "$"
+    if completed_trips:
+        latest = sorted(completed_trips, key=lambda x: x.created_at, reverse=True)[0]
+        if latest.fare and "₹" in latest.fare:
+            currency_sym = "₹"
+            
+    weekly_total = f"{currency_sym}{total_db_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(total_db_earnings)}"
     available_balance = current_driver.balance or 0.0
     
     # Calculate daily statistics dynamically based on completed rides this week (past 7 days)
@@ -282,19 +297,19 @@ def get_earnings(
     tips = 0.0
 
     daily_breakdown = [
-        EarningBreakdownItem(label="Total Fares Collected", amount=f"{'₹' if total_db_earnings > 1000 else '$'}{today_earnings}", icon="cash-outline", color="#22C55E"),
-        EarningBreakdownItem(label="Driver Earnings (80%)", amount=f"{'₹' if total_db_earnings > 1000 else '$'}{net_earnings}", icon="car-outline", color="#3B5FC0"),
-        EarningBreakdownItem(label="Platform Fee (20%)", amount=f"-{'₹' if total_db_earnings > 1000 else '$'}{platform_fee}", icon="pie-chart-outline", color="#EF4444"),
-        EarningBreakdownItem(label="Tips (100%)", amount=f"{'₹' if total_db_earnings > 1000 else '$'}{tips}", icon="heart-outline", color="#10B981"),
+        EarningBreakdownItem(label="Total Fares Collected", amount=f"{currency_sym}{today_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(today_earnings)}", icon="cash-outline", color="#22C55E"),
+        EarningBreakdownItem(label="Driver Earnings (80%)", amount=f"{currency_sym}{net_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(net_earnings)}", icon="car-outline", color="#3B5FC0"),
+        EarningBreakdownItem(label="Platform Fee (20%)", amount=f"-{currency_sym}{platform_fee:.2f}" if currency_sym == "$" else f"-{currency_sym}{int(platform_fee)}", icon="pie-chart-outline", color="#EF4444"),
+        EarningBreakdownItem(label="Tips (100%)", amount=f"{currency_sym}{tips:.2f}" if currency_sym == "$" else f"{currency_sym}{int(tips)}", icon="heart-outline", color="#10B981"),
     ]
 
     fee_val = round(float(available_balance) * 0.20, 2)
     net_val = round(float(available_balance) - fee_val, 2)
 
     payment_summary = [
-        PaymentSummaryRow(label="Gross Wallet Balance", value=f"{'₹' if total_db_earnings > 1000 else '$'}{int(available_balance)}", bold=True),
-        PaymentSummaryRow(label="Platform Fees (20%)", value=f"−{'₹' if total_db_earnings > 1000 else '$'}{int(fee_val)}"),
-        PaymentSummaryRow(label="Available to Withdraw", value=f"{'₹' if total_db_earnings > 1000 else '$'}{int(net_val)}", bold=True, color="#22C55E"),
+        PaymentSummaryRow(label="Gross Wallet Balance", value=f"{currency_sym}{available_balance:.2f}" if currency_sym == "$" else f"{currency_sym}{int(available_balance)}", bold=True),
+        PaymentSummaryRow(label="Platform Fees (20%)", value=f"−{currency_sym}{fee_val:.2f}" if currency_sym == "$" else f"−{currency_sym}{int(fee_val)}"),
+        PaymentSummaryRow(label="Available to Withdraw", value=f"{currency_sym}{net_val:.2f}" if currency_sym == "$" else f"{currency_sym}{int(net_val)}", bold=True, color="#22C55E"),
     ]
 
     return EarningsResponse(
