@@ -8,15 +8,10 @@ import { Colors, Spacing, Typography } from "../../theme";
 
 export default function LoginScreen({ navigation }: any) {
   const login = useAuthStore((state) => state.login);
-  const requestOtp = useAuthStore((state) => state.requestOtp);
-  const verifyOtp = useAuthStore((state) => state.verifyOtp);
   const error = useAuthStore((state) => state.error);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
 
   const submit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -31,34 +26,6 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  const sendOtp = async () => {
-    if (!phone.trim()) {
-      Alert.alert("Missing phone", "Please enter a valid phone number.");
-      return;
-    }
-    setOtpLoading(true);
-    const sandboxOtp = await requestOtp(phone);
-    setOtpLoading(false);
-    if (sandboxOtp) {
-      setOtp(sandboxOtp);
-      Alert.alert("OTP sent", `Use sandbox OTP ${sandboxOtp}`);
-    } else {
-      Alert.alert("OTP failed", error || "Please try again.");
-    }
-  };
-
-  const submitOtp = async () => {
-    if (!phone.trim() || !otp.trim()) {
-      Alert.alert("Missing credentials", "Please enter phone and OTP.");
-      return;
-    }
-    setOtpLoading(true);
-    const ok = await verifyOtp({ phone, otp });
-    setOtpLoading(false);
-    if (!ok) {
-      Alert.alert("OTP failed", error || "Please check the code.");
-    }
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -72,16 +39,7 @@ export default function LoginScreen({ navigation }: any) {
         <AppButton title="Create account" onPress={() => navigation.navigate("Register")} variant="secondary" />
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Phone OTP</Text>
-        <Text style={styles.helper}>Matches the backend sandbox OTP flow. New phone numbers create a rider profile.</Text>
-        <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" />
-        <AppInput label="OTP" value={otp} onChangeText={setOtp} placeholder="1234" />
-        <View style={styles.row}>
-          <AppButton title="Send OTP" onPress={sendOtp} loading={otpLoading} variant="secondary" style={{ flex: 1 }} />
-          <AppButton title="Verify" onPress={submitOtp} loading={otpLoading} style={{ flex: 1 }} />
-        </View>
-      </View>
+
     </ScrollView>
   );
 }
