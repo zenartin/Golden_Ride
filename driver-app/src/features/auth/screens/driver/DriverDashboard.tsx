@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { Colors, Spacing, Typography } from "../../../../theme";
+
 import { useAuthStore } from "../../../../store/authStore";
 import { useAppStore } from "../../../../store/appStore";
 import apiClient from "../../../../api/axios";

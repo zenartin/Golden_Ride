@@ -11,6 +11,7 @@ import ProfileScreen from "../features/profile/screens/ProfileScreen";
 import BottomTabBar from "../components/BottomTabBar";
 import { Colors } from "../theme";
 
+
 type TabName = "Home" | "Trips" | "Earnings" | "Messages" | "Profile";
 
 export default function DriverTabNavigator({ navigation }: any) {

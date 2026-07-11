@@ -16,20 +16,19 @@ from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAccep
 logger = logging.getLogger("app")
 
 class RideService:
-    # USA rates (USD) — Algorithm: Base + ($0.70/mile) + ($0.10/min) + $2.00 Booking Fee. Min $3.50
-    USD_RATES = {
-        "auto":      {"base": 0.50, "per_mile": 0.70, "per_min": 0.10, "booking_fee": 2.00, "min_fare": 3.50},
-        "hatchback": {"base": 0.60, "per_mile": 0.70, "per_min": 0.10, "booking_fee": 2.00, "min_fare": 3.50},
-        "sedan":     {"base": 1.00, "per_mile": 0.90, "per_min": 0.15, "booking_fee": 2.00, "min_fare": 4.50},
-        "xuv":       {"base": 2.00, "per_mile": 1.10, "per_min": 0.20, "booking_fee": 2.00, "min_fare": 6.50},
-    }
+    # USA rates (USD) — Algorithm: Base + ($0.80/mile) + ($0.15/min) + $2.00 Booking Fee. Min $6.00
+    USD_BASE_RATES = {"base": 2.00, "per_mile": 0.80, "per_min": 0.15, "booking_fee": 2.00, "min_fare": 6.00}
     
     # India rates (INR) — Converted approx (Base + ₹36/km + ₹8/min + ₹40 Booking Fee. Min ₹150)
-    INR_RATES = {
-        "auto":      {"base": 30.0, "per_km": 15.0, "per_min": 3.0, "booking_fee": 20.0, "min_fare": 50.0},
-        "hatchback": {"base": 50.0, "per_km": 20.0, "per_min": 8.0, "booking_fee": 40.0, "min_fare": 150.0},
-        "sedan":     {"base": 80.0, "per_km": 25.0, "per_min": 10.0, "booking_fee": 40.0, "min_fare": 200.0},
-        "xuv":       {"base": 150.0, "per_km": 35.0, "per_min": 15.0, "booking_fee": 40.0, "min_fare": 300.0},
+    INR_BASE_RATES = {"base": 50.0, "per_km": 20.0, "per_min": 8.0, "booking_fee": 40.0, "min_fare": 150.0}
+
+    # Class multipliers (matching frontend estimates)
+    CLASS_MULTIPLIERS = {
+        "auto": 0.8,
+        "hatchback": 1.0,
+        "sedan": 1.4,
+        "comfort": 1.4,
+        "xuv": 1.85,
     }
 
     @staticmethod
@@ -47,18 +46,20 @@ class RideService:
     @classmethod
     def calculate_fare(cls, distance_km: float, duration_min: float, ride_class: str, currency: str = "INR") -> tuple:
         """Returns (fare_amount: float, fare_str: str)"""
+        multiplier = cls.CLASS_MULTIPLIERS.get(ride_class.lower(), 1.0)
+        
         if currency == "INR":
-            rates = cls.INR_RATES.get(ride_class, cls.INR_RATES["sedan"])
-            amount = rates["base"] + (distance_km * rates["per_km"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
-            amount = max(amount, rates["min_fare"])
-            amount = round(amount, 2)
+            rates = cls.INR_BASE_RATES
+            calc_price = rates["base"] + (distance_km * rates["per_km"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
+            amount = max(rates["min_fare"], calc_price)
+            amount = round(amount * multiplier, 2)
             return amount, f"₹{int(amount)}"
         else:
-            rates = cls.USD_RATES.get(ride_class, cls.USD_RATES["sedan"])
+            rates = cls.USD_BASE_RATES
             distance_miles = distance_km * 0.621371
-            amount = rates["base"] + (distance_miles * rates["per_mile"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
-            amount = max(amount, rates["min_fare"])
-            amount = round(amount, 2)
+            calc_price = rates["base"] + (distance_miles * rates["per_mile"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
+            amount = max(rates["min_fare"], calc_price)
+            amount = round(amount * multiplier, 2)
             return amount, f"${amount:.2f}"
 
     @classmethod
@@ -253,10 +254,12 @@ class RideService:
         if ride.status != "started":
             raise Exception(f"Cannot complete ride from status: {ride.status}")
 
-        # Credit driver balance
+        # Credit driver balance (80% of fare + 100% of tips)
         driver = DriverRepository.get_by_id(db, driver_id)
         if driver:
-            driver.balance = (driver.balance or 0.0) + ride.fare_amount
+            # If tip exists in the model in the future, add it here. Currently it's just 80% fare.
+            driver_earnings = round(ride.fare_amount * 0.80, 2)
+            driver.balance = (driver.balance or 0.0) + driver_earnings
             db.add(driver)
             db.commit()
 

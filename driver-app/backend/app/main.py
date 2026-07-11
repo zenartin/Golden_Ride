@@ -55,7 +55,14 @@ def ensure_local_schema_compatibility():
     if "drivers" in table_names:
         existing_drivers = {column["name"] for column in inspector.get_columns("drivers")}
         required_driver_columns = {
+            "total_rides": "INTEGER DEFAULT 0",
+            "avatar": "VARCHAR",
+            "is_approved": "BOOLEAN DEFAULT false",
+            "latitude": "FLOAT DEFAULT 12.9716",
+            "longitude": "FLOAT DEFAULT 77.5946",
+            "balance": "FLOAT DEFAULT 0.0",
             "profile_completed": "BOOLEAN DEFAULT false",
+            "country": "VARCHAR DEFAULT 'USA'",
             "date_of_birth": "VARCHAR",
             "residential_address": "VARCHAR",
         }
@@ -71,11 +78,17 @@ def ensure_local_schema_compatibility():
         required_doc_columns = {
             "license_state": "VARCHAR",
             "vehicle_color": "VARCHAR",
+            "vehicle_plate_number": "VARCHAR",
             "vehicle_vin": "VARCHAR",
             "license_back_image": "VARCHAR",
             "vehicle_registration_image": "VARCHAR",
             "vehicle_inspection_image": "VARCHAR",
             "w9_form_image": "VARCHAR",
+            "avatar_image": "VARCHAR",
+            "upi_id": "VARCHAR",
+            "card_number": "VARCHAR",
+            "card_expiry": "VARCHAR",
+            "card_cvv": "VARCHAR",
             "criminal_bg_status": "VARCHAR DEFAULT 'pending'",
             "driving_record_status": "VARCHAR DEFAULT 'pending'",
             "identity_verification_status": "VARCHAR DEFAULT 'pending'",

@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, Typography } from "../../../theme";
+
 import { useAuthStore } from "../../../store/authStore";
 
 const MENU_SECTIONS = [

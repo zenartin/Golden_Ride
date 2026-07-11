@@ -47,6 +47,7 @@ class DriverDocument(Base):
     
     # Vehicle info
     vehicle_number = Column(String, nullable=True)
+    vehicle_plate_number = Column(String, nullable=True)
     vehicle_model = Column(String, nullable=True)
     vehicle_year = Column(Integer, nullable=True)
     vehicle_type = Column(String, nullable=True) # e.g. Sedan, SUV, Auto
