@@ -1,7 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-export const BASE_URL = "http://10.233.162.121:8000/api";
+// Production URL from EAS build env, falls back to Render for safety
+export const BASE_URL = 
+  process.env.EXPO_PUBLIC_API_URL ?? 
+  "https://golden-ride-api.onrender.com/api";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
