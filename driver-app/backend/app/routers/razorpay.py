@@ -28,8 +28,10 @@ def create_razorpay_link(
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
 
-    # Amount in paise (multiply by 100)
-    amount_in_paise = int(round(ride.fare_amount * 100))
+    currency = "USD" if current_user.country == "USA" else "INR"
+    
+    # Amount in smallest unit (cents/paise)
+    amount_in_smallest_unit = int(round(ride.fare_amount * 100))
 
     try:
         client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
@@ -38,8 +40,8 @@ def create_razorpay_link(
         callback_url = "https://example.com/razorpay/success"
         
         link_data = {
-            "amount": amount_in_paise,
-            "currency": "INR",
+            "amount": amount_in_smallest_unit,
+            "currency": currency,
             "accept_partial": False,
             "description": f"Golden Ride taxi fare for ride #{ride.id}",
             "customer": {
@@ -63,7 +65,7 @@ def create_razorpay_link(
         return {
             "link_id": payment_link["id"],
             "checkout_url": payment_link["short_url"],
-            "currency": "INR",
+            "currency": currency,
             "amount": ride.fare_amount
         }
     except Exception as e:
