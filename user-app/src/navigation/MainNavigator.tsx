@@ -11,6 +11,7 @@ import ContentScreen from "../screens/settings/ContentScreen";
 import EditProfileScreen from "../screens/settings/EditProfileScreen";
 import SavedLocationsScreen from "../screens/settings/SavedLocationsScreen";
 import PaymentMethodsScreen from "../screens/settings/PaymentMethodsScreen";
+import PaymentScreen from "../screens/main/PaymentScreen";
 
 export type MainStackParamList = {
   Shell: { pickedLocation?: { mode: "pickup" | "dropoff"; place: GeocodedPlace } } | undefined;
@@ -22,6 +23,7 @@ export type MainStackParamList = {
   EditProfile: undefined;
   SavedLocations: undefined;
   PaymentMethods: undefined;
+  Payment: { tripId: string };
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -42,6 +44,7 @@ export default function MainNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="SavedLocations" component={SavedLocationsScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="Payment" component={PaymentScreen} options={{ animation: "slide_from_bottom" }} />
     </Stack.Navigator>
   );
 }

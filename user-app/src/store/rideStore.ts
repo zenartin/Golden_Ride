@@ -14,6 +14,7 @@ export interface RideOption {
   eta: string;
   seats: number;
   price: number;
+  distance?: string;
 }
 
 export interface Trip {
@@ -38,6 +39,7 @@ export interface Trip {
   dropoffLongitude?: number;
   driverLatitude?: number;
   driverLongitude?: number;
+  driverUpiId?: string;
 }
 
 export interface ChatMessage {
@@ -96,15 +98,35 @@ const rideMeta: Record<RideClass, { title: string; subtitle: string; seats: numb
   xuv:       { title: "XUV",       subtitle: "Spacious SUV for groups & luggage",  seats: 6, multiplier: 1.85,  icon: "car-outline" },
 };
 
-const estimateDistance = (pickup: string, dropoff: string) => {
+const estimateDistance = (pickup: string, dropoff: string, pickupCoords?: any, dropoffCoords?: any) => {
+  if (pickupCoords?.lat && dropoffCoords?.lat) {
+    const R = 6371; // km
+    const dLat = (dropoffCoords.lat - pickupCoords.lat) * Math.PI / 180;
+    const dLon = (dropoffCoords.lon - pickupCoords.lon) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(pickupCoords.lat * Math.PI / 180) * Math.cos(dropoffCoords.lat * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    return Math.max(1.0, distance * 1.3); // 1.3 multiplier for actual road distance
+  }
   const seed = pickup.length + dropoff.length;
   return Math.max(2.1, Math.min(24, (seed % 21) + 2.3));
 };
 
-const createOptions = (pickup: string, dropoff: string): RideOption[] => {
-  const distance = estimateDistance(pickup, dropoff);
+const createOptions = (pickup: string, dropoff: string, pickupCoords?: any, dropoffCoords?: any): RideOption[] => {
+  const distance = estimateDistance(pickup, dropoff, pickupCoords, dropoffCoords);
+  const distanceMiles = distance * 0.621371;
   const etaBase = Math.max(4, Math.round(distance / 2));
-  const base = 42 + distance * 12;
+  const durationMin = Math.max(10, Math.round(distance * 4));
+
+  const baseFare = 2.00;
+  const bookingFee = 2.00;
+  const perMile = 0.80;
+  const perMinute = 0.15;
+  
+  const calcPrice = baseFare + bookingFee + (distanceMiles * perMile) + (durationMin * perMinute);
+  const finalPrice = Math.max(6.00, calcPrice);
 
   return (Object.keys(rideMeta) as RideClass[]).map((rideClass, index) => {
     const meta = rideMeta[rideClass];
@@ -114,7 +136,8 @@ const createOptions = (pickup: string, dropoff: string): RideOption[] => {
       subtitle: meta.subtitle,
       seats: meta.seats,
       eta: `${etaBase + index * 3} min`,
-      price: Math.round(base * meta.multiplier),
+      price: Number((finalPrice * meta.multiplier).toFixed(2)),
+      distance: `${distance.toFixed(1)} km`,
     };
   });
 };
@@ -141,6 +164,7 @@ type ApiRide = {
   dropoff_longitude?: number | null;
   driver_latitude?: number | null;
   driver_longitude?: number | null;
+  driver_upi_id?: string | null;
 };
 
 const mapApiStatus = (status: ApiRide["status"]): RideStatus => {
@@ -177,6 +201,7 @@ const mapApiRide = (ride: ApiRide): Trip => {
     status: mapApiStatus(ride.status),
     createdAt: ride.created_at || new Date().toISOString(),
     driverPhone: ride.driver_phone || undefined,
+    driverUpiId: ride.driver_upi_id || undefined,
     pickupLatitude: ride.pickup_latitude ?? undefined,
     pickupLongitude: ride.pickup_longitude ?? undefined,
     dropoffLatitude: ride.dropoff_latitude ?? undefined,
@@ -219,13 +244,14 @@ export const useRideStore = create<RideState>()(
               dropoff_latitude: dropoffCoords?.lat,
               dropoff_longitude: dropoffCoords?.lon,
             },
+            timeout: 1500, // Short timeout so it falls back to local math instantly if backend is slow/unreachable
           });
           const rideOptions = response.options;
           set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "sedan", appliedCoupon: null, couponDiscount: 0 });
           return rideOptions;
         } catch (err: any) {
           // Fallback: calculate fare locally if server is unreachable
-          const rideOptions = createOptions(pickup, dropoff);
+          const rideOptions = createOptions(pickup, dropoff, pickupCoords, dropoffCoords);
           set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? "sedan", appliedCoupon: null, couponDiscount: 0 });
           return rideOptions;
         }
@@ -271,7 +297,7 @@ export const useRideStore = create<RideState>()(
         const ride = await apiRequest<ApiRide>(API_ENDPOINTS.RIDE_DETAIL(tripId));
         const trip = mapApiRide(ride);
         set((state) => ({
-          activeTrip: ["confirmed", "arriving", "on_trip"].includes(trip.status) ? trip : state.activeTrip,
+          activeTrip: ["confirmed", "arriving", "on_trip", "completed"].includes(trip.status) ? trip : state.activeTrip,
           history:
             trip.status === "completed" || trip.status === "cancelled"
               ? [trip, ...state.history.filter((item) => item.id !== trip.id)]
@@ -374,10 +400,19 @@ export const useRideStore = create<RideState>()(
             driverPhone: driverData ? driverData.phone : state.activeTrip.driverPhone,
           };
           
-          if (status === "completed" || status === "cancelled") {
+          if (status === "cancelled") {
             return {
               activeTrip: null,
               history: [updated, ...state.history]
+            };
+          }
+          
+          if (status === "completed") {
+            // Do NOT set activeTrip to null here. The PaymentScreen will handle 
+            // setting it to null after the user finishes payment.
+            return {
+              activeTrip: updated,
+              history: [updated, ...state.history.filter(h => h.id !== updated.id)]
             };
           }
           

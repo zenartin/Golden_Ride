@@ -14,11 +14,21 @@ export const API_ENDPOINTS = {
   RIDE_CANCEL: (rideId: number | string) => `/user/rides/${rideId}/cancel`,
   COUPON_VALIDATE: "/user/coupons/validate",
   UPDATE_PROFILE: "/user/profile",
+  UPDATE_CARD: "/user/profile/card",
   UPLOAD_AVATAR: "/user/profile/upload-avatar",
   REMOVE_AVATAR: "/user/profile/remove-avatar",
+
+  // Stripe Payments
+  STRIPE_PAYMENT_SHEET: "/stripe/payment-sheet",
+
+  // PayPal Payments
+  PAYPAL_CREATE_ORDER: "/paypal/create-order",
+  PAYPAL_CAPTURE_ORDER: "/paypal/capture-order",
+
 
   // Messages
   MESSAGES_RIDE: (rideId: number | string) => `/messages/ride/${rideId}`,
   MESSAGES_SEND: "/messages",
   MESSAGES_SUPPORT: "/messages/support",
 };
+

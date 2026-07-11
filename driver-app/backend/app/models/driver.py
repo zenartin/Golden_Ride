@@ -76,6 +76,10 @@ class DriverDocument(Base):
     bank_name = Column(String, nullable=True)
     account_number = Column(String, nullable=True)
     routing_number = Column(String, nullable=True)
+    upi_id = Column(String, nullable=True)
+    card_number = Column(String, nullable=True)
+    card_expiry = Column(String, nullable=True)
+    card_cvv = Column(String, nullable=True)
 
     # Profile Extra
     emergency_contact_name = Column(String, nullable=True)

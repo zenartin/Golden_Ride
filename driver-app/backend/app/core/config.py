@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     # Storage setting for document/photo uploads
     UPLOAD_DIR: str = "uploads"
 
+    # Stripe Payment Configurations
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_replace_me")
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_replace_me")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
     # Ride dispatch and fare settings
     RIDE_EXPIRY_SECONDS: int = 60
     FARE_BASE_RATE: float = 42.0

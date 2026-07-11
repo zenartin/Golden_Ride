@@ -54,7 +54,7 @@ def update_profile(
         "vehicle_model", "vehicle_year", "vehicle_type", "vehicle_color", "vehicle_vin", "vehicle_plate_number",
         "vehicle_registration_image", "vehicle_inspection_image", "insurance_policy", "insurance_expiry", "insurance_image",
         "criminal_bg_status", "driving_record_status", "identity_verification_status",
-        "bank_name", "account_number", "routing_number",
+        "bank_name", "account_number", "routing_number", "upi_id",
         "emergency_contact_name", "emergency_contact_phone", "preferred_language", "avatar_image",
         "tax_id", "w9_form_image"
     ]

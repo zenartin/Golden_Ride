@@ -50,7 +50,7 @@ export default function TripsScreen({ navigation }: Props) {
     loadData();
   }, []);
 
-  const allTrips = activeTrip ? [activeTrip, ...history] : history;
+  const allTrips = activeTrip ? [activeTrip, ...history.filter((t) => t.id !== activeTrip.id)] : history;
   const filtered = filter === "all" ? allTrips : allTrips.filter((t) => t.status === filter);
 
   const completedCount = allTrips.filter((t) => t.status === "completed").length;

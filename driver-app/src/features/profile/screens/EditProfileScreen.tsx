@@ -34,6 +34,31 @@ export default function EditProfileScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert("Missing Name", "Please enter your full name.");
+      return;
+    }
+    if (!email.trim()) {
+      Alert.alert("Missing Email", "Please enter your email address.");
+      return;
+    }
+    if (!phone.trim()) {
+      Alert.alert("Missing Phone", "Please enter your phone number.");
+      return;
+    }
+    if (!city.trim()) {
+      Alert.alert("Missing City", "Please enter your city.");
+      return;
+    }
+    if (!vehicle.trim()) {
+      Alert.alert("Missing Vehicle", "Please enter your vehicle model.");
+      return;
+    }
+    if (!plate.trim()) {
+      Alert.alert("Missing Number Plate", "Please enter your vehicle number plate.");
+      return;
+    }
+
     setSaving(true);
     const success = await updateProfile({
       name,

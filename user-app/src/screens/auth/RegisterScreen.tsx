@@ -18,8 +18,24 @@ export default function RegisterScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
+    if (!name.trim()) {
+      Alert.alert("Missing Name", "Please enter your full name.");
+      return;
+    }
+    if (!email.trim()) {
+      Alert.alert("Missing Email", "Please enter your email address.");
+      return;
+    }
+    if (!phone.trim()) {
+      Alert.alert("Missing Phone", "Please enter your phone number.");
+      return;
+    }
+    if (!password.trim()) {
+      Alert.alert("Missing Password", "Please choose a password.");
+      return;
+    }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
+      Alert.alert("Password Mismatch", "The passwords you entered do not match. Please try again.");
       return;
     }
     setLoading(true);

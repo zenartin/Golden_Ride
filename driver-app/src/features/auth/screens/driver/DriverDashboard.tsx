@@ -11,6 +11,7 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -156,9 +157,14 @@ export default function DriverDashboard({
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Good Morning 👋</Text>
-          <Text style={styles.driverName}>{driverName}</Text>
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text style={styles.greeting}>Good day 👋</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <Text style={[styles.driverName, { flexShrink: 1 }]} numberOfLines={1}>{driverName}</Text>
+            {driver?.profile_completed && (
+              <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            )}
+          </View>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
@@ -307,7 +313,7 @@ export default function DriverDashboard({
                   title="My Position"
                 >
                   <View style={styles.currentLocationMarker}>
-                    <Ionicons name="car-sport" size={18} color="#fff" />
+                    <Ionicons name="car-sport" size={22} color="#fff" />
                   </View>
                 </Marker>
               </MapView>

@@ -141,6 +141,10 @@ def get_profile(current_user: User = Depends(get_current_user)):
         "avatar": current_user.avatar,
         "rating": current_user.rating,
         "wallet_balance": current_user.wallet_balance,
+        "card_number": current_user.card_number,
+        "card_expiry": current_user.card_expiry,
+        "card_cvv": current_user.card_cvv,
+        "card_holder": current_user.card_holder,
     }
 
 
@@ -430,4 +434,32 @@ def update_profile(
         "avatar": current_user.avatar,
         "rating": current_user.rating,
         "wallet_balance": current_user.wallet_balance
+    }
+
+class CardUpdateRequest(BaseModel):
+    card_number: str
+    card_expiry: str
+    card_cvv: str
+    card_holder: str
+
+@router.put("/profile/card")
+def update_card(
+    payload: CardUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.card_number = payload.card_number
+    current_user.card_expiry = payload.card_expiry
+    current_user.card_cvv = payload.card_cvv
+    current_user.card_holder = payload.card_holder
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return {
+        "status": "success",
+        "card_number": current_user.card_number,
+        "card_expiry": current_user.card_expiry,
+        "card_holder": current_user.card_holder,
     }

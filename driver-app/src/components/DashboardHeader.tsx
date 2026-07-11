@@ -11,7 +11,7 @@ export default function DashboardHeader() {
       </TouchableOpacity>
 
       <View style={styles.titleBlock}>
-        <Text style={styles.greeting}>Good Morning, Driver 👋</Text>
+        <Text style={styles.greeting}>Good day, Driver 👋</Text>
         <Text style={styles.subtitle}>Ready to drive and earn?</Text>
       </View>
 

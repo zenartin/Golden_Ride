@@ -6,6 +6,7 @@ export interface Ride {
   id: number;
   driver_id?: number;
   rider_name: string;
+  rider_phone?: string;
   rider_rating: number;
   rider_trips: number;
   from_location: string;

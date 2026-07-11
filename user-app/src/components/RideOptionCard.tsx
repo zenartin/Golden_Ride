@@ -113,7 +113,7 @@ export default function RideOptionCard({
         {/* Name + subtitle */}
         <View style={styles.nameBlock}>
           <View style={styles.nameRow}>
-            <Text style={[styles.title, selected && { color: config.accentColor }]}>
+            <Text style={[styles.title, selected && { color: config.accentColor }, { flexShrink: 1 }]} numberOfLines={1}>
               {option.title}
             </Text>
             {config.badge && (
@@ -129,16 +129,26 @@ export default function RideOptionCard({
 
         {/* Price */}
         <Text style={[styles.price, selected && { color: config.accentColor }]}>
-          {symbol}{option.price}
+          {symbol}{Number(option.price).toFixed(2)}
         </Text>
       </View>
 
-      {/* Bottom row: ETA + seats + AC indicator */}
+      {/* Bottom row: ETA + distance + seats + AC indicator */}
       <View style={styles.metaRow}>
         <View style={styles.metaChip}>
           <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
           <Text style={styles.metaText}>{option.eta}</Text>
         </View>
+        {option.distance && (
+          <View style={styles.metaChip}>
+            <Ionicons name="location-outline" size={13} color={Colors.textSecondary} />
+            <Text style={styles.metaText}>
+              {user?.country === "USA"
+                ? `${(parseFloat(option.distance) * 0.621371).toFixed(1)} mi`
+                : option.distance}
+            </Text>
+          </View>
+        )}
         <View style={styles.metaChip}>
           <Ionicons name="people-outline" size={13} color={Colors.textSecondary} />
           <Text style={styles.metaText}>{option.seats} seats</Text>

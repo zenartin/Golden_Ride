@@ -123,7 +123,8 @@ def update_status(
     ride.updated_at = datetime.utcnow()
 
     if payload.status == "completed":
-        current_driver.balance += ride.fare_amount
+        driver_earnings = round(ride.fare_amount * 0.80, 2)
+        current_driver.balance += driver_earnings
         db.add(current_driver)
 
     db.commit()

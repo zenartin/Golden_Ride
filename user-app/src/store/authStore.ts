@@ -11,6 +11,10 @@ export interface UserProfile {
   phone: string;
   country: string;
   avatar?: string;
+  card_number?: string;
+  card_expiry?: string;
+  card_cvv?: string;
+  card_holder?: string;
 }
 
 interface AuthState {
@@ -27,6 +31,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (name: string, email: string, phone: string) => Promise<boolean>;
+  updateCard: (payload: { card_number: string; card_expiry: string; card_cvv: string; card_holder: string }) => Promise<boolean>;
   uploadAvatar: (uri: string) => Promise<boolean>;
   removeAvatar: () => Promise<boolean>;
 }
@@ -54,9 +59,18 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true,
       error: null,
       initialize: async () => {
-        set({ isLoading: true });
         try {
-          const profile = await apiRequest<ProfileResponse>(API_ENDPOINTS.PROFILE);
+          const token = await AsyncStorage.getItem("userToken");
+          if (!token) {
+            set({ isAuthenticated: false, token: null, user: null, isLoading: false });
+            return;
+          }
+          
+          // Unblock splash screen instantly, using the user from persisted state if available
+          set({ isAuthenticated: true, token, isLoading: false });
+
+          // Fetch fresh profile data in background
+          const profile = await apiRequest<any>(API_ENDPOINTS.PROFILE);
           set({
             user: {
               id: profile.id,
@@ -65,19 +79,21 @@ export const useAuthStore = create<AuthState>()(
               phone: profile.phone,
               country: profile.country,
               avatar: profile.avatar,
+              card_number: profile.card_number,
+              card_expiry: profile.card_expiry,
+              card_cvv: profile.card_cvv,
+              card_holder: profile.card_holder,
             },
-            isAuthenticated: true,
             error: null,
           });
         } catch (error) {
           if (error instanceof Error && error.message === "UNAUTHORIZED") {
-            set({ isAuthenticated: false, token: null, user: null });
+            set({ isAuthenticated: false, token: null, user: null, isLoading: false });
+            await AsyncStorage.removeItem("userToken");
           } else {
             const token = await AsyncStorage.getItem("userToken");
-            set({ isAuthenticated: Boolean(token) });
+            set({ isAuthenticated: Boolean(token), isLoading: false });
           }
-        } finally {
-          set({ isLoading: false });
         }
       },
       login: async ({ email, password }) => {
@@ -94,7 +110,13 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { id: response.id, name: response.name, email: response.email, phone: response.phone, country: (response as any).country || "USA" },
+            user: {
+              id: response.id,
+              name: response.name,
+              email: response.email,
+              phone: response.phone,
+              country: (response as any).country || "USA",
+            },
             isAuthenticated: true,
             error: null,
           });
@@ -118,7 +140,13 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { id: response.id, name: response.name, email: response.email, phone: response.phone, country: (response as any).country || "USA" },
+            user: {
+              id: response.id,
+              name: response.name,
+              email: response.email,
+              phone: response.phone,
+              country: (response as any).country || "USA",
+            },
             isAuthenticated: true,
             error: null,
           });
@@ -160,7 +188,13 @@ export const useAuthStore = create<AuthState>()(
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
             token: response.access_token,
-            user: { id: response.id, name: response.name, email: response.email, phone: response.phone, country: (response as any).country || "USA" },
+            user: {
+              id: response.id,
+              name: response.name,
+              email: response.email,
+              phone: response.phone,
+              country: (response as any).country || "USA",
+            },
             isAuthenticated: true,
             error: null,
           });
@@ -181,7 +215,7 @@ export const useAuthStore = create<AuthState>()(
       },
       fetchProfile: async () => {
         try {
-          const profile = await apiRequest<ProfileResponse>(API_ENDPOINTS.PROFILE);
+          const profile = await apiRequest<any>(API_ENDPOINTS.PROFILE);
           set({
             user: {
               id: profile.id,
@@ -190,6 +224,10 @@ export const useAuthStore = create<AuthState>()(
               phone: profile.phone,
               country: profile.country,
               avatar: profile.avatar,
+              card_number: profile.card_number,
+              card_expiry: profile.card_expiry,
+              card_cvv: profile.card_cvv,
+              card_holder: profile.card_holder,
             },
           });
         } catch (error) {
@@ -201,24 +239,46 @@ export const useAuthStore = create<AuthState>()(
       },
       updateProfile: async (name, email, phone) => {
         try {
-          const updated = await apiRequest<ProfileResponse>(API_ENDPOINTS.UPDATE_PROFILE, {
+          const updated = await apiRequest<any>(API_ENDPOINTS.UPDATE_PROFILE, {
             method: "PUT",
             body: { name, email, phone },
           });
-          set({
-            user: {
-              id: updated.id,
+          set((state) => ({
+            user: state.user ? {
+              ...state.user,
               name: updated.name,
               email: updated.email,
               phone: updated.phone,
               country: updated.country,
               avatar: updated.avatar,
-            },
+            } : null,
             error: null,
-          });
+          }));
           return true;
         } catch (error) {
           set({ error: error instanceof Error ? error.message : "Profile update failed" });
+          return false;
+        }
+      },
+      updateCard: async ({ card_number, card_expiry, card_cvv, card_holder }) => {
+        try {
+          const updated = await apiRequest<any>(API_ENDPOINTS.UPDATE_CARD, {
+            method: "PUT",
+            body: { card_number, card_expiry, card_cvv, card_holder },
+          });
+          set((state) => ({
+            user: state.user ? {
+              ...state.user,
+              card_number: updated.card_number,
+              card_expiry: updated.card_expiry,
+              card_cvv: updated.card_cvv,
+              card_holder: updated.card_holder,
+            } : null,
+            error: null,
+          }));
+          return true;
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : "Card update failed" });
           return false;
         }
       },

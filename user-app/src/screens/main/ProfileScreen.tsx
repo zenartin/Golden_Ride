@@ -8,7 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MainStackParamList } from "../../navigation/MainNavigator";
 import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
-import { BASE_URL } from "../../api/client";
+import { apiClient, BASE_URL } from "../../api/client";
 
 type Props = {
   navigation: {
@@ -111,29 +111,26 @@ export default function ProfileScreen({ navigation }: Props) {
       const formData = new FormData();
       const filename = uri.split("/").pop() || "avatar.jpg";
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
+      const type = (match && match[1] !== "jpg") ? `image/${match[1]}` : `image/jpeg`;
 
       formData.append("file", {
-        uri,
+        uri: uri,
         name: filename,
-        type,
+        type: type,
       } as any);
 
-      const uploadUrl = `${BASE_URL}/profile/upload-avatar`;
-      const response = await fetch(uploadUrl, {
-        method: "POST",
+      const uploadUrl = "/user/profile/upload-avatar";
+      const response = await apiClient.post(uploadUrl, formData, {
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
+          "Content-Type": "multipart/form-data",
+        }
       });
-
-      const data = await response.json();
-      if (response.ok && data.status === "success") {
+      
+      if (response.data?.status === "success") {
         Alert.alert("Success", "Profile photo uploaded successfully!");
         await useAuthStore.getState().fetchProfile();
       } else {
-        throw new Error(data.detail || "Upload failed");
+        throw new Error(response.data?.detail || "Upload failed");
       }
     } catch (err: any) {
       Alert.alert("Upload Failed", err?.message || "Could not upload profile picture.");
@@ -189,6 +186,20 @@ export default function ProfileScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>Account settings</Text>
         <View style={styles.menuGroup}>
 
+
+          {/* Account Verification */}
+          <Pressable style={styles.menuItem}>
+            <View style={[styles.iconWrap, { backgroundColor: "#FEF9C3" }]}>
+              <Ionicons name="shield-checkmark" size={20} color="#EAB308" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuLabel}>Account Verification</Text>
+              <Text style={styles.menuSublabel}>Identity & Safety profile</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+
+          <View style={styles.separator} />
 
           {/* Saved Places */}
           <Pressable style={styles.menuItem} onPress={() => navigation.navigate("SavedLocations")}>

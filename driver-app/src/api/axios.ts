@@ -1,10 +1,8 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Use EXPO_PUBLIC_DRIVER_API_URL if provided. Otherwise default to the driver backend port.
-export const BASE_URL =
-  process.env.EXPO_PUBLIC_DRIVER_API_URL ||
-  "http://10.233.162.121:8001/api";
+// Bypassing Expo .env cache
+export const BASE_URL = "http://10.233.162.121:8000/api";
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

@@ -22,8 +22,16 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      Alert.alert("Error", "Please fill in all fields.");
+    if (!name.trim()) {
+      Alert.alert("Missing Name", "Please enter your full name.");
+      return;
+    }
+    if (!email.trim()) {
+      Alert.alert("Missing Email", "Please enter your email address.");
+      return;
+    }
+    if (!phone.trim()) {
+      Alert.alert("Missing Phone", "Please enter your phone number.");
       return;
     }
     setSaving(true);

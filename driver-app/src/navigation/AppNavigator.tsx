@@ -11,7 +11,7 @@ import { connectDriverWebSocket, disconnectDriverWebSocket } from "../services/w
 import NetInfo from "@react-native-community/netinfo";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
 
 export default function AppNavigator() {
   const initialize = useAuthStore((s) => s.initialize);

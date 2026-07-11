@@ -46,6 +46,10 @@ export interface DriverProfile {
     bank_name?: string;
     account_number?: string;
     routing_number?: string;
+    upi_id?: string;
+    card_number?: string;
+    card_expiry?: string;
+    card_cvv?: string;
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
     preferred_language?: string;
@@ -128,7 +132,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().fetchProfile();
       return true;
     } catch (err: any) {
-      set({ error: err.response?.data?.detail || "Registration failed" });
+      console.log("Registration error:", err.message, err.response?.data);
+      set({ error: err.response?.data?.detail || err.message || "Registration failed" });
       return false;
     } finally {
       set({ isLoading: false });

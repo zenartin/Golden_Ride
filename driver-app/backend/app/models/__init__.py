@@ -6,3 +6,4 @@ from app.models.user import User
 from app.models.device_token import DeviceToken
 from app.models.driver_notification import DriverNotification
 from app.models.ride_assignment import RideAssignment
+from app.models.payment import Payment

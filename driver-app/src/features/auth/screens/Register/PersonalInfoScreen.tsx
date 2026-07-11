@@ -39,12 +39,24 @@ const SignupScreen = ({ navigation }: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignUp = async () => {
-    if (!form.name || !form.email || !form.phone || !form.password) {
-      alert("Please fill in all fields.");
+    if (!form.name.trim()) {
+      Alert.alert("Missing Name", "Please enter your full name.");
+      return;
+    }
+    if (!form.email.trim()) {
+      Alert.alert("Missing Email", "Please enter your email address.");
+      return;
+    }
+    if (!form.phone.trim()) {
+      Alert.alert("Missing Phone", "Please enter your phone number.");
+      return;
+    }
+    if (!form.password.trim()) {
+      Alert.alert("Missing Password", "Please choose a password.");
       return;
     }
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match.");
+      Alert.alert("Password Mismatch", "The passwords you entered do not match. Please try again.");
       return;
     }
     
@@ -61,7 +73,8 @@ const SignupScreen = ({ navigation }: any) => {
     if (success) {
       // login automatically or authStore will handle navigation if login is successful inside register
     } else {
-      alert("Registration failed. Please try again.");
+      const errorMsg = useAuthStore.getState().error || "Registration failed. Please try again.";
+      alert(errorMsg);
     }
   };
 
@@ -128,6 +141,7 @@ const SignupScreen = ({ navigation }: any) => {
               <Ionicons name="lock-closed" size={20} color="#FFD000" />
               <TextInput
                 placeholder="Password"
+                placeholderTextColor={Colors.textMuted || "#999"}
                 secureTextEntry={!showPassword}
                 value={form.password}
                 onChangeText={(v) => handleChange("password", v)}
@@ -147,6 +161,7 @@ const SignupScreen = ({ navigation }: any) => {
               <Ionicons name="lock-closed" size={20} color="#FFD000" />
               <TextInput
                 placeholder="Confirm Password"
+                placeholderTextColor={Colors.textMuted || "#999"}
                 secureTextEntry={!showConfirm}
                 value={form.confirmPassword}
                 onChangeText={(v) => handleChange("confirmPassword", v)}
@@ -212,6 +227,7 @@ const Input = ({ icon, placeholder, value, onChangeText, keyboardType }: any) =>
     <Ionicons name={icon} size={20} color="#FFD000" />
     <TextInput
       placeholder={placeholder}
+      placeholderTextColor="#999"
       value={value}
       onChangeText={onChangeText}
       keyboardType={keyboardType}

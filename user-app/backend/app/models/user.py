@@ -18,6 +18,12 @@ class User(Base):
     wallet_balance = Column(Float, default=1780.0)
     rating = Column(Float, default=4.8)
     is_active = Column(Boolean, default=True)
+    stripe_customer_id = Column(String, nullable=True)
+    country = Column(String, default="India", nullable=True)
+    card_number = Column(String, nullable=True)
+    card_expiry = Column(String, nullable=True)
+    card_cvv = Column(String, nullable=True)
+    card_holder = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     rides = relationship("Ride", back_populates="user")

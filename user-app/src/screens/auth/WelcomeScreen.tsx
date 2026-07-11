@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { Colors, Spacing, Typography } from "../../theme";
+import { PoweredByZenartin } from "../../components/PoweredByZenartin";
 
 export default function WelcomeScreen({ navigation }: any) {
   return (
@@ -36,6 +37,10 @@ export default function WelcomeScreen({ navigation }: any) {
       <Pressable style={styles.secondary} onPress={() => navigation.navigate("Register")}>
         <Text style={styles.secondaryText}>Create account</Text>
       </Pressable>
+
+      <View style={{ marginTop: 20 }}>
+        <PoweredByZenartin />
+      </View>
     </ScrollView>
   );
 }

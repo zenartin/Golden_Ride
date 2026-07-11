@@ -50,14 +50,22 @@ class DispatchService:
             "ride": ride_payload
         }
 
-        # Fetch registered drivers matching the requested ride_class
+        # Fetch online drivers matching the requested ride_class.
+        # Use outerjoin so drivers without a DriverDocument are not silently excluded.
+        # Use ilike with wildcard so "sedan" matches stored values like "Sedan", "SEDAN", etc.
         drivers = (
             db.query(Driver)
-            .join(DriverDocument)
-            .filter(DriverDocument.vehicle_type.ilike(ride.ride_class))
+            .outerjoin(DriverDocument)
+            .filter(
+                Driver.is_online == True,
+                (
+                    DriverDocument.vehicle_type.ilike(f"%{ride.ride_class}%") |
+                    DriverDocument.vehicle_type.is_(None)
+                )
+            )
             .all()
         )
-        logger.info(f"Dispatching to {len(drivers)} drivers with vehicle class {ride.ride_class}")
+        logger.info(f"Dispatching to {len(drivers)} online drivers with vehicle class {ride.ride_class}")
 
         for driver in drivers:
             # 1. Create a RideAssignment record

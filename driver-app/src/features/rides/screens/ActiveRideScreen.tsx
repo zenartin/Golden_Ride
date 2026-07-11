@@ -7,6 +7,7 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  Linking,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,6 +32,7 @@ const PHASES: RidePhase[] = ["heading_pickup", "arrived", "in_progress", "comple
 
 export default function ActiveRideScreen({ navigation, route }: any) {
   const { activeRide, fetchActiveRide, updateRideStatus } = useRideStore();
+  const driver = useAuthStore((s: any) => s.driver);
   const insets = useSafeAreaInsets();
   const [phaseIndex, setPhaseIndex] = useState(0);
   const phase = PHASES[phaseIndex];
@@ -182,7 +184,6 @@ export default function ActiveRideScreen({ navigation, route }: any) {
 
   const handleSOS = () => Alert.alert("SOS", "Emergency services have been notified.");
 
-  const driver = useAuthStore((s: any) => s.driver);
   const pickupRegion = {
     latitude: RIDE.pickup_latitude ?? (driver?.country === "USA" ? 39.8283 : 20.5937),
     longitude: RIDE.pickup_longitude ?? (driver?.country === "USA" ? -98.5795 : 78.9629),
@@ -314,6 +315,14 @@ export default function ActiveRideScreen({ navigation, route }: any) {
               >
                 <Ionicons name="chatbubble-ellipses" size={20} color={Colors.info} />
               </TouchableOpacity>
+              {RIDE.rider_phone ? (
+                <TouchableOpacity 
+                  style={styles.actionBtn} 
+                  onPress={() => Linking.openURL(`tel:${RIDE.rider_phone}`)}
+                >
+                  <Ionicons name="call" size={20} color={Colors.success} />
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
 

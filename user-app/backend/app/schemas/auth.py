@@ -44,6 +44,7 @@ class UserRegisterRequest(BaseModel):
     email: EmailStr
     phone: str
     password: str
+    country: Optional[str] = "India"
 
 class UserToken(BaseModel):
     access_token: str
@@ -53,3 +54,4 @@ class UserToken(BaseModel):
     phone: str
     email: str
     wallet_balance: float
+    country: Optional[str] = "India"

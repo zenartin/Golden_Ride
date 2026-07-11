@@ -14,8 +14,12 @@ export default function LoginScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Missing credentials", "Please enter both email and password.");
+    if (!email.trim()) {
+      Alert.alert("Missing Email", "Please enter your email address to log in.");
+      return;
+    }
+    if (!password.trim()) {
+      Alert.alert("Missing Password", "Please enter your password to log in.");
       return;
     }
     setLoading(true);

@@ -17,6 +17,10 @@ class DriverDocumentOut(BaseModel):
     vehicle_image: Optional[str] = None
     insurance_image: Optional[str] = None
     avatar_image: Optional[str] = None
+    upi_id: Optional[str] = None
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None
+    card_cvv: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -31,6 +31,10 @@ class DriverDocumentOut(BaseModel):
     bank_name: Optional[str] = None
     account_number: Optional[str] = None
     routing_number: Optional[str] = None
+    upi_id: Optional[str] = None
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None
+    card_cvv: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
     preferred_language: Optional[str] = None
@@ -100,8 +104,12 @@ class DriverProfileUpdateRequest(BaseModel):
     bank_name: Optional[str] = None
     account_number: Optional[str] = None
     routing_number: Optional[str] = None
+    upi_id: Optional[str] = None
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None
+    card_cvv: Optional[str] = None
 
-    # Profile Info
+    # Extra
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
     preferred_language: Optional[str] = None

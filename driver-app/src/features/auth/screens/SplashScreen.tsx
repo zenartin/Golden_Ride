@@ -10,6 +10,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../../types/navigation";
 import { Colors } from "../../../theme";
+import { PoweredByZenartin } from "../../../components/PoweredByZenartin";
 
 type Props = NativeStackScreenProps<any, "Splash">;
 
@@ -56,11 +57,7 @@ export default function SplashScreen({ navigation }: Props) {
       </Animated.View>
 
       <View style={styles.footer}>
-        <View style={styles.dots}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-        </View>
+        <PoweredByZenartin />
       </View>
     </View>
   );

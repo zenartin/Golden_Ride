@@ -12,7 +12,7 @@ import {
   Inter_700Bold 
 } from "@expo-google-fonts/inter";
 import { navigationRef } from "./src/navigation/navigationRef";
-
+import { StripeProvider } from '@stripe/stripe-react-native';
 import AppNavigator from "./src/navigation/AppNavigator";
 
 export default function App() {
@@ -38,12 +38,14 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef}>
-          <StatusBar style="dark" />
-          <AppNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <StripeProvider publishableKey="pk_test_51Trvx45bQqcPvDPuw9gtgp8Eq8v4c3ZosreDd6kIJUbT9tSZuXZaNCQCZpS3cwvD52MHSLWECw0szH7CrcCzPGLP008SIKBBHg">
+        <SafeAreaProvider>
+          <NavigationContainer ref={navigationRef}>
+            <StatusBar style="dark" />
+            <AppNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </StripeProvider>
     </GestureHandlerRootView>
   );
 }

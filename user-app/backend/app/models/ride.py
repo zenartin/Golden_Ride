@@ -39,6 +39,10 @@ class Ride(Base):
     driver = relationship("Driver", back_populates="rides")
     user = relationship("User", back_populates="rides")
 
+    @property
+    def driver_upi_id(self):
+        return self.driver.documents.upi_id if self.driver and self.driver.documents else None
+
 
 class Withdrawal(Base):
     __tablename__ = "withdrawals"

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../../types/navigation";
 import { Colors, Spacing, Typography } from "../../../theme";
+import { PoweredByZenartin } from "../../../components/PoweredByZenartin";
 
 type Props = NativeStackScreenProps<any, "Welcome">;
 
@@ -76,6 +77,10 @@ export default function WelcomeScreen({ navigation }: Props) {
         >
           <Text style={styles.btnSecondaryText}>Create Driver Account</Text>
         </TouchableOpacity>
+
+        <View style={{ marginTop: 16 }}>
+          <PoweredByZenartin />
+        </View>
       </View>
     </View>
   );

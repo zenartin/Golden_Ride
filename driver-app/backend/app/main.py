@@ -8,7 +8,7 @@ from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, driver, rides, messages, notifications, user, content
+from app.routers import auth, driver, rides, messages, notifications, user, content, razorpay, admin
 from app.websocket.manager import manager
 from app.repositories.driver_repository import DriverRepository
 from app.exceptions import register_exception_handlers
@@ -26,33 +26,33 @@ Base.metadata.create_all(bind=engine)
 
 def ensure_local_schema_compatibility():
     inspector = inspect(engine)
-    if "rides" not in inspector.get_table_names():
-        return
+    table_names = inspector.get_table_names()
 
-    existing = {column["name"] for column in inspector.get_columns("rides")}
-    required_columns = {
-        "user_id": "INTEGER",
-        "ride_class": "VARCHAR DEFAULT 'comfort'",
-        "pickup_latitude": "FLOAT",
-        "pickup_longitude": "FLOAT",
-        "dropoff_latitude": "FLOAT",
-        "dropoff_longitude": "FLOAT",
-        "started_at": "TIMESTAMP",
-        "completed_at": "TIMESTAMP",
-        "actual_fare": "FLOAT",
-        "cancellation_reason": "VARCHAR",
-        "coupon_code": "VARCHAR",
-        "discount_amount": "FLOAT",
-    }
-    missing = [(name, sql_type) for name, sql_type in required_columns.items() if name not in existing]
-    if not missing:
-        return
+    # --- rides table ---
+    if "rides" in table_names:
+        existing = {column["name"] for column in inspector.get_columns("rides")}
+        required_columns = {
+            "user_id": "INTEGER",
+            "ride_class": "VARCHAR DEFAULT 'comfort'",
+            "pickup_latitude": "FLOAT",
+            "pickup_longitude": "FLOAT",
+            "dropoff_latitude": "FLOAT",
+            "dropoff_longitude": "FLOAT",
+            "started_at": "TIMESTAMP",
+            "completed_at": "TIMESTAMP",
+            "actual_fare": "FLOAT",
+            "cancellation_reason": "VARCHAR",
+            "coupon_code": "VARCHAR",
+            "discount_amount": "FLOAT",
+        }
+        missing = [(name, sql_type) for name, sql_type in required_columns.items() if name not in existing]
+        if missing:
+            with engine.begin() as connection:
+                for name, sql_type in missing:
+                    connection.execute(text(f"ALTER TABLE rides ADD COLUMN {name} {sql_type}"))
 
-    with engine.begin() as connection:
-        for name, sql_type in missing:
-            connection.execute(text(f"ALTER TABLE rides ADD COLUMN {name} {sql_type}"))
-
-    if "drivers" in inspector.get_table_names():
+    # --- drivers table ---
+    if "drivers" in table_names:
         existing_drivers = {column["name"] for column in inspector.get_columns("drivers")}
         required_driver_columns = {
             "profile_completed": "BOOLEAN DEFAULT 0",
@@ -65,7 +65,8 @@ def ensure_local_schema_compatibility():
                 for name, sql_type in missing_drivers:
                     connection.execute(text(f"ALTER TABLE drivers ADD COLUMN {name} {sql_type}"))
 
-    if "driver_documents" in inspector.get_table_names():
+    # --- driver_documents table ---
+    if "driver_documents" in table_names:
         existing_docs = {column["name"] for column in inspector.get_columns("driver_documents")}
         required_doc_columns = {
             "license_state": "VARCHAR",
@@ -91,6 +92,23 @@ def ensure_local_schema_compatibility():
             with engine.begin() as connection:
                 for name, sql_type in missing_docs:
                     connection.execute(text(f"ALTER TABLE driver_documents ADD COLUMN {name} {sql_type}"))
+
+    # --- users table ---
+    if "users" in table_names:
+        existing_users = {column["name"] for column in inspector.get_columns("users")}
+        required_user_columns = {
+            "stripe_customer_id": "VARCHAR",
+            "country": "VARCHAR DEFAULT 'USA'",
+            "card_number": "VARCHAR",
+            "card_expiry": "VARCHAR",
+            "card_cvv": "VARCHAR",
+            "card_holder": "VARCHAR",
+        }
+        missing_users = [(name, sql_type) for name, sql_type in required_user_columns.items() if name not in existing_users]
+        if missing_users:
+            with engine.begin() as connection:
+                for name, sql_type in missing_users:
+                    connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {sql_type}"))
 
 ensure_local_schema_compatibility()
 
@@ -127,6 +145,8 @@ app.include_router(messages.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(content.router, prefix="/api")
+app.include_router(razorpay.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 @app.get("/")
 def read_root():

@@ -56,6 +56,10 @@ export default function CompleteProfileScreen({ navigation }: any) {
     bank_name: driver?.documents?.bank_name || "",
     account_number: driver?.documents?.account_number || "",
     routing_number: driver?.documents?.routing_number || "",
+    upi_id: driver?.documents?.upi_id || "",
+    card_number: driver?.documents?.card_number || "",
+    card_expiry: driver?.documents?.card_expiry || "",
+    card_cvv: driver?.documents?.card_cvv || "",
     
     emergency_contact_name: driver?.documents?.emergency_contact_name || "",
     emergency_contact_phone: driver?.documents?.emergency_contact_phone || "",
@@ -109,6 +113,55 @@ export default function CompleteProfileScreen({ navigation }: any) {
   };
 
   const handleSave = async () => {
+    // Validation
+    const requiredFields = [
+      { key: 'date_of_birth', name: 'Date of Birth' },
+      { key: 'residential_address', name: 'Residential Address' },
+      { key: 'license_number', name: 'License Number' },
+      { key: 'license_state', name: 'State of Issue' },
+      { key: 'license_expiry', name: 'License Expiration Date' },
+      { key: 'vehicle_type', name: 'Vehicle Class' },
+      { key: 'vehicle_model', name: 'Vehicle Make & Model' },
+      { key: 'vehicle_year', name: 'Vehicle Year' },
+      { key: 'vehicle_color', name: 'Vehicle Color' },
+      { key: 'vehicle_plate_number', name: 'License Plate Number' },
+      { key: 'emergency_contact_name', name: 'Emergency Contact Name' },
+      { key: 'emergency_contact_phone', name: 'Emergency Contact Phone' },
+      { key: 'preferred_language', name: 'Preferred Language' },
+      { key: 'insurance_policy', name: 'Insurance Policy Number' },
+      { key: 'insurance_expiry', name: 'Insurance Expiration Date' },
+    ];
+    
+    for (const field of requiredFields) {
+      const val = (form as any)[field.key];
+      if (!val || (typeof val === 'string' && !val.trim())) {
+        Alert.alert("Missing Information", `Please provide your ${field.name}.`);
+        return;
+      }
+    }
+    
+    const hasUpi = Boolean(form.upi_id?.trim());
+    const hasCard = Boolean(form.card_number?.trim() && form.card_expiry?.trim() && form.card_cvv?.trim());
+    const hasBank = Boolean(form.bank_name?.trim() && form.account_number?.trim() && form.routing_number?.trim());
+    
+    if (!hasUpi && !hasCard && !hasBank) {
+      Alert.alert("Missing Payout Method", "Please provide at least one complete payout method (Bank Account, Card, or UPI).");
+      return;
+    }
+
+    if (!licenseFrontUri || !licenseBackUri) {
+      Alert.alert("Missing Document", "Please upload both front and back photos of your driver's license.");
+      return;
+    }
+    if (!vehicleUri) {
+      Alert.alert("Missing Document", "Please upload a photo of your vehicle.");
+      return;
+    }
+    if (!insuranceUri) {
+      Alert.alert("Missing Document", "Please upload a photo of your insurance document.");
+      return;
+    }
+
     setIsLoading(true);
     const payload = {
       ...form,
@@ -166,7 +219,11 @@ export default function CompleteProfileScreen({ navigation }: any) {
       ]
     },
     {
-      id: 3, title: "4. Banking Information", fields: [
+      id: 3, title: "4. Banking & Payouts", fields: [
+        { key: "upi_id", label: "UPI ID (India Payouts)", placeholder: "e.g. name@ybl" },
+        { key: "card_number", label: "Card Number (USA Stripe Payouts)", placeholder: "0000 0000 0000 0000" },
+        { key: "card_expiry", label: "Card Expiry", placeholder: "MM/YY" },
+        { key: "card_cvv", label: "Card CVV", placeholder: "123" },
         { key: "bank_name", label: "Bank Name", placeholder: "e.g. Chase Bank" },
         { key: "account_number", label: "Account Number", placeholder: "..." },
         { key: "routing_number", label: "Routing Number", placeholder: "..." },

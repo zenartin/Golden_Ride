@@ -12,12 +12,16 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   BackHandler,
+  Image,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useStripe } from "@stripe/stripe-react-native";
+import { apiRequest } from "../../api/client";
+import { API_ENDPOINTS } from "../../api/endpoints";
 import AppButton from "../../components/AppButton";
 import RideOptionCard from "../../components/RideOptionCard";
 import SectionHeader from "../../components/SectionHeader";
@@ -103,13 +107,25 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     }
     setSearching(true);
     try {
-      await searchRides();
+      const results = await searchRides();
+      if (results.length === 0) {
+        Alert.alert("No Drivers Found", "Could not find any drivers nearby. Please try again later.");
+      }
+    } catch (err: any) {
+      Alert.alert("Search Error", err?.message || "Something went wrong.");
     } finally {
       setSearching(false);
     }
   };
 
-  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Wallet" | "UPI" | "Card">("Cash");
+  // If the active trip completes while user is on Home screen, redirect to Payment
+  useEffect(() => {
+    if (activeTrip?.status === "completed") {
+      navigation.navigate("Payment", { tripId: activeTrip.id });
+    }
+  }, [activeTrip?.status]);
+
+  const [paymentMethod, setPaymentMethod] = useState<"Razorpay">("Razorpay");
   const [upiId, setUpiId] = useState("");
   const [tempUpiId, setTempUpiId] = useState("");
   const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "", name: "" });
@@ -119,15 +135,27 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   const [showCardForm, setShowCardForm] = useState(false);
   const [showUpiForm, setShowUpiForm] = useState(false);
   
-  const [gatewayVisible, setGatewayVisible] = useState(false);
-  const [gatewayStatus, setGatewayStatus] = useState<"initiating" | "verifying" | "securing" | "success">("initiating");
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const walletBalance = useRideStore((s) => s.walletBalance);
   const refreshWallet = useRideStore((s) => s.refreshWallet);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     refreshWallet();
   }, [refreshWallet]);
+
+  useEffect(() => {
+    if (user?.card_number) {
+      setCardDetails({
+        number: user.card_number,
+        expiry: user.card_expiry || "",
+        cvv: user.card_cvv || "",
+        name: user.card_holder || "",
+      });
+      setPaymentMethod("Card");
+    }
+  }, [user]);
 
   const handleBook = async () => {
     if (!pickup.trim() || !dropoff.trim()) {
@@ -142,121 +170,48 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     const chosenOption = rideOptions.find((item) => item.id === selectedRideClass) ?? rideOptions[0];
     if (!chosenOption) return;
 
-    if (paymentMethod === "Wallet" && walletBalance < chosenOption.price) {
-      Alert.alert("Insufficient Balance", "Your wallet balance is less than the ride fare. Please choose another method or top up in the Wallet tab.");
-      return;
-    }
-
     if (paymentMethod === "UPI" && !upiId.trim()) {
+      Alert.alert("Payment Required", "Please configure your UPI ID first.");
       setTempUpiId(upiId);
       setShowUpiForm(true);
       return;
     }
 
     if (paymentMethod === "Card" && (!cardDetails.number || !cardDetails.expiry || !cardDetails.cvv || !cardDetails.name)) {
+      Alert.alert("Payment Required", "Please enter your card details first.");
       setTempCardDetails(cardDetails);
       setShowCardForm(true);
       return;
     }
 
-    // Secure Payment Gateway simulation
-    setGatewayStatus("initiating");
-    setGatewayVisible(true);
-
-    // Phase 1: Initiating
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    // Phase 2: Verifying details
-    setGatewayStatus("verifying");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // Phase 3: Securing bank auth
-    setGatewayStatus("securing");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // Phase 4: Success
-    setGatewayStatus("success");
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    setGatewayVisible(false);
-
     setBooking(true);
     setBookError(null);
     try {
+      // 1. Book the ride first to get the trip ID and fare
       const trip = await bookRide(paymentMethod);
-      if (trip) {
-        navigation.navigate("TrackRide");
-      }
+      if (!trip) throw new Error("Booking failed. Please try again.");
+
+      // After booking, automatically navigate to the tracking screen
+      navigation.navigate("TrackRide");
+
+      // Post-Ride Payment Flow: We no longer navigate to Payment immediately.
+      // The user stays on the tracking screen. When the driver completes the ride,
+      // TrackRideScreen will automatically navigate to PaymentScreen.
     } catch (err: any) {
-      const msg = err?.message || "Booking failed. Please try again.";
+      const msg = err?.message || "Payment failed. Please try again.";
       setBookError(msg);
-      Alert.alert("Booking Failed", msg);
+      Alert.alert("Payment Failed", msg);
     } finally {
       setBooking(false);
     }
   };
 
-  const saveCardDetails = () => {
-    if (!tempCardDetails.number || !tempCardDetails.expiry || !tempCardDetails.cvv || !tempCardDetails.name) {
-      Alert.alert("Missing details", "Please fill in all credit card details.");
-      return;
-    }
-    if (tempCardDetails.number.replace(/\s/g, "").length !== 16) {
-      Alert.alert("Invalid Card Number", "Card number must contain 16 digits.");
-      return;
-    }
-    if (!/^\d{2}\/\d{2}$/.test(tempCardDetails.expiry)) {
-      Alert.alert("Invalid Expiry", "Expiry must be in MM/YY format.");
-      return;
-    }
-    if (tempCardDetails.cvv.length < 3) {
-      Alert.alert("Invalid CVV", "CVV must be 3 or 4 digits.");
-      return;
-    }
-
-    setCardDetails(tempCardDetails);
-    setShowCardForm(false);
-  };
-
-  const saveUpiDetails = () => {
-    if (!tempUpiId.trim() || !tempUpiId.includes("@")) {
-      Alert.alert("Invalid UPI ID", "Please enter a valid UPI handle (e.g. name@bank).");
-      return;
-    }
-    setUpiId(tempUpiId.trim());
-    setShowUpiForm(false);
-  };
-
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\D/g, "");
-    const match = cleaned.match(/.{1,4}/g);
-    return match ? match.join(" ") : cleaned;
-  };
-
-  const formatExpiry = (text: string) => {
-    const cleaned = text.replace(/\D/g, "");
-    if (cleaned.length >= 2) {
-      return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
-    }
-    return cleaned;
-  };
-
   const getPaymentIcon = (method: string) => {
-    switch (method) {
-      case "Wallet": return "wallet-outline";
-      case "UPI": return "phone-portrait-outline";
-      case "Card": return "card-outline";
-      default: return "cash-outline";
-    }
+    return "flash-outline";
   };
 
   const getPaymentColor = (method: string) => {
-    switch (method) {
-      case "Wallet": return "#3B82F6";
-      case "UPI": return "#7C3AED";
-      case "Card": return "#EA580C";
-      default: return "#16A34A";
-    }
+    return "#02042B";
   };
 
   const isActiveRide =
@@ -269,8 +224,6 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     arriving: "#3B82F6",
     on_trip: "#8B5CF6",
   };
-
-  const user = useAuthStore((s) => s.user);
 
   const mapRegion =
     pickupCoords
@@ -335,18 +288,24 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
             {pickupCoords && (
               <Marker
                 coordinate={{ latitude: pickupCoords.lat, longitude: pickupCoords.lon }}
-                pinColor="#10B981"
                 title="Pickup"
                 description={pickup}
-              />
+              >
+                <View style={{ backgroundColor: '#10B981', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' }}>
+                  <Ionicons name="location" size={20} color="#fff" />
+                </View>
+              </Marker>
             )}
             {dropoffCoords && (
               <Marker
                 coordinate={{ latitude: dropoffCoords.lat, longitude: dropoffCoords.lon }}
-                pinColor={Colors.primary}
                 title="Drop"
                 description={dropoff}
-              />
+              >
+                <View style={{ backgroundColor: '#EF4444', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' }}>
+                  <Ionicons name="flag" size={20} color="#fff" />
+                </View>
+              </Marker>
             )}
             {pickupCoords && dropoffCoords && (
               <Polyline
@@ -384,9 +343,9 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
 
             <View style={styles.inputRow}>
               <View style={styles.dotLine}>
-                <View style={[styles.dot, { backgroundColor: "#10B981" }]} />
+                <Ionicons name="location" size={22} color="#10B981" />
                 <View style={styles.line} />
-                <View style={[styles.dot, { backgroundColor: Colors.primary }]} />
+                <Ionicons name="flag" size={20} color="#EF4444" />
               </View>
 
               <View style={{ flex: 1, gap: 10 }}>
@@ -503,73 +462,23 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
               </Pressable>
             </View>
 
-            <View style={{ gap: 12, paddingVertical: 10 }}>
-              {/* Option 1: Cash */}
+              <View style={{ gap: 12, paddingVertical: 10 }}>
+              {/* Option 1: Razorpay */}
               <Pressable
-                style={[styles.optionRow, paymentMethod === "Cash" && styles.optionRowSelected]}
-                onPress={() => { setPaymentMethod("Cash"); setShowPaymentModal(false); }}
-              >
-                <View style={[styles.paymentBadge, { backgroundColor: "#16A34A1A" }]}>
-                  <Ionicons name="cash-outline" size={22} color="#16A34A" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionName}>Cash</Text>
-                  <Text style={styles.optionSub}>Pay the driver in cash when trip ends</Text>
-                </View>
-                {paymentMethod === "Cash" && <Ionicons name="checkmark-circle" size={20} color="#16A34A" />}
-              </Pressable>
-
-              {/* Option 2: Wallet */}
-              <Pressable
-                style={[styles.optionRow, paymentMethod === "Wallet" && styles.optionRowSelected]}
-                onPress={() => { setPaymentMethod("Wallet"); setShowPaymentModal(false); }}
-              >
-                <View style={[styles.paymentBadge, { backgroundColor: "#3B82F61A" }]}>
-                  <Ionicons name="wallet-outline" size={22} color="#3B82F6" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionName}>Wallet Balance</Text>
-                  <Text style={styles.optionSub}>Available: {user?.country === "USA" ? "$" : "₹"}{walletBalance}</Text>
-                </View>
-                {paymentMethod === "Wallet" && <Ionicons name="checkmark-circle" size={20} color="#3B82F6" />}
-              </Pressable>
-
-              {/* Option 3: UPI */}
-              <Pressable
-                style={[styles.optionRow, paymentMethod === "UPI" && styles.optionRowSelected]}
+                style={[styles.optionRow, paymentMethod === "Razorpay" && styles.optionRowSelected]}
                 onPress={() => {
+                  setPaymentMethod("Razorpay");
                   setShowPaymentModal(false);
-                  setTempUpiId(upiId);
-                  setShowUpiForm(true);
                 }}
               >
-                <View style={[styles.paymentBadge, { backgroundColor: "#7C3AED1A" }]}>
-                  <Ionicons name="phone-portrait-outline" size={22} color="#7C3AED" />
+                <View style={[styles.paymentBadge, { backgroundColor: "#02042B" + "1A" }]}>
+                  <Ionicons name="flash-outline" size={22} color="#02042B" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.optionName}>UPI Gateway</Text>
-                  <Text style={styles.optionSub}>{upiId ? `Configured ID: ${upiId}` : "Setup Google Pay, PhonePe, Paytm"}</Text>
+                  <Text style={styles.optionName}>Razorpay (Cards / UPI)</Text>
+                  <Text style={styles.optionSub}>Fast & secure payments</Text>
                 </View>
-                {paymentMethod === "UPI" && <Ionicons name="checkmark-circle" size={20} color="#7C3AED" />}
-              </Pressable>
-
-              {/* Option 4: Card */}
-              <Pressable
-                style={[styles.optionRow, paymentMethod === "Card" && styles.optionRowSelected]}
-                onPress={() => {
-                  setShowPaymentModal(false);
-                  setTempCardDetails(cardDetails.number ? cardDetails : { number: "", expiry: "", cvv: "", name: "" });
-                  setShowCardForm(true);
-                }}
-              >
-                <View style={[styles.paymentBadge, { backgroundColor: "#EA580C1A" }]}>
-                  <Ionicons name="card-outline" size={22} color="#EA580C" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionName}>Credit / Debit Card</Text>
-                  <Text style={styles.optionSub}>{cardDetails.number ? `Visa **** ${cardDetails.number.slice(-4)}` : "Pay securely using card details"}</Text>
-                </View>
-                {paymentMethod === "Card" && <Ionicons name="checkmark-circle" size={20} color="#EA580C" />}
+                {paymentMethod === "Razorpay" && <Ionicons name="checkmark-circle" size={20} color="#02042B" />}
               </Pressable>
             </View>
           </View>
@@ -753,40 +662,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
         </Pressable>
       </Modal>
 
-      {/* ── MODAL 4: Secure Bank/Gateway Processing Overlay ── */}
-      <Modal visible={gatewayVisible} transparent animationType="fade">
-        <View style={styles.gatewayOverlay}>
-          <View style={styles.gatewayBox}>
-            <View style={styles.gatewayHeader}>
-              <Ionicons name="shield-checkmark" size={28} color="#16A34A" />
-              <Text style={styles.gatewayTitle}>SECURE PAYMENT GATEWAY</Text>
-            </View>
-
-            {gatewayStatus !== "success" ? (
-              <View style={{ alignItems: "center", marginVertical: 30, gap: 14 }}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-                <Text style={styles.gatewayStatusText}>
-                  {gatewayStatus === "initiating" && "Initiating secure connection..."}
-                  {gatewayStatus === "verifying" && "Verifying credentials & details..."}
-                  {gatewayStatus === "securing" && "Requesting bank authorization..."}
-                </Text>
-              </View>
-            ) : (
-              <View style={{ alignItems: "center", marginVertical: 30, gap: 14 }}>
-                <Ionicons name="checkmark-circle" size={60} color="#16A34A" />
-                <Text style={[styles.gatewayStatusText, { fontWeight: "800", color: "#16A34A" }]}>
-                  Payment Authorized!
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.gatewayFooter}>
-              <Ionicons name="lock-closed" size={13} color={Colors.textSecondary} />
-              <Text style={styles.gatewayFooterText}>PCI-DSS Secure 256-bit Encryption</Text>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Stripe handles its own native payment sheet UI — no custom modal needed */}
     </View>
   );
 }
@@ -1068,61 +944,6 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 11,
-    fontWeight: "700",
-    color: Colors.textSecondary,
-  },
-  gatewayOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  gatewayBox: {
-    width: "100%",
-    backgroundColor: Colors.surface,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  gatewayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderBottomWidth: 1.5,
-    borderBottomColor: Colors.border,
-    paddingBottom: 12,
-  },
-  gatewayTitle: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: Colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  gatewayStatusText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.textPrimary,
-    textAlign: "center",
-  },
-  gatewayFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    borderTopWidth: 1.5,
-    borderTopColor: Colors.border,
-    paddingTop: 12,
-  },
-  gatewayFooterText: {
-    fontSize: 10,
     fontWeight: "700",
     color: Colors.textSecondary,
   },

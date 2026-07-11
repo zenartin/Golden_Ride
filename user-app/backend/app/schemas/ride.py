@@ -10,6 +10,7 @@ class RideResponse(BaseModel):
     rider_name: str
     rider_rating: float
     rider_trips: int
+    driver_upi_id: Optional[str] = None
     ride_class: str = "comfort"
     from_location: str
     to_location: str
@@ -43,6 +44,10 @@ class LocationUpdate(BaseModel):
 class RideEstimateRequest(BaseModel):
     pickup: str
     dropoff: str
+    pickup_latitude: Optional[float] = None
+    pickup_longitude: Optional[float] = None
+    dropoff_latitude: Optional[float] = None
+    dropoff_longitude: Optional[float] = None
 
 
 class RideOption(BaseModel):
@@ -51,7 +56,7 @@ class RideOption(BaseModel):
     subtitle: str
     eta: str
     seats: int
-    price: int
+    price: float
     distance: str
     duration: str
 

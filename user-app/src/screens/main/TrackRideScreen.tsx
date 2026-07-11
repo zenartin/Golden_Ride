@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -55,18 +55,28 @@ export default function TrackRideScreen({ navigation }: Props) {
   
   const mapRef = useRef<MapView>(null);
 
+  const user = useAuthStore((s) => s.user);
+
+  const fetchTripDetail = useRideStore((state) => state.fetchTripDetail);
+
   // Poll for status updates every 4 seconds when trip is active
   useEffect(() => {
     if (!activeTrip || activeTrip.status === "completed" || activeTrip.status === "cancelled") return;
     
     // Immediate initial fetch
-    refreshActiveTrip();
+    fetchTripDetail(activeTrip.id);
 
     const interval = setInterval(() => {
-      refreshActiveTrip();
+      fetchTripDetail(activeTrip.id);
     }, 4000);
     
     return () => clearInterval(interval);
+  }, [activeTrip?.status, activeTrip?.id]);
+
+  useEffect(() => {
+    if (activeTrip?.status === "completed") {
+      navigation.replace("Payment", { tripId: activeTrip.id });
+    }
   }, [activeTrip?.status]);
 
   // Dynamic zoom fitting map to show both markers
@@ -121,7 +131,6 @@ export default function TrackRideScreen({ navigation }: Props) {
   const currentDesc = statusDescriptions[activeTrip.status] ?? activeTrip.status;
   const currentStepIndex = statusSteps.findIndex((s) => s.key === activeTrip.status);
 
-  const user = useAuthStore((s) => s.user);
 
   // Map Region defaults
   const pickupRegion = {
@@ -223,7 +232,9 @@ export default function TrackRideScreen({ navigation }: Props) {
                 <Text style={styles.driverName}>{activeTrip.driver || "Assigned Driver"}</Text>
                 <Text style={styles.driverMeta} numberOfLines={1}>{activeTrip.car} · Plate: {activeTrip.plate}</Text>
                 {activeTrip.driverPhone ? (
-                  <Text style={[styles.driverMeta, { fontWeight: "bold", marginTop: 2 }]}>📞 {activeTrip.driverPhone}</Text>
+                  <Pressable onPress={() => Linking.openURL(`tel:${activeTrip.driverPhone}`)}>
+                    <Text style={[styles.driverMeta, { fontWeight: "bold", marginTop: 4, color: Colors.primary }]}>📞 {activeTrip.driverPhone} (Tap to call)</Text>
+                  </Pressable>
                 ) : null}
               </View>
               <Pressable style={styles.mapBtn} onPress={() => openDirectionsInMaps(activeTrip.dropoff)}>

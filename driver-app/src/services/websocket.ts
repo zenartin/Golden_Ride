@@ -12,12 +12,13 @@ let reconnectTimer: NodeJS.Timeout | null = null;
 let isExplicitDisconnect = false;
 
 export function connectDriverWebSocket(driverId: number, token: string) {
-  if (socket) return;
+  // Only skip if socket is actively connecting or already open
+  if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) return;
   
   isExplicitDisconnect = false;
 
   // Resolve ws URL from base axios URL
-  // http://10.233.162.121:8001/api -> ws://10.233.162.121:8001/ws/driver/{id}
+  // http://10.233.162.121:8000/api -> ws://10.233.162.121:8000/ws/driver/{id}
   const host = BASE_URL.replace("/api", "").replace("http://", "ws://").replace("https://", "wss://");
   const wsUrl = `${host}/ws/driver/${driverId}?token=${token}`;
 
@@ -56,9 +57,9 @@ export function connectDriverWebSocket(driverId: number, token: string) {
         removeIncomingRequest(msg.ride_id);
         const currentDriverId = useAuthStore.getState().driver?.id;
         if (msg.driver_id !== currentDriverId) {
+          Alert.alert("Ride Accepted", "This ride was accepted by another driver.");
           const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
           if (currentRoute === "RideRequest") {
-            Alert.alert("Ride Occupied", "This ride has already been accepted by another driver.");
             goBack();
           }
         }
@@ -73,10 +74,18 @@ export function connectDriverWebSocket(driverId: number, token: string) {
       } 
       else if (msg.type === "ride_cancelled") {
         removeIncomingRequest(msg.ride_id);
-        const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
-        if (currentRoute === "RideRequest") {
+        
+        const activeRide = useRideStore.getState().activeRide;
+        if (activeRide && activeRide.id === msg.ride_id) {
+          Alert.alert("Ride Cancelled", "The rider has cancelled the trip.");
+          useRideStore.getState().setActiveRide(null);
+          navigate("DriverDashboard");
+        } else {
           Alert.alert("Ride Cancelled", "The rider has cancelled this ride request.");
-          goBack();
+          const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
+          if (currentRoute === "RideRequest") {
+            goBack();
+          }
         }
       }
       else if (msg.type === "ride_status_update") {

@@ -52,4 +52,10 @@ class DriverDocument(Base):
     insurance_image = Column(String, nullable=True)
     avatar_image = Column(String, nullable=True)
 
+    # Banking
+    upi_id = Column(String, nullable=True)
+    card_number = Column(String, nullable=True)
+    card_expiry = Column(String, nullable=True)
+    card_cvv = Column(String, nullable=True)
+
     driver = relationship("Driver", back_populates="documents")
