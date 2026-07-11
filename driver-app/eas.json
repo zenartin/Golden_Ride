@@ -5,7 +5,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DRIVER_API_URL": "https://petite-olives-own.loca.lt/api"
+        "EXPO_PUBLIC_DRIVER_API_URL": "https://golden-ride-api.onrender.com/api"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_DRIVER_API_URL": "https://golden-ride-api.onrender.com/api"
       }
     }
   }

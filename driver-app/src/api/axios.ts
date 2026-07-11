@@ -1,12 +1,14 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Bypassing Expo .env cache
-export const BASE_URL = "http://10.233.162.121:8000/api";
+// Production URL from EAS build env, falls back to Render for safety
+export const BASE_URL =
+  process.env.EXPO_PUBLIC_DRIVER_API_URL ??
+  "https://golden-ride-api.onrender.com/api";
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },
