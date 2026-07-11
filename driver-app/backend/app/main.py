@@ -55,7 +55,7 @@ def ensure_local_schema_compatibility():
     if "drivers" in table_names:
         existing_drivers = {column["name"] for column in inspector.get_columns("drivers")}
         required_driver_columns = {
-            "profile_completed": "BOOLEAN DEFAULT 0",
+            "profile_completed": "BOOLEAN DEFAULT false",
             "date_of_birth": "VARCHAR",
             "residential_address": "VARCHAR",
         }
