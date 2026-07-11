@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, ScrollView, Text, View, StyleSheet } from "react-native";
+import { Pressable, ScrollView, Text, View, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { Colors, Spacing, Typography } from "../../theme";
@@ -9,9 +9,11 @@ export default function WelcomeScreen({ navigation }: any) {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.hero}>
-        <View style={styles.badge}>
-          <Ionicons name="car-sport" size={22} color={Colors.primary} />
-        </View>
+        <Image
+          source={require("../../../assets/images/logo.jpeg")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.title}>Golden Ride</Text>
         <Text style={styles.subtitle}>Book, track, and manage every ride from one place.</Text>
       </View>
@@ -48,13 +50,11 @@ export default function WelcomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   wrap: { flexGrow: 1, padding: Spacing.xl, justifyContent: "center", gap: 20, backgroundColor: Colors.background },
   hero: { alignItems: "center", gap: 10 },
-  badge: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: "#FFF3D9",
-    alignItems: "center",
-    justifyContent: "center",
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 30,
+    marginBottom: 8,
   },
   title: { color: Colors.textPrimary, fontSize: Typography.heading, fontWeight: "900" },
   subtitle: { color: Colors.textSecondary, fontSize: Typography.body, textAlign: "center", lineHeight: 22 },

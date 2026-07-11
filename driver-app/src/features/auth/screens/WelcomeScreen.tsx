@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,7 +28,7 @@ const FEATURES = [
 
 export default function WelcomeScreen({ navigation }: Props) {
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} bounces={false} showsVerticalScrollIndicator={false}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
       {/* Hero */}
@@ -82,7 +83,7 @@ export default function WelcomeScreen({ navigation }: Props) {
           <PoweredByZenartin />
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -90,6 +91,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   hero: {
     alignItems: "center",
