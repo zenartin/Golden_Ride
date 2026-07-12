@@ -1,6 +1,7 @@
 import React from 'react';
 import "react-native-gesture-handler";
-import { Text, TextInput, View, ScrollView } from "react-native";
+import { Text, TextInput } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { 
   useFonts, 
   Inter_400Regular, 
@@ -9,26 +10,6 @@ import {
   Inter_700Bold 
 } from "@expo-google-fonts/inter";
 import AppNavigator from "./src/navigation/AppNavigator";
-
-class ErrorBoundary extends React.Component {
-  state = { hasError: false, error: null };
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, padding: 20, paddingTop: 60, backgroundColor: 'white' }}>
-          <Text style={{ fontSize: 20, color: 'red', fontWeight: 'bold' }}>App Crashed!</Text>
-          <ScrollView style={{ marginTop: 20 }}>
-            <Text style={{ color: 'black' }}>{String(this.state.error)}</Text>
-          </ScrollView>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -52,8 +33,8 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <ErrorBoundary>
+    <SafeAreaProvider>
       <AppNavigator />
-    </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

@@ -10,6 +10,11 @@
       "bundleIdentifier": "com.goldenride.user"
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDummyKeyForTestingOnly"
+        }
+      },
       "package": "com.goldenride.user",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
