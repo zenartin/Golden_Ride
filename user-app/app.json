@@ -35,11 +35,11 @@
       ],
       "expo-font"
     ],
+    "owner": "zenartin03",
     "extra": {
       "eas": {
-        "projectId": "adb3c67a-33b9-4280-994f-77100c053c4d"
+        "projectId": "e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a"
       }
-    },
-    "owner": "zenartin"
+    }
   }
 }
