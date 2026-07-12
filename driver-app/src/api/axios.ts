@@ -1,14 +1,14 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Production URL from EAS build env, falls back to Render for safety
+// Production URL from EAS build env, falls back to localtunnel
 export const BASE_URL =
   process.env.EXPO_PUBLIC_DRIVER_API_URL ??
-  "https://golden-ride-api.onrender.com/api";
+  "https://golden-ride-backend-api.loca.lt/api";
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
