@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # Copy the rest of the application code
 COPY ./app /code/app
-COPY .env /code/.env
+COPY .env* /code/
 
 # Hugging Face Spaces run on port 7860 by default
 # We use a non-root user for security (required by Hugging Face)
