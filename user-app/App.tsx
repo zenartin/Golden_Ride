@@ -15,6 +15,24 @@ import { navigationRef } from "./src/navigation/navigationRef";
 import { StripeProvider } from '@stripe/stripe-react-native';
 import AppNavigator from "./src/navigation/AppNavigator";
 
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, padding: 20, paddingTop: 60, backgroundColor: 'white' }}>
+          <Text style={{ fontSize: 20, color: 'red', fontWeight: 'bold' }}>App Crashed!</Text>
+          <Text style={{ color: 'black', marginTop: 20 }}>{String(this.state.error)}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Inter: Inter_400Regular,
@@ -37,15 +55,17 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StripeProvider publishableKey="pk_test_51Trvx45bQqcPvDPuw9gtgp8Eq8v4c3ZosreDd6kIJUbT9tSZuXZaNCQCZpS3cwvD52MHSLWECw0szH7CrcCzPGLP008SIKBBHg">
-        <SafeAreaProvider>
-          <NavigationContainer ref={navigationRef}>
-            <StatusBar style="dark" />
-            <AppNavigator />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </StripeProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StripeProvider publishableKey="pk_test_51Trvx45bQqcPvDPuw9gtgp8Eq8v4c3ZosreDd6kIJUbT9tSZuXZaNCQCZpS3cwvD52MHSLWECw0szH7CrcCzPGLP008SIKBBHg">
+          <SafeAreaProvider>
+            <NavigationContainer ref={navigationRef}>
+              <StatusBar style="dark" />
+              <AppNavigator />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </StripeProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
