@@ -5,7 +5,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DRIVER_API_URL": "https://golden-ride-backend-api.loca.lt/api"
+        "EXPO_PUBLIC_DRIVER_API_URL": "https://zenartin-golden-ride-backend.hf.space/api"
       }
     },
     "production": {
@@ -13,7 +13,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DRIVER_API_URL": "https://golden-ride-backend-api.loca.lt/api"
+        "EXPO_PUBLIC_DRIVER_API_URL": "https://zenartin-golden-ride-backend.hf.space/api"
       }
     }
   }

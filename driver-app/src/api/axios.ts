@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // Production URL from EAS build env, falls back to localtunnel
 export const BASE_URL =
   process.env.EXPO_PUBLIC_DRIVER_API_URL ??
-  "https://golden-ride-backend-api.loca.lt/api";
+  "https://zenartin-golden-ride-backend.hf.space/api";
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
