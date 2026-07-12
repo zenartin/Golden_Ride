@@ -28,7 +28,18 @@
           "locationWhenInUsePermission": "Allow Golden Ride to access your location while you use the app."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false
+          },
+          "ios": {
+            "newArchEnabled": false
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
