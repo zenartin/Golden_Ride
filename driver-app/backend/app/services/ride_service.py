@@ -34,8 +34,10 @@ class RideService:
     @staticmethod
     def detect_currency(lat: float = None, lon: float = None) -> str:
         """
-        Force currency to INR for testing to prevent currency mismatch.
+        Detect currency based on longitude to prevent $600 rides in the US.
         """
+        if lon is not None and lon < -50:
+            return "USD"
         return "INR"
 
     @classmethod

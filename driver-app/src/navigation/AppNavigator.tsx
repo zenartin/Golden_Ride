@@ -5,7 +5,8 @@ import AuthNavigator from "./AuthNavigator";
 import MainNavigator from "./MainNavigator";
 import CompleteProfileScreen from "../features/profile/screens/CompleteProfileScreen";
 import { useAuthStore } from "../store/authStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { navigationRef } from "./navigationRef";
 import { connectDriverWebSocket, disconnectDriverWebSocket } from "../services/websocket";
 import NetInfo from "@react-native-community/netinfo";
@@ -43,6 +44,18 @@ export default function AppNavigator() {
       }
     });
     return () => unsubscribe();
+  }, [isAuthenticated, driver?.id, token]);
+
+  // Monitor AppState (foreground/background) to reconnect WebSocket
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active" && isAuthenticated && driver && token) {
+        connectDriverWebSocket(driver.id, token);
+      } else if (nextAppState === "background") {
+        disconnectDriverWebSocket();
+      }
+    });
+    return () => subscription.remove();
   }, [isAuthenticated, driver?.id, token]);
 
   if (!ready) {

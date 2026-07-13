@@ -60,7 +60,7 @@ def _build_options_from_route(distance_km: float, duration_min: float, currency:
                 subtitle=meta["subtitle"],
                 seats=meta["seats"],
                 eta=f"{eta_base + index * 2} min",
-                price=int(round(fare_amount)),
+                price=int(round(fare_amount)) if currency == "INR" else round(fare_amount, 2),
                 distance=f"{distance_km:.1f} km",
                 duration=f"{duration_min} min",
             )
