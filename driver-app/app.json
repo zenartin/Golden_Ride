@@ -47,17 +47,17 @@
       ],
       "@react-native-community/datetimepicker"
     ],
-    "owner": "zenartin03",
-    "extra": {
-      "eas": {
-        "projectId": "bbb30ec2-88e1-47f9-8a39-277caf844753"
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    "extra": {
+      "eas": {
+        "projectId": "60a238bb-0c32-4118-ab60-c266a5143552"
+      }
+    },
+    "owner": "nandagopalzenartin",
     "updates": {
-      "url": "https://u.expo.dev/bbb30ec2-88e1-47f9-8a39-277caf844753"
+      "url": "https://u.expo.dev/60a238bb-0c32-4118-ab60-c266a5143552"
     }
   }
 }

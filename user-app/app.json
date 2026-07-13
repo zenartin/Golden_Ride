@@ -42,17 +42,17 @@
       ],
       "expo-font"
     ],
-    "owner": "zenartin03",
-    "extra": {
-      "eas": {
-        "projectId": "e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a"
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    "extra": {
+      "eas": {
+        "projectId": "703a2d92-6eb9-450f-b475-1d1d8366988f"
+      }
+    },
+    "owner": "nandagopalzenartin",
     "updates": {
-      "url": "https://u.expo.dev/e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a"
+      "url": "https://u.expo.dev/703a2d92-6eb9-450f-b475-1d1d8366988f"
     }
   }
 }
