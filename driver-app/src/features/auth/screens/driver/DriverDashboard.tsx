@@ -12,6 +12,7 @@ import {
   RefreshControl,
   Linking,
   Image,
+  AppState,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import { Colors, Spacing, Typography } from "../../../../theme";
 
 import { useAuthStore } from "../../../../store/authStore";
 import { useAppStore } from "../../../../store/appStore";
+import { useRideStore } from "../../../../store/rideStore";
 import apiClient from "../../../../api/axios";
 import { API_ENDPOINTS } from "../../../../api/endpoints";
 import { useState } from "react";
@@ -55,11 +57,32 @@ export default function DriverDashboard({
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
+  const incomingRequests = useRideStore((s) => s.incomingRequests);
+  const fetchIncomingRequests = useRideStore((s) => s.fetchIncomingRequests);
+
   useEffect(() => {
     loadDashboard();
     loadCurrentLocation();
     fetchNotificationsFn().catch(() => undefined);
+    fetchIncomingRequests().catch(() => undefined);
+
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        fetchIncomingRequests().catch(() => undefined);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
+
+  // Show incoming request popup if there are pending requests (e.g., fetched after reconnect)
+  useEffect(() => {
+    if (incomingRequests.length > 0) {
+      navigation.navigate("RideRequest", { rideId: incomingRequests[0].id });
+    }
+  }, [incomingRequests]);
 
   const loadDashboard = async () => {
     try {

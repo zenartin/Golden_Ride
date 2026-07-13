@@ -1,31 +1,22 @@
-# Use the official Python 3.11 image
 FROM python:3.11-slim
 
-# Set the working directory
+# Set working directory
 WORKDIR /code
 
-# Copy the requirements file into the container
-COPY ./requirements.txt /code/requirements.txt
-
-# Install the dependencies
+# Install dependencies
+COPY requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Copy the rest of the application code
+# Copy application code
 COPY ./app /code/app
-COPY .env* /code/
+COPY ./alembic /code/alembic
+COPY ./alembic.ini /code/alembic.ini
 
-# Hugging Face Spaces run on port 7860 by default
-# We use a non-root user for security (required by Hugging Face)
-RUN useradd -m -u 1000 user
-USER user
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH
+# Create uploads directory
+RUN mkdir -p /code/uploads
 
-# Change working directory to user home
-WORKDIR $HOME/app
+# Expose port (Railway sets $PORT automatically)
+EXPOSE 8000
 
-# Copy the app files with correct permissions
-COPY --chown=user . $HOME/app
-
-# Start the FastAPI application on port 7860
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Start the app
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

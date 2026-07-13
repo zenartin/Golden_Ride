@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_replace_me")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
+    # Razorpay Payment Configurations
+    RAZORPAY_KEY_ID: str = "rzp_test_YOUR_KEY_HERE"
+    RAZORPAY_KEY_SECRET: str = "YOUR_SECRET_HERE"
+
     # Ride dispatch and fare settings
     RIDE_EXPIRY_SECONDS: int = 60
     FARE_BASE_RATE: float = 42.0

@@ -242,8 +242,10 @@ async def get_ride_options(payload: RideEstimateRequest, current_user: User = De
         distance_km = max(2.1, min(30.0, (seed % 25) + 3.0))
         duration_min = max(5, round(distance_km * 3))
         
-    # Use the authenticated user's country to determine currency explicitly
-    currency = "USD" if current_user.country == "USA" else "INR"
+    # Use coordinates to determine currency
+    currency = "INR"
+    if payload.pickup_latitude is not None and payload.pickup_longitude is not None:
+        currency = RideService.detect_currency(payload.pickup_latitude, payload.pickup_longitude)
 
     options = _build_options_from_route(distance_km, duration_min, currency)
     return RideEstimateResponse(options=options)

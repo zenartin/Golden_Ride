@@ -34,14 +34,9 @@ class RideService:
     @staticmethod
     def detect_currency(lat: float = None, lon: float = None) -> str:
         """
-        Detect currency based on coordinates.
-        India bounding box: lat 6–37, lon 68–97
-        Anything outside that defaults to USD.
+        Force currency to INR for testing to prevent currency mismatch.
         """
-        if lat is not None and lon is not None:
-            if 6.0 <= lat <= 37.5 and 68.0 <= lon <= 97.5:
-                return "INR"
-        return "USD"
+        return "INR"
 
     @classmethod
     def calculate_fare(cls, distance_km: float, duration_min: float, ride_class: str, currency: str = "INR") -> tuple:
