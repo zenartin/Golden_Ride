@@ -360,13 +360,24 @@ export default function DriverDashboard({
               <Text style={styles.earningsLink}>View All →</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.earningsAmount}>
-            {stats.find((s) => s.label === "Today")?.value ?? "₹0"}
-          </Text>
-          <View style={styles.progressBg}>
-            <View style={[styles.progressBar, { width: "62%" }]} />
-          </View>
-          <Text style={styles.progressHint}>Daily goal progress</Text>
+          
+          {(() => {
+            const todayStr = stats.find((s) => s.label === "Today")?.value ?? "0";
+            const amount = parseFloat(todayStr.replace(/[^0-9.]/g, "")) || 0;
+            const isINR = todayStr.includes("₹");
+            const dailyGoal = isINR ? 1500 : 50;
+            const progress = Math.min(100, Math.max(0, (amount / dailyGoal) * 100));
+            
+            return (
+              <>
+                <Text style={styles.earningsAmount}>{todayStr}</Text>
+                <View style={styles.progressBg}>
+                  <View style={[styles.progressBar, { width: `${progress}%` }]} />
+                </View>
+                <Text style={styles.progressHint}>Daily goal progress ({Math.round(progress)}%)</Text>
+              </>
+            );
+          })()}
         </View>
 
         {/* Recent Trips */}
