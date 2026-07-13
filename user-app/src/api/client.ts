@@ -4,7 +4,7 @@ import axios from "axios";
 // Production URL from EAS build env, falls back to localtunnel
 export const BASE_URL = 
   process.env.EXPO_PUBLIC_API_URL ?? 
-  "https://golden-ride-backend-api.loca.lt/api";
+  "https://api-production-e0cf.up.railway.app/api";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
