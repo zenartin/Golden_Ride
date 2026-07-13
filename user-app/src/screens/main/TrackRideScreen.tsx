@@ -64,10 +64,12 @@ export default function TrackRideScreen({ navigation }: Props) {
     if (!activeTrip || activeTrip.status === "completed" || activeTrip.status === "cancelled") return;
     
     // Immediate initial fetch
-    fetchTripDetail(activeTrip.id);
+    fetchTripDetail(activeTrip.id).catch(err => console.log(err));
 
     const interval = setInterval(() => {
-      fetchTripDetail(activeTrip.id);
+      fetchTripDetail(activeTrip.id).catch(err => {
+        console.log("Fetch trip detail error:", err);
+      });
     }, 4000);
     
     return () => clearInterval(interval);

@@ -191,8 +191,8 @@ export default function PaymentScreen({ route, navigation }: any) {
   };
 
   const handleDone = () => {
-    useRideStore.setState({ activeTrip: null });
-    navigation.navigate("Shell");
+    // Navigate to Rating screen instead of Shell directly
+    navigation.navigate("Rating", { tripId });
   };
 
   const paymentMethodLabel = isRazorpay ? "Razorpay" : "Stripe";

@@ -296,13 +296,21 @@ export const useRideStore = create<RideState>()(
       fetchTripDetail: async (tripId) => {
         const ride = await apiRequest<ApiRide>(API_ENDPOINTS.RIDE_DETAIL(tripId));
         const trip = mapApiRide(ride);
-        set((state) => ({
-          activeTrip: ["confirmed", "arriving", "on_trip", "completed"].includes(trip.status) ? trip : state.activeTrip,
-          history:
-            trip.status === "completed" || trip.status === "cancelled"
-              ? [trip, ...state.history.filter((item) => item.id !== trip.id)]
-              : state.history,
-        }));
+        set((state) => {
+          if (trip.status === "cancelled") {
+            return {
+              activeTrip: null,
+              history: [trip, ...state.history.filter((item) => item.id !== trip.id)],
+            };
+          }
+          return {
+            activeTrip: trip,
+            history:
+              trip.status === "completed"
+                ? [trip, ...state.history.filter((item) => item.id !== trip.id)]
+                : state.history,
+          };
+        });
         return trip;
       },
       refreshWallet: async () => {

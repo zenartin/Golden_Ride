@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -24,7 +24,12 @@ export default function UserDashboardHeader({ activeTab, onProfilePress }: Props
       </View>
 
       <View style={styles.actionRow}>
-        <Pressable style={styles.iconButton}>
+        <Pressable 
+          style={styles.iconButton} 
+          onPress={() => {
+            Alert.alert("Notifications", "You have no new notifications.");
+          }}
+        >
           <Ionicons name="notifications-outline" size={22} color={Colors.black} />
           <View style={styles.badge} />
         </Pressable>
