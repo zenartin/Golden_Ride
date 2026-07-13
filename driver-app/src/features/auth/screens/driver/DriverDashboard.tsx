@@ -77,12 +77,8 @@ export default function DriverDashboard({
     };
   }, []);
 
-  // Show incoming request popup if there are pending requests (e.g., fetched after reconnect)
-  useEffect(() => {
-    if (incomingRequests.length > 0) {
-      navigation.navigate("RideRequest", { rideId: incomingRequests[0].id });
-    }
-  }, [incomingRequests]);
+  // Removed local incomingRequests navigation side-effect since it's now handled globally in the store
+
 
   const loadDashboard = async () => {
     try {

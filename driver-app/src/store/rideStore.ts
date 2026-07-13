@@ -91,7 +91,17 @@ export const useRideStore = create<RideState>((set, get) => ({
     try {
       set({ isLoading: true });
       const response = await apiClient.get(API_ENDPOINTS.RIDES_REQUESTS);
-      set({ incomingRequests: response.data });
+      const requests = response.data;
+      set({ incomingRequests: requests });
+      
+      // Globally trigger navigation if there are pending requests, ensuring it pops up on any tab
+      if (requests.length > 0) {
+        import("../navigation/navigationRef").then(({ navigate, navigationRef }) => {
+          if (navigationRef.isReady()) {
+            navigate("RideRequest", { rideId: requests[0].id });
+          }
+        });
+      }
     } catch (err: any) {
       console.log("Fetch requests error:", err);
     } finally {
