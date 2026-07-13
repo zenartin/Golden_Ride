@@ -48,7 +48,8 @@ export default function EditProfileScreen() {
   const handlePickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false,
+      aspect: [1, 1],
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]?.uri) {

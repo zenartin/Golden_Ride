@@ -78,7 +78,7 @@ export default function EditProfileScreen({ navigation }: any) {
   const handlePickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false, // disabled to prevent unstyled native crop screen
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]?.uri) {

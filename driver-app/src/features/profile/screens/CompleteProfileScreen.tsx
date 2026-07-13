@@ -86,7 +86,7 @@ export default function CompleteProfileScreen({ navigation }: any) {
   const pickImage = async (type: 'front' | 'back' | 'vehicle' | 'insurance') => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false, // disabled to prevent unstyled native crop screen
       quality: 0.8,
     });
     if (!result.canceled) {
