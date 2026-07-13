@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../theme";
 
@@ -19,8 +20,10 @@ export default function BottomShellBar({
   activeTab: TabKey;
   onTabPress: (tab: TabKey) => void;
 }) {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { paddingBottom: Math.max(Spacing.md, insets.bottom + Spacing.xs) }]}>
       {tabs.map((tab) => {
         const active = tab.key === activeTab;
         return (
