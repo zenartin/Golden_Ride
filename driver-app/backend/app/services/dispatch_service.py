@@ -50,18 +50,20 @@ class DispatchService:
             "ride": ride_payload
         }
 
+        # Handle 'comfort' and 'sedan' interchangeability
+        target_classes = [ride.ride_class.lower()]
+        if ride.ride_class.lower() == "comfort":
+            target_classes.append("sedan")
+        elif ride.ride_class.lower() == "sedan":
+            target_classes.append("comfort")
+
         # Fetch online drivers matching the requested ride_class.
-        # Use outerjoin so drivers without a DriverDocument are not silently excluded.
-        # Use ilike with wildcard so "sedan" matches stored values like "Sedan", "SEDAN", etc.
         drivers = (
             db.query(Driver)
-            .outerjoin(DriverDocument)
+            .join(DriverDocument)
             .filter(
                 Driver.is_online == True,
-                (
-                    DriverDocument.vehicle_type.ilike(f"%{ride.ride_class}%") |
-                    DriverDocument.vehicle_type.is_(None)
-                )
+                DriverDocument.vehicle_type.in_(target_classes)
             )
             .all()
         )
