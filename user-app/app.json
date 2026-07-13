@@ -4,6 +4,7 @@
     "slug": "golden-ride-user",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -14,6 +15,10 @@
         "googleMaps": {
           "apiKey": "AIzaSyDummyKeyForTestingOnly"
         }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
       },
       "package": "com.goldenride.user",
       "edgeToEdgeEnabled": true,
