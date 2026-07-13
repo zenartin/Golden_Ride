@@ -9,6 +9,7 @@ from app.models.ride import Ride
 from app.schemas.ride import RideResponse, RideUpdateStatus, LocationUpdate
 from app.utils.security import get_current_driver
 from app.services.ride_service import RideService
+from app.repositories.ride_assignment_repository import RideAssignmentRepository
 
 router = APIRouter(prefix="/rides", tags=["rides"])
 
@@ -22,7 +23,14 @@ def get_incoming_requests(
         return []
 
     rides = db.query(Ride).filter(Ride.status == "pending").all()
-    return rides
+    
+    filtered_rides = []
+    for ride in rides:
+        assignment = RideAssignmentRepository.get_by_ride_and_driver(db, ride.id, current_driver.id)
+        if not assignment or assignment.status != "rejected":
+            filtered_rides.append(ride)
+            
+    return filtered_rides
 
 
 @router.get("/active", response_model=Optional[RideResponse])
