@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, ScrollView, Text, View, StyleSheet } from "react-native";
+import { Alert, ScrollView, Text, View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
 
 import AppButton from "../../components/AppButton";
 import AppInput from "../../components/AppInput";
@@ -32,19 +32,30 @@ export default function LoginScreen({ navigation }: any) {
 
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Text style={styles.title}>Welcome back</Text>
-      <Text style={styles.subtitle}>Sign in to book and track your rides.</Text>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Email login</Text>
-        <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
-        <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
-        <AppButton title="Login" onPress={submit} loading={loading} />
-        <AppButton title="Create account" onPress={() => navigation.navigate("Register")} variant="secondary" />
-      </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.subtitle}>Sign in to book and track your rides.</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Email login</Text>
+          <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+          <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+          
+          <TouchableOpacity 
+            style={styles.forgotPasswordContainer}
+            onPress={() => navigation.navigate("ForgotPassword")}
+          >
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
-
-    </ScrollView>
+          <AppButton title="Login" onPress={submit} loading={loading} />
+          <AppButton title="Create account" onPress={() => navigation.navigate("Register")} variant="secondary" />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -63,4 +74,13 @@ const styles = StyleSheet.create({
   cardTitle: { color: Colors.textPrimary, fontSize: Typography.subHeading, fontWeight: "900" },
   helper: { color: Colors.textSecondary, fontSize: Typography.small, lineHeight: 18 },
   row: { flexDirection: "row", gap: 10 },
+  forgotPasswordContainer: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+  },
+  forgotPasswordText: {
+    color: Colors.primary,
+    fontWeight: "bold",
+    fontSize: Typography.small,
+  },
 });

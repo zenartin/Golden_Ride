@@ -83,11 +83,14 @@ const SignupScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
           {/* HEADER */}
           <LinearGradient colors={["#0B1B3A", "#0E2A5A"]} style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()}>

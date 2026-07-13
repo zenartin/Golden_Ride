@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SplashScreen from "../features/auth/screens/SplashScreen";
 import WelcomeScreen from "../features/auth/screens/WelcomeScreen";
 import LoginScreen from "../features/auth/screens/LoginScreen";
+import ForgotPasswordScreen from "../features/auth/screens/ForgotPasswordScreen";
+import ResetPasswordScreen from "../features/auth/screens/ResetPasswordScreen";
 import OtpScreen from "../features/auth/screens/OtpScreen";
 
 import PersonalInfoScreen from "../features/auth/screens/Register/PersonalInfoScreen";
@@ -26,6 +28,8 @@ export default function AppNavigatorInner({ initialRouteName = "Splash" }: AppNa
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="OTP" component={OtpScreen} />
 
       {/* ── Registration ── */}

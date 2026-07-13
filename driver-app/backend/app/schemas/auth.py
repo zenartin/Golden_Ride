@@ -19,6 +19,14 @@ class OtpVerifyRequest(BaseModel):
     otp: str  # Can be "1234"
     phone: Optional[str] = None
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str

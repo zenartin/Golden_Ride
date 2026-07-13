@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.ride import Ride
 from app.models.user import User, WalletTransaction
-from app.schemas.auth import LoginRequest, OtpRequest, OtpVerifyRequest, UserRegisterRequest, UserToken, ProfileUpdateRequest
+from app.schemas.auth import LoginRequest, OtpRequest, OtpVerifyRequest, UserRegisterRequest, UserToken, ProfileUpdateRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.ride import (
     RideBookingRequest,
     RideEstimateRequest,
@@ -129,6 +129,46 @@ def otp_verify(payload: OtpVerifyRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     return _token_response(user)
+
+
+@router.post("/auth/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == payload.email).first()
+    if not user:
+        return {
+            "status": "success",
+            "message": "If an account exists, a reset code was sent.",
+            "otp": "1234"
+        }
+    
+    return {
+        "status": "success",
+        "message": f"Password reset OTP sent to {payload.email}",
+        "otp": "1234"
+    }
+
+@router.post("/auth/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    if payload.otp != "1234":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset OTP code. Use sandbox OTP: 1234"
+        )
+        
+    user = db.query(User).filter(User.email == payload.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+        
+    user.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": "Password successfully reset. You can now log in."
+    }
 
 
 @router.get("/profile")

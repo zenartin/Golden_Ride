@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, ScrollView, Text, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, Text, StyleSheet, View, KeyboardAvoidingView, Platform } from "react-native";
 
 import AppButton from "../../components/AppButton";
 import AppInput from "../../components/AppInput";
@@ -47,39 +47,44 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Text style={styles.title}>Create account</Text>
-      <Text style={styles.subtitle}>Set up your rider profile in a minute.</Text>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Account Details</Text>
-        <AppInput label="Name" value={name} onChangeText={setName} placeholder="Full name" />
-        <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
-        <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" />
-        <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
-        <AppInput label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" secureTextEntry />
-        
-        <View style={styles.countryPicker}>
-          <Text style={styles.countryLabel}>Operating Country:</Text>
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <AppButton 
-              title="USA" 
-              onPress={() => setCountry("USA")} 
-              variant={country === "USA" ? "primary" : "secondary"} 
-              style={{ flex: 1 }} 
-            />
-            <AppButton 
-              title="India" 
-              onPress={() => setCountry("India")} 
-              variant={country === "India" ? "primary" : "secondary"} 
-              style={{ flex: 1 }} 
-            />
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Create account</Text>
+        <Text style={styles.subtitle}>Set up your rider profile in a minute.</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Account Details</Text>
+          <AppInput label="Name" value={name} onChangeText={setName} placeholder="Full name" />
+          <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+          <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" />
+          <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+          <AppInput label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" secureTextEntry />
+          
+          <View style={styles.countryPicker}>
+            <Text style={styles.countryLabel}>Operating Country:</Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <AppButton 
+                title="USA" 
+                onPress={() => setCountry("USA")} 
+                variant={country === "USA" ? "primary" : "secondary"} 
+                style={{ flex: 1 }} 
+              />
+              <AppButton 
+                title="India" 
+                onPress={() => setCountry("India")} 
+                variant={country === "India" ? "primary" : "secondary"} 
+                style={{ flex: 1 }} 
+              />
+            </View>
           </View>
-        </View>
 
-        <AppButton title="Register" onPress={submit} loading={loading} />
-        <AppButton title="Back to login" onPress={() => navigation.navigate("Login")} variant="secondary" />
-      </View>
-    </ScrollView>
+          <AppButton title="Register" onPress={submit} loading={loading} />
+          <AppButton title="Back to login" onPress={() => navigation.navigate("Login")} variant="secondary" />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

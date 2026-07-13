@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.driver import Driver, DriverDocument
-from app.schemas.auth import LoginRequest, RegisterRequest, OtpRequest, OtpVerifyRequest, Token
+from app.schemas.auth import LoginRequest, RegisterRequest, OtpRequest, OtpVerifyRequest, Token, ForgotPasswordRequest, ResetPasswordRequest
 from app.utils.security import verify_password, get_password_hash, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -139,4 +139,44 @@ def otp_verify(payload: OtpVerifyRequest, db: Session = Depends(get_db)):
         "email": driver.email,
         "country": driver.country,
         "role": "driver",
+    }
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    driver = db.query(Driver).filter(Driver.email == payload.email).first()
+    if not driver:
+        # To prevent email enumeration, we return success even if not found
+        return {
+            "status": "success",
+            "message": "If an account exists, a reset code was sent.",
+            "otp": "1234" # Mock code
+        }
+    
+    return {
+        "status": "success",
+        "message": f"Password reset OTP sent to {payload.email}",
+        "otp": "1234"
+    }
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    if payload.otp != "1234":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset OTP code. Use sandbox OTP: 1234"
+        )
+        
+    driver = db.query(Driver).filter(Driver.email == payload.email).first()
+    if not driver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+        
+    driver.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": "Password successfully reset. You can now log in."
     }

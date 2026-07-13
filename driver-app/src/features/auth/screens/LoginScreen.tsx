@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 
 import { useAuthStore } from "../../../store/authStore";
@@ -37,59 +40,71 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require("../../../../assets/images/logo.jpeg")}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-
-      <Text style={styles.title}>Welcome Back</Text>
-
-      <Text style={styles.subtitle}>
-        Sign in to continue
-      </Text>
-
-      <View style={{ width: "100%" }}>
-        <AppInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email Address"
-          keyboardType="email-address"
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Image
+          source={require("../../../../assets/images/logo.jpeg")}
+          style={styles.logo}
+          resizeMode="contain"
         />
 
-        <AppInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          secureTextEntry
+        <Text style={styles.title}>Welcome Back</Text>
+
+        <Text style={styles.subtitle}>
+          Sign in to continue
+        </Text>
+
+        <View style={{ width: "100%" }}>
+          <AppInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email Address"
+            keyboardType="email-address"
+          />
+
+          <AppInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry
+          />
+          
+          <TouchableOpacity 
+            style={styles.forgotPasswordContainer}
+            onPress={() => navigation.navigate("ForgotPassword")}
+          >
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
+
+        <PrimaryButton
+          title={isLoading ? "Logging in..." : "Login"}
+          onPress={handleLogin}
         />
-      </View>
 
-      <PrimaryButton
-        title={isLoading ? "Logging in..." : "Login"}
-        onPress={handleLogin}
-      />
+        <TouchableOpacity
+          style={styles.registerContainer}
+          onPress={() => navigation.navigate("PersonalInfo")}
+        >
+          <Text style={styles.registerText}>
+            Don't have an account?
+          </Text>
 
-      <TouchableOpacity
-        style={styles.registerContainer}
-        onPress={() => navigation.navigate("PersonalInfo")}
-      >
-        <Text style={styles.registerText}>
-          Don't have an account?
-        </Text>
-
-        <Text style={styles.register}>
-          Register
-        </Text>
-      </TouchableOpacity>
-    </View>
+          <Text style={styles.register}>
+            Register
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: Colors.white,
     padding: Spacing.lg,
     justifyContent: "center",
@@ -134,5 +149,13 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: Colors.primary,
     fontWeight: "700",
+  },
+  forgotPasswordContainer: {
+    alignSelf: "flex-end",
+    marginBottom: Spacing.md,
+  },
+  forgotPasswordText: {
+    color: Colors.primary,
+    fontWeight: "600",
   },
 });
