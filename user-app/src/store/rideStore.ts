@@ -98,6 +98,8 @@ const rideMeta: Record<RideClass, { title: string; subtitle: string; seats: numb
   xuv:       { title: "XUV",       subtitle: "Spacious SUV for groups & luggage",  seats: 6, multiplier: 1.85,  icon: "car-outline" },
 };
 
+import { useAuthStore } from "./authStore";
+
 const estimateDistance = (pickup: string, dropoff: string, pickupCoords?: any, dropoffCoords?: any) => {
   if (pickupCoords?.lat && dropoffCoords?.lat) {
     const R = 6371; // km
@@ -115,29 +117,34 @@ const estimateDistance = (pickup: string, dropoff: string, pickupCoords?: any, d
 };
 
 const createOptions = (pickup: string, dropoff: string, pickupCoords?: any, dropoffCoords?: any): RideOption[] => {
-  const distance = estimateDistance(pickup, dropoff, pickupCoords, dropoffCoords);
-  const distanceMiles = distance * 0.621371;
-  const etaBase = Math.max(4, Math.round(distance / 2));
-  const durationMin = Math.max(10, Math.round(distance * 4));
-
-  const baseFare = 2.00;
-  const bookingFee = 2.00;
-  const perMile = 0.80;
-  const perMinute = 0.15;
+  const distanceKm = estimateDistance(pickup, dropoff, pickupCoords, dropoffCoords);
+  const etaBase = Math.max(4, Math.round(distanceKm / 2));
   
-  const calcPrice = baseFare + bookingFee + (distanceMiles * perMile) + (durationMin * perMinute);
-  const finalPrice = Math.max(6.00, calcPrice);
+  // Use country to determine pricing logic
+  const country = useAuthStore.getState().user?.country;
+  const isIndia = country !== "USA" && (pickupCoords?.lon >= -50 || country === "India");
+
+  let basePrice = 0;
+  if (isIndia) {
+    // 1 km = 50 INR
+    basePrice = Math.max(50.0, distanceKm * 50.0);
+  } else {
+    // 1 mile = 1 USD
+    const distanceMiles = distanceKm * 0.621371;
+    basePrice = Math.max(1.0, distanceMiles * 1.0);
+  }
 
   return (Object.keys(rideMeta) as RideClass[]).map((rideClass, index) => {
     const meta = rideMeta[rideClass];
+    const finalPrice = basePrice * meta.multiplier;
     return {
       id: rideClass,
       title: meta.title,
       subtitle: meta.subtitle,
       seats: meta.seats,
       eta: `${etaBase + index * 3} min`,
-      price: Number((finalPrice * meta.multiplier).toFixed(2)),
-      distance: `${distance.toFixed(1)} km`,
+      price: isIndia ? Math.round(finalPrice) : Number(finalPrice.toFixed(2)),
+      distance: `${distanceKm.toFixed(1)} km`,
     };
   });
 };

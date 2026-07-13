@@ -16,11 +16,11 @@ from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAccep
 logger = logging.getLogger("app")
 
 class RideService:
-    # USA rates (USD) — Algorithm: Base + ($0.80/mile) + ($0.15/min) + $2.00 Booking Fee. Min $6.00
-    USD_BASE_RATES = {"base": 2.00, "per_mile": 0.80, "per_min": 0.15, "booking_fee": 2.00, "min_fare": 6.00}
+    # USA rates (USD) — Algorithm: 1 mile = $1
+    USD_BASE_RATES = {"base": 0.0, "per_mile": 1.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 1.0}
     
-    # India rates (INR) — Converted approx (Base + ₹36/km + ₹8/min + ₹40 Booking Fee. Min ₹150)
-    INR_BASE_RATES = {"base": 50.0, "per_km": 20.0, "per_min": 8.0, "booking_fee": 40.0, "min_fare": 150.0}
+    # India rates (INR) — Algorithm: 1 km = ₹50
+    INR_BASE_RATES = {"base": 0.0, "per_km": 50.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 50.0}
 
     # Class multipliers (matching frontend estimates)
     CLASS_MULTIPLIERS = {
