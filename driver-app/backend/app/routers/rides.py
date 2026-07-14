@@ -22,7 +22,25 @@ def get_incoming_requests(
     if not current_driver.is_online:
         return []
 
-    rides = db.query(Ride).filter(Ride.status == "pending").all()
+    # Get driver's vehicle type to filter rides
+    from app.models.driver import DriverDocument
+    from sqlalchemy import func
+    
+    driver_doc = db.query(DriverDocument).filter(DriverDocument.driver_id == current_driver.id).first()
+    if not driver_doc or not driver_doc.vehicle_type:
+        return []
+        
+    driver_vehicle_type = driver_doc.vehicle_type.lower()
+    allowed_classes = [driver_vehicle_type]
+    if driver_vehicle_type == "sedan":
+        allowed_classes.append("comfort")
+    elif driver_vehicle_type == "comfort":
+        allowed_classes.append("sedan")
+
+    rides = db.query(Ride).filter(
+        Ride.status == "pending",
+        func.lower(Ride.ride_class).in_(allowed_classes)
+    ).all()
     
     filtered_rides = []
     for ride in rides:

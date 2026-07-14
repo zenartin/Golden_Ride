@@ -57,13 +57,13 @@ class DispatchService:
         elif ride.ride_class.lower() == "sedan":
             target_classes.append("comfort")
 
-        # Fetch online drivers matching the requested ride_class.
+        from sqlalchemy import func
         drivers = (
             db.query(Driver)
             .join(DriverDocument)
             .filter(
                 Driver.is_online == True,
-                DriverDocument.vehicle_type.in_(target_classes)
+                func.lower(DriverDocument.vehicle_type).in_(target_classes)
             )
             .all()
         )
