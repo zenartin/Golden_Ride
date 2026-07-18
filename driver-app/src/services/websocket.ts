@@ -54,11 +54,14 @@ export function connectDriverWebSocket(driverId: number, token: string) {
         navigate("RideRequest", { rideId: msg.ride.id });
       } 
       else if (msg.type === "ride_accepted") {
+        const { incomingRequests } = useRideStore.getState();
+        const wasInIncoming = incomingRequests.some(r => r.id === msg.ride_id);
         removeIncomingRequest(msg.ride_id);
         const currentDriverId = useAuthStore.getState().driver?.id;
-        if (msg.driver_id !== currentDriverId) {
+        const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
+        
+        if (msg.driver_id !== currentDriverId && (wasInIncoming || currentRoute === "RideRequest")) {
           Alert.alert("Ride Accepted", "This ride was accepted by another driver.");
-          const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
           if (currentRoute === "RideRequest") {
             goBack();
           }
@@ -73,16 +76,19 @@ export function connectDriverWebSocket(driverId: number, token: string) {
         }
       } 
       else if (msg.type === "ride_cancelled") {
+        const { incomingRequests } = useRideStore.getState();
+        const wasInIncoming = incomingRequests.some(r => r.id === msg.ride_id);
         removeIncomingRequest(msg.ride_id);
         
         const activeRide = useRideStore.getState().activeRide;
+        const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
+        
         if (activeRide && activeRide.id === msg.ride_id) {
           Alert.alert("Ride Cancelled", "The rider has cancelled the trip.");
           useRideStore.getState().setActiveRide(null);
           navigate("DriverDashboard");
-        } else {
+        } else if (wasInIncoming || currentRoute === "RideRequest") {
           Alert.alert("Ride Cancelled", "The rider has cancelled this ride request.");
-          const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
           if (currentRoute === "RideRequest") {
             goBack();
           }

@@ -231,11 +231,17 @@ export default function TrackRideScreen({ navigation }: Props) {
                 <Ionicons name="person" size={24} color={Colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.driverName}>{activeTrip.driver || "Assigned Driver"}</Text>
-                <Text style={styles.driverMeta} numberOfLines={1}>{activeTrip.car} · Plate: {activeTrip.plate}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.driverName}>{activeTrip.driver || "Assigned Driver"}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#FEF3C7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                    <Ionicons name="star" size={10} color="#D97706" />
+                    <Text style={{ fontSize: 10, fontWeight: "800", color: "#D97706", marginLeft: 2 }}>4.8</Text>
+                  </View>
+                </View>
+                <Text style={styles.driverMeta} numberOfLines={1}>{activeTrip.car} · {activeTrip.plate}</Text>
                 {activeTrip.driverPhone ? (
                   <Pressable onPress={() => Linking.openURL(`tel:${activeTrip.driverPhone}`)}>
-                    <Text style={[styles.driverMeta, { fontWeight: "bold", marginTop: 4, color: Colors.primary }]}>📞 {activeTrip.driverPhone} (Tap to call)</Text>
+                    <Text style={[styles.driverMeta, { fontWeight: "bold", marginTop: 4, color: Colors.primary }]}>📞 {activeTrip.driverPhone}</Text>
                   </Pressable>
                 ) : null}
               </View>

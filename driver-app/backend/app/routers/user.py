@@ -194,7 +194,6 @@ def get_wallet(current_user: User = Depends(get_current_user), db: Session = Dep
         db.query(WalletTransaction)
         .filter(WalletTransaction.user_id == current_user.id)
         .order_by(WalletTransaction.created_at.desc())
-        .limit(15)
         .all()
     )
     if not txs:
@@ -203,7 +202,6 @@ def get_wallet(current_user: User = Depends(get_current_user), db: Session = Dep
             db.query(Ride)
             .filter(Ride.user_id == current_user.id, Ride.status.in_(["completed", "cancelled"]))
             .order_by(Ride.updated_at.desc())
-            .limit(10)
             .all()
         )
         for ride in rides:
@@ -309,7 +307,8 @@ async def book_ride(
             pickup_longitude=payload.pickup_longitude,
             dropoff_latitude=payload.dropoff_latitude,
             dropoff_longitude=payload.dropoff_longitude,
-            coupon_code=payload.coupon_code
+            coupon_code=payload.coupon_code,
+            scheduled_time=payload.scheduled_time
         )
         return ride
     except Exception as e:
@@ -371,7 +370,9 @@ def upload_avatar(
 ):
     try:
         web_path = save_upload_file(file, sub_folder=f"user_{current_user.id}")
-        current_user.avatar = web_path
+        import time
+        timestamped_path = f"{web_path}?t={int(time.time())}"
+        current_user.avatar = timestamped_path
         db.add(current_user)
         db.commit()
         db.refresh(current_user)

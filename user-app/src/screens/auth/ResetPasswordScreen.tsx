@@ -5,7 +5,7 @@ import AppButton from "../../components/AppButton";
 import AppInput from "../../components/AppInput";
 import { Colors, Spacing, Typography } from "../../theme";
 import { Ionicons } from "@expo/vector-icons";
-import api from "../../api/client";
+import { apiClient as api } from "../../api/client";
 
 export default function ResetPasswordScreen({ route, navigation }: any) {
   const { email } = route.params || {};

@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { AppState } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useRideStore } from "../store/rideStore";
 
 import DriverTabNavigator from "./DriverTabNavigator";
 import RideRequestScreen from "../features/rides/screens/RideRequestScreen";
@@ -15,6 +17,24 @@ import CompleteProfileScreen from "../features/profile/screens/CompleteProfileSc
 const Stack = createNativeStackNavigator();
 
 export default function MainNavigator() {
+  const fetchIncomingRequests = useRideStore((s) => s.fetchIncomingRequests);
+
+  useEffect(() => {
+    // Initial fetch when navigator mounts
+    fetchIncomingRequests().catch(() => undefined);
+
+    // Global listener for foregrounding the app
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        fetchIncomingRequests().catch(() => undefined);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DriverDashboard" component={DriverTabNavigator} />

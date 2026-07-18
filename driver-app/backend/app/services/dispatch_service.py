@@ -36,7 +36,7 @@ class DispatchService:
             "status": ride.status,
             "created_at": ride.created_at.isoformat() if ride.created_at else None,
             # Count down timer base
-            "expires_at": (ride.created_at.timestamp() + 60) if ride.created_at else None
+            "expires_at": (ride.created_at.timestamp() + 300) if ride.created_at else None
         }
 
     @classmethod
@@ -50,12 +50,7 @@ class DispatchService:
             "ride": ride_payload
         }
 
-        # Handle 'comfort' and 'sedan' interchangeability
         target_classes = [ride.ride_class.lower()]
-        if ride.ride_class.lower() == "comfort":
-            target_classes.append("sedan")
-        elif ride.ride_class.lower() == "sedan":
-            target_classes.append("comfort")
 
         from sqlalchemy import func
         drivers = (
@@ -161,7 +156,7 @@ class DispatchService:
                 "name": ride.driver.name,
                 "phone": ride.driver.phone,
                 "rating": ride.driver.rating,
-                "vehicle_number": ride.driver.documents.vehicle_number if ride.driver.documents else "N/A",
+                "vehicle_number": (ride.driver.documents.vehicle_plate_number or ride.driver.documents.vehicle_number) if ride.driver.documents else "N/A",
                 "vehicle_model": ride.driver.documents.vehicle_model if ride.driver.documents else "N/A",
                 "vehicle_type": ride.driver.documents.vehicle_type if ride.driver.documents else "N/A"
             }
@@ -234,3 +229,52 @@ class DispatchService:
         }
         if manager.is_user_connected(ride.user_id):
             await manager.send_to_user(ride.user_id, user_message)
+
+    @classmethod
+    async def dispatch_pending_rides_to_driver(cls, db: Session, driver: Driver):
+        logger.info(f"Checking for pending rides for newly online driver {driver.id}")
+        
+        if not driver.documents or not driver.documents.vehicle_type:
+            return
+            
+        driver_vtype = driver.documents.vehicle_type.lower()
+        
+        pending_rides = db.query(Ride).filter(Ride.status == "pending").all()
+        
+        for ride in pending_rides:
+            target_classes = [ride.ride_class.lower()]
+                
+            if driver_vtype not in target_classes:
+                continue
+                
+            existing_assignment = db.query(RideAssignment).filter(
+                RideAssignment.ride_id == ride.id,
+                RideAssignment.driver_id == driver.id
+            ).first()
+            
+            if existing_assignment:
+                continue
+                
+            logger.info(f"Dispatching existing pending ride {ride.id} to late-login driver {driver.id}")
+            
+            RideAssignmentRepository.create_assignment(db, ride.id, driver.id, "offered")
+            notif = NotificationRepository.create_notification(
+                db, 
+                driver_id=driver.id, 
+                ride_id=ride.id, 
+                notification_type="new_ride", 
+                status="pending"
+            )
+
+            if manager.is_driver_connected(driver.id):
+                ride_payload = cls._serialize_ride(ride)
+                message = {
+                    "type": "new_ride",
+                    "ride": ride_payload
+                }
+                success = await manager.send_to_driver(driver.id, message)
+                if success:
+                    notif.status = "delivered"
+                    notif.delivered_via = "websocket"
+                    db.commit()
+

@@ -21,7 +21,7 @@ import { useAuthStore } from "../../../store/authStore";
 export default function RideRequestScreen({ navigation, route }: any) {
   const { incomingRequests, fetchIncomingRequests, acceptRide, declineRide } = useRideStore();
   const driver = useAuthStore((s) => s.driver);
-  const [timeLeft, setTimeLeft] = useState(20);
+  const [timeLeft, setTimeLeft] = useState(30);
   const progressAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -47,7 +47,7 @@ export default function RideRequestScreen({ navigation, route }: any) {
     // Progress bar
     Animated.timing(progressAnim, {
       toValue: 0,
-      duration: 20000,
+      duration: 30000,
       useNativeDriver: false,
     }).start();
 

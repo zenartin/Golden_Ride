@@ -72,7 +72,8 @@ class RideService:
         pickup_longitude: float = None,
         dropoff_latitude: float = None,
         dropoff_longitude: float = None,
-        coupon_code: str = None
+        coupon_code: str = None,
+        scheduled_time: datetime = None
     ) -> Ride:
         user = UserRepository.get_by_id(db, user_id)
         if not user:
@@ -151,20 +152,48 @@ class RideService:
             dropoff_latitude=dropoff_latitude,
             dropoff_longitude=dropoff_longitude,
             coupon_code=coupon_code,
-            discount_amount=discount_amount
+            discount_amount=discount_amount,
+            scheduled_time=scheduled_time
         )
 
-        # Trigger dispatch process asynchronously
-        asyncio.create_task(DispatchService.dispatch_ride(db, ride))
-
-        # Schedule the 60-second expiry task
-        asyncio.create_task(cls._schedule_ride_expiry(ride.id))
+        if scheduled_time:
+            # We don't have celery, so we will use asyncio for the POC
+            # Dispatch 15 mins before (or immediately if time < 15 mins away)
+            delay = (scheduled_time - datetime.utcnow()).total_seconds() - (15 * 60)
+            if delay > 0:
+                asyncio.create_task(cls._schedule_future_dispatch(ride.id, delay))
+            else:
+                ride = RideRepository.update_status(db, ride, "pending")
+                asyncio.create_task(DispatchService.dispatch_ride(db, ride))
+                asyncio.create_task(cls._schedule_ride_expiry(ride.id))
+        else:
+            # Trigger dispatch process asynchronously immediately
+            asyncio.create_task(DispatchService.dispatch_ride(db, ride))
+            # Schedule the 60-second expiry task (Wait, backend says 300s = 5min, we'll keep 300s)
+            asyncio.create_task(cls._schedule_ride_expiry(ride.id))
 
         return ride
 
     @classmethod
+    async def _schedule_future_dispatch(cls, ride_id: int, delay_seconds: float):
+        await asyncio.sleep(delay_seconds)
+        logger.info(f"Time to dispatch scheduled ride {ride_id}")
+        db = SessionLocal()
+        try:
+            ride = db.query(Ride).filter(Ride.id == ride_id).first()
+            if ride and ride.status == "scheduled":
+                ride.status = "pending"
+                db.commit()
+                await DispatchService.dispatch_ride(db, ride)
+                await cls._schedule_ride_expiry(ride_id)
+        except Exception as e:
+            logger.error(f"Error in future dispatch task: {e}")
+        finally:
+            db.close()
+
+    @classmethod
     async def _schedule_ride_expiry(cls, ride_id: int):
-        await asyncio.sleep(60)
+        await asyncio.sleep(300)
         logger.info(f"Checking expiry for ride {ride_id}")
         
         db = SessionLocal()

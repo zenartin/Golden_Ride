@@ -28,7 +28,8 @@ class RideRepository:
         dropoff_longitude: float = None,
         pickup_eta: str = "3 min away",
         coupon_code: str = None,
-        discount_amount: float = None
+        discount_amount: float = None,
+        scheduled_time: datetime = None
     ) -> Ride:
         ride = Ride(
             user_id=user_id,
@@ -48,7 +49,8 @@ class RideRepository:
             pickup_eta=pickup_eta,
             coupon_code=coupon_code,
             discount_amount=discount_amount,
-            status="pending",
+            status="scheduled" if scheduled_time else "pending",
+            scheduled_time=scheduled_time,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )

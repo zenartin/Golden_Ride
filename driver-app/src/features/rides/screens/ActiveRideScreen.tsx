@@ -305,7 +305,10 @@ export default function ActiveRideScreen({ navigation, route }: any) {
             <View style={styles.riderActions}>
               <TouchableOpacity 
                 style={styles.actionBtn} 
-                onPress={() => openDirectionsInMaps({ destination: RIDE.to_location })}
+                onPress={() => {
+                  const dest = phaseIndex === 0 ? RIDE.from_location : RIDE.to_location;
+                  openDirectionsInMaps({ destination: dest });
+                }}
               >
                 <Ionicons name="navigate" size={20} color={Colors.primary} />
               </TouchableOpacity>

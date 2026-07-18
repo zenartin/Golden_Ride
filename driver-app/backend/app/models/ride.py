@@ -31,7 +31,8 @@ class Ride(Base):
     payment_method = Column(String, default="Online")  # "Online", "Cash"
     pickup_eta = Column(String, default="3 min away")
 
-    status = Column(String, default="pending")  # pending, accepted, arrived, started, completed, declined, cancelled
+    status = Column(String, default="pending")  # pending, accepted, arrived, started, completed, declined, cancelled, scheduled
+    scheduled_time = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     actual_fare = Column(Float, nullable=True)
@@ -62,7 +63,8 @@ class Ride(Base):
 
     @property
     def driver_vehicle_number(self) -> Optional[str]:
-        return self.driver.documents.vehicle_number if self.driver and self.driver.documents else None
+        if not self.driver or not self.driver.documents: return None
+        return self.driver.documents.vehicle_plate_number or self.driver.documents.vehicle_number
 
     @property
     def driver_vehicle_model(self) -> Optional[str]:

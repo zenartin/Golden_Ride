@@ -7,14 +7,15 @@ interface AppButtonProps {
   title: string;
   onPress: () => void;
   loading?: boolean;
+  disabled?: boolean;
   variant?: "primary" | "secondary" | "ghost";
   style?: ViewStyle;
 }
 
-export default function AppButton({ title, onPress, loading, variant = "primary", style }: AppButtonProps) {
+export default function AppButton({ title, onPress, loading, disabled, variant = "primary", style }: AppButtonProps) {
   if (variant === "primary") {
     return (
-      <Pressable onPress={onPress} style={style}>
+      <Pressable onPress={onPress} disabled={disabled || loading} style={style}>
         <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.primary}>
           {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.primaryText}>{title}</Text>}
         </LinearGradient>

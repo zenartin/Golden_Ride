@@ -31,6 +31,7 @@ import { useRideStore } from "../../store/rideStore";
 import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { MainStackParamList } from "../../navigation/MainNavigator";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Props = NativeStackScreenProps<MainStackParamList, "Shell"> & {
   openTab: (tab: "Home" | "Trips" | "Wallet" | "Profile") => void;
@@ -125,7 +126,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     }
   }, [activeTrip?.status]);
 
-  const [paymentMethod, setPaymentMethod] = useState<"Razorpay">("Razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<"Razorpay"|"Card"|"UPI"|"Wallet">("Wallet");
   const [upiId, setUpiId] = useState("");
   const [tempUpiId, setTempUpiId] = useState("");
   const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "", name: "" });
@@ -135,11 +136,50 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   const [showCardForm, setShowCardForm] = useState(false);
   const [showUpiForm, setShowUpiForm] = useState(false);
   
+  // Date Picker State
+  const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const walletBalance = useRideStore((s) => s.walletBalance);
   const refreshWallet = useRideStore((s) => s.refreshWallet);
   const user = useAuthStore((s) => s.user);
+
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || "";
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(" ");
+    } else {
+      return value;
+    }
+  };
+
+  const formatExpiry = (value: string) => {
+    let v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    if (v.length >= 2) {
+      v = v.substring(0, 2) + "/" + v.substring(2, 4);
+    }
+    return v;
+  };
+
+  const saveCardDetails = () => {
+    setCardDetails(tempCardDetails);
+    setShowCardForm(false);
+  };
+
+  const saveUpiDetails = () => {
+    setUpiId(tempUpiId);
+    setShowUpiForm(false);
+  };
+
+
 
   useEffect(() => {
     refreshWallet();
@@ -188,15 +228,16 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     setBookError(null);
     try {
       // 1. Book the ride first to get the trip ID and fare
-      const trip = await bookRide(paymentMethod);
+      const trip = await bookRide(paymentMethod, scheduledTime ? scheduledTime.toISOString() : undefined);
       if (!trip) throw new Error("Booking failed. Please try again.");
 
-      // After booking, automatically navigate to the tracking screen
-      navigation.navigate("TrackRide");
-
-      // Post-Ride Payment Flow: We no longer navigate to Payment immediately.
-      // The user stays on the tracking screen. When the driver completes the ride,
-      // TrackRideScreen will automatically navigate to PaymentScreen.
+      if (scheduledTime) {
+        Alert.alert("Ride Scheduled", "Your ride has been scheduled successfully!");
+        useRideStore.setState({ rideOptions: [], pickup: "", dropoff: "" });
+      } else {
+        // After booking, automatically navigate to the tracking screen
+        navigation.navigate("TrackRide");
+      }
     } catch (err: any) {
       const msg = err?.message || "Payment failed. Please try again.";
       setBookError(msg);
@@ -249,22 +290,69 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      {rideOptions.length === 0 && (
-        <UserDashboardHeader activeTab="Home" onProfilePress={() => openTab("Profile")} />
-      )}
-      <ScrollView contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        {rideOptions.length === 0 && (
-          <UserQuickActions
-            actions={[
-              { icon: "car-sport-outline", label: "Book", color: "#FEF3C7", onPress: () => openTab("Home") },
-              { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => openTab("Trips") },
-              { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => openTab("Wallet") },
-              { icon: "headset-outline", label: "Help", color: "#EDE9FE", onPress: () => openTab("Profile") },
+      {/* 1. Full Screen Map in Background */}
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFillObject}
+        provider={PROVIDER_DEFAULT}
+        initialRegion={mapRegion}
+        showsUserLocation
+        showsMyLocationButton={false}
+        pitchEnabled={false}
+      >
+        {pickupCoords && (
+          <Marker coordinate={{ latitude: pickupCoords.lat, longitude: pickupCoords.lon }} title="Pickup" description={pickup}>
+            <View style={{ backgroundColor: '#10B981', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' }}>
+              <Ionicons name="location" size={20} color="#fff" />
+            </View>
+          </Marker>
+        )}
+        {dropoffCoords && (
+          <Marker coordinate={{ latitude: dropoffCoords.lat, longitude: dropoffCoords.lon }} title="Drop" description={dropoff}>
+            <View style={{ backgroundColor: '#EF4444', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' }}>
+              <Ionicons name="flag" size={20} color="#fff" />
+            </View>
+          </Marker>
+        )}
+        {pickupCoords && dropoffCoords && (
+          <Polyline
+            coordinates={[
+              { latitude: pickupCoords.lat, longitude: pickupCoords.lon },
+              { latitude: dropoffCoords.lat, longitude: dropoffCoords.lon },
             ]}
+            strokeColor={Colors.primary}
+            strokeWidth={3}
+            lineDashPattern={[6, 4]}
           />
         )}
+      </MapView>
 
-        {/* Active ride banner */}
+      {/* 2. Floating Header */}
+      {rideOptions.length === 0 && (
+        <View style={styles.floatingHeader}>
+          <UserDashboardHeader activeTab="Home" onProfilePress={() => openTab("Profile")} />
+        </View>
+      )}
+      {/* Floating Action Buttons */}
+      <View style={styles.floatingActions}>
+        <Pressable 
+          style={styles.floatingIconBtn} 
+          onPress={() => {
+            if (mapRef.current && user) {
+              // Current Location mock/real integration
+              const myLat = user.country === "USA" ? 39.8283 : 20.5937;
+              const myLon = user.country === "USA" ? -98.5795 : 78.9629;
+              mapRef.current.animateToRegion({ latitude: myLat, longitude: myLon, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+              setPickup("My Current Location", { lat: myLat, lon: myLon });
+            }
+          }}
+        >
+          <Ionicons name="locate" size={24} color={Colors.textPrimary} />
+        </Pressable>
+      </View>
+
+      {/* 3. Floating Bottom Sheet UI */}
+      <View style={styles.bottomOverlay}>
         {isActiveRide && (
           <Pressable style={styles.activeBanner} onPress={() => navigation.navigate("TrackRide")}>
             <View style={[styles.statusDot, { backgroundColor: statusColors[activeTrip!.status] ?? "#F59E0B" }]} />
@@ -273,53 +361,9 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           </Pressable>
         )}
 
-        {/* Map Card */}
-        <View style={[styles.mapCard, { height: rideOptions.length > 0 ? 300 : 250 }]}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            provider={PROVIDER_DEFAULT}
-            initialRegion={mapRegion}
-            showsUserLocation
-            showsMyLocationButton={false}
-            pitchEnabled={false}
-            scrollEnabled={!searching}
-          >
-            {pickupCoords && (
-              <Marker
-                coordinate={{ latitude: pickupCoords.lat, longitude: pickupCoords.lon }}
-                title="Pickup"
-                description={pickup}
-              >
-                <View style={{ backgroundColor: '#10B981', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' }}>
-                  <Ionicons name="location" size={20} color="#fff" />
-                </View>
-              </Marker>
-            )}
-            {dropoffCoords && (
-              <Marker
-                coordinate={{ latitude: dropoffCoords.lat, longitude: dropoffCoords.lon }}
-                title="Drop"
-                description={dropoff}
-              >
-                <View style={{ backgroundColor: '#EF4444', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff' }}>
-                  <Ionicons name="flag" size={20} color="#fff" />
-                </View>
-              </Marker>
-            )}
-            {pickupCoords && dropoffCoords && (
-              <Polyline
-                coordinates={[
-                  { latitude: pickupCoords.lat, longitude: pickupCoords.lon },
-                  { latitude: dropoffCoords.lat, longitude: dropoffCoords.lon },
-                ]}
-                strokeColor={Colors.primary}
-                strokeWidth={3}
-                lineDashPattern={[6, 4]}
-              />
-            )}
-          </MapView>
-        </View>
+        <ScrollView contentContainerStyle={{ padding: Spacing.md }} showsVerticalScrollIndicator={false} bounces={false}>
+
+
 
         {/* Location inputs or Summary */}
         {rideOptions.length > 0 ? (
@@ -422,34 +466,48 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
 
             {bookError ? <Text style={styles.errorText}>{bookError}</Text> : null}
 
-            <Pressable
-              style={[styles.bookBtn, booking && styles.bookBtnDisabled]}
-              onPress={handleBook}
-              disabled={booking}
-            >
-              {booking ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="car-sport" size={20} color="#fff" />
-                  <Text style={styles.bookBtnText}>Book Ride</Text>
-                </>
-              )}
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+              <Pressable
+                style={[styles.bookBtn, booking && styles.bookBtnDisabled, { flex: 1, backgroundColor: "#E0E7FF" }]}
+                onPress={() => setShowDatePicker(true)}
+                disabled={booking}
+              >
+                <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
+                <Text style={[styles.bookBtnText, { color: Colors.primary }]}>
+                  {scheduledTime ? scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Schedule"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.bookBtn, booking && styles.bookBtnDisabled, { flex: 2 }]}
+                onPress={handleBook}
+                disabled={booking}
+              >
+                {booking ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="car-sport" size={20} color="#fff" />
+                    <Text style={styles.bookBtnText}>Book Ride</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
           </View>
         )}
 
-        {/* Empty state */}
+        {/* Quick Actions (only when no options) */}
         {rideOptions.length === 0 && !searching && (
-          <View style={[styles.emptyCard, { marginTop: 12 }]}>
-            <Ionicons name="map-outline" size={40} color={Colors.textSecondary} style={{ alignSelf: "center" }} />
-            <Text style={styles.emptyText}>
-              Select pickup & destination above, then tap{" "}
-              <Text style={{ fontWeight: "700", color: Colors.primary }}>Get Fare</Text> to see real-time pricing.
-            </Text>
-          </View>
+          <UserQuickActions
+            actions={[
+              { icon: "car-sport-outline", label: "Ride", color: "#FEF3C7", onPress: () => openTab("Home") },
+              { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => openTab("Trips") },
+              { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => openTab("Wallet") },
+            ]}
+          />
         )}
       </ScrollView>
+      </View>
 
       {/* ── MODAL 1: Payment Method Chooser Bottom Sheet ── */}
       <Modal visible={showPaymentModal} transparent animationType="slide">
@@ -462,14 +520,24 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
               </Pressable>
             </View>
 
-              <View style={{ gap: 12, paddingVertical: 10 }}>
-              {/* Option 1: Razorpay */}
+            <View style={{ gap: 12, paddingVertical: 10 }}>
+              <Pressable
+                style={[styles.optionRow, paymentMethod === "Wallet" && styles.optionRowSelected]}
+                onPress={() => { setPaymentMethod("Wallet"); setShowPaymentModal(false); }}
+              >
+                <View style={[styles.paymentBadge, { backgroundColor: "#10B981" + "1A" }]}>
+                  <Ionicons name="wallet-outline" size={22} color="#10B981" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionName}>Golden Wallet</Text>
+                  <Text style={styles.optionSub}>Balance: {user?.country === "USA" ? "$" : "₹"}{walletBalance}</Text>
+                </View>
+                {paymentMethod === "Wallet" && <Ionicons name="checkmark-circle" size={20} color="#10B981" />}
+              </Pressable>
+
               <Pressable
                 style={[styles.optionRow, paymentMethod === "Razorpay" && styles.optionRowSelected]}
-                onPress={() => {
-                  setPaymentMethod("Razorpay");
-                  setShowPaymentModal(false);
-                }}
+                onPress={() => { setPaymentMethod("Razorpay"); setShowPaymentModal(false); }}
               >
                 <View style={[styles.paymentBadge, { backgroundColor: "#02042B" + "1A" }]}>
                   <Ionicons name="flash-outline" size={22} color="#02042B" />
@@ -484,6 +552,20 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Date Time Picker Modal */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={scheduledTime || new Date()}
+          mode="time"
+          is24Hour={false}
+          display="spinner"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) setScheduledTime(selectedDate);
+          }}
+        />
+      )}
 
       {/* ── MODAL 2: Credit Card Form + Interactive Preview ── */}
       <Modal visible={showCardForm} transparent animationType="slide">
@@ -680,18 +762,51 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   activeBannerText: { flex: 1, color: Colors.textPrimary, fontWeight: "700", fontSize: Typography.small },
-  mapCard: {
-    height: 200,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 10,
+    zIndex: 10,
   },
-  map: { flex: 1 },
+  floatingActions: {
+    position: "absolute",
+    right: 16,
+    bottom: "45%",
+    zIndex: 10,
+  },
+  floatingIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    marginBottom: 10,
+  },
+  bottomOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxHeight: "50%",
+    backgroundColor: "transparent",
+  },
   card: {
     backgroundColor: Colors.surface,
     padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 8,
     gap: 12,
   },
   summaryCard: {

@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   tab: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },

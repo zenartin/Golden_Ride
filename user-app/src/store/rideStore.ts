@@ -79,7 +79,7 @@ interface RideState {
   setDropoff: (value: string, coords?: { lat: number; lon: number }) => void;
   setSelectedRideClass: (value: RideClass) => void;
   searchRides: () => Promise<RideOption[]>;
-  bookRide: (paymentMethod?: string) => Promise<Trip | null>;
+  bookRide: (paymentMethod?: string, scheduledTime?: string) => Promise<Trip | null>;
   refreshActiveTrip: () => Promise<void>;
   refreshHistory: () => Promise<void>;
   fetchTripDetail: (tripId: string) => Promise<Trip | null>;
@@ -263,7 +263,7 @@ export const useRideStore = create<RideState>()(
           return rideOptions;
         }
       },
-      bookRide: async (paymentMethod = "Cash") => {
+      bookRide: async (paymentMethod = "Cash", scheduledTime?: string) => {
         const { pickup, dropoff, pickupCoords, dropoffCoords, rideOptions, selectedRideClass, appliedCoupon } = get();
         if (!pickup.trim() || !dropoff.trim()) throw new Error("Please enter pickup and dropoff locations.");
 
@@ -283,6 +283,7 @@ export const useRideStore = create<RideState>()(
             dropoff_latitude: dropoffCoords?.lat,
             dropoff_longitude: dropoffCoords?.lon,
             coupon_code: appliedCoupon || undefined,
+            scheduled_time: scheduledTime,
           },
         });
 

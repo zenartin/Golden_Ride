@@ -29,8 +29,6 @@
       "package": "com.goldenridedriver",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
@@ -47,17 +45,12 @@
       ],
       "@react-native-community/datetimepicker"
     ],
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.1",
     "extra": {
       "eas": {
-        "projectId": "60a238bb-0c32-4118-ab60-c266a5143552"
+        "projectId": "bbb30ec2-88e1-47f9-8a39-277caf844753"
       }
     },
-    "owner": "nandagopalzenartin",
-    "updates": {
-      "url": "https://u.expo.dev/60a238bb-0c32-4118-ab60-c266a5143552"
-    }
+    "owner": "zenartin03"
   }
 }

@@ -44,6 +44,7 @@ def ensure_local_schema_compatibility():
             "cancellation_reason": "VARCHAR",
             "coupon_code": "VARCHAR",
             "discount_amount": "FLOAT",
+            "scheduled_time": "TIMESTAMP",
         }
         missing = [(name, sql_type) for name, sql_type in required_columns.items() if name not in existing]
         if missing:
@@ -190,6 +191,19 @@ async def websocket_driver_endpoint(websocket: WebSocket, driver_id: int):
             return
 
     await manager.connect_driver(driver_id, websocket)
+
+    # Check for pending rides if driver is already online but just re-connected
+    from app.database import SessionLocal
+    from app.repositories.driver_repository import DriverRepository
+    from app.services.dispatch_service import DispatchService
+    db = SessionLocal()
+    try:
+        driver = DriverRepository.get_by_id(db, driver_id)
+        if driver and driver.is_online:
+            await DispatchService.dispatch_pending_rides_to_driver(db, driver)
+    finally:
+        db.close()
+
     try:
         while True:
             data = await websocket.receive_text()

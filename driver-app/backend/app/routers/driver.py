@@ -144,8 +144,10 @@ def upload_document(
     elif document_type == "insurance":
         docs.insurance_image = web_path
     elif document_type == "avatar":
-        docs.avatar_image = web_path
-        current_driver.avatar = web_path # Link to driver table as well
+        import time
+        timestamped_path = f"{web_path}?t={int(time.time())}"
+        docs.avatar_image = timestamped_path
+        current_driver.avatar = timestamped_path # Link to driver table as well
         db.add(current_driver)
 
     db.commit()
@@ -226,7 +228,7 @@ def get_dashboard(
 
 
 @router.post("/toggle-online")
-def toggle_online(
+async def toggle_online(
     current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
@@ -239,6 +241,11 @@ def toggle_online(
     db.add(current_driver)
     db.commit()
     db.refresh(current_driver)
+
+    if current_driver.is_online:
+        from app.services.dispatch_service import DispatchService
+        await DispatchService.dispatch_pending_rides_to_driver(db, current_driver)
+
     return {"status": "success", "is_online": current_driver.is_online}
 
 @router.get("/earnings", response_model=EarningsResponse)

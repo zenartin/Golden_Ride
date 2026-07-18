@@ -22,7 +22,7 @@ export default function WalletScreen() {
     refreshWallet().catch(() => undefined);
   }, [refreshWallet]);
 
-  const recent = useMemo(() => transactions.slice(0, 5), [transactions]);
+  const recent = useMemo(() => transactions, [transactions]);
 
   return (
     <View style={styles.root}>

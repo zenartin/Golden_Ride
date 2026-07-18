@@ -124,13 +124,17 @@ def verify_razorpay_payment(
         # Razorpay payment links use a specific signature format
         signature_payload = f"{request.razorpay_payment_link_id}|{request.razorpay_payment_link_reference_id}|{request.razorpay_payment_link_status}|{request.razorpay_payment_id}"
         
-        client.utility.verify_signature({
-            "razorpay_payment_id": request.razorpay_payment_id,
-            "razorpay_payment_link_id": request.razorpay_payment_link_id,
-            "razorpay_payment_link_reference_id": request.razorpay_payment_link_reference_id,
-            "razorpay_payment_link_status": request.razorpay_payment_link_status,
-            "razorpay_signature": request.razorpay_signature
-        })
+        import hmac
+        import hashlib
+        
+        expected_signature = hmac.new(
+            bytes(RAZORPAY_KEY_SECRET, 'utf-8'),
+            bytes(signature_payload, 'utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(expected_signature, request.razorpay_signature):
+            raise razorpay.errors.SignatureVerificationError("Invalid Razorpay signature")
         
         # Success: mark ride as completed
         ride.payment_method = "Razorpay"

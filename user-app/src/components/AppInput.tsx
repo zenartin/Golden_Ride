@@ -22,7 +22,7 @@ export default function AppInput({
         value={value}
         onChangeText={onChangeText}
         placeholderTextColor={Colors.textMuted}
-        style={[styles.input, rest.multiline && styles.multi, style]}
+        style={[styles.input, rest.multiline && styles.multi, style, rest.secureTextEntry && { fontFamily: 'System' }]}
         {...rest}
       />
     </View>

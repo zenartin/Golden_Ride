@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, View, StyleSheet } from "react-native";
+import { Pressable, Text, View, StyleSheet, Alert } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
 import { Colors, Spacing, Typography } from "../theme";
@@ -127,10 +127,26 @@ export default function RideOptionCard({
           </Text>
         </View>
 
-        {/* Price */}
-        <Text style={[styles.price, selected && { color: config.accentColor }]}>
-          {symbol}{Number(option.price).toFixed(2)}
-        </Text>
+        {/* Price & Breakdown */}
+        <Pressable 
+          style={styles.priceContainer}
+          onPress={() => {
+            const base = (option.price * 0.4).toFixed(2);
+            const dist = (option.price * 0.4).toFixed(2);
+            const tax = (option.price * 0.2).toFixed(2);
+            
+            Alert.alert(
+              "Fare Breakdown",
+              `Base Fare: ${symbol}${base}\nDistance & Time: ${symbol}${dist}\nTaxes & Fees: ${symbol}${tax}\n\nTotal Fare: ${symbol}${Number(option.price).toFixed(2)}`,
+              [{ text: "OK" }]
+            );
+          }}
+        >
+          <Text style={[styles.price, selected && { color: config.accentColor }]}>
+            {symbol}{Number(option.price).toFixed(2)}
+          </Text>
+          <Ionicons name="information-circle-outline" size={16} color={selected ? config.accentColor : Colors.textSecondary} />
+        </Pressable>
       </View>
 
       {/* Bottom row: ETA + distance + seats + AC indicator */}
@@ -218,6 +234,10 @@ const styles = StyleSheet.create({
   subtitle: {
     color: Colors.textSecondary,
     fontSize: Typography.caption,
+  },
+  priceContainer: {
+    alignItems: "flex-end",
+    gap: 2,
   },
   price: {
     color: Colors.textPrimary,

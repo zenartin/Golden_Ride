@@ -27,6 +27,7 @@ class RideResponse(BaseModel):
     status: str  # pending, accepted, arrived, started, completed, declined, cancelled
     coupon_code: Optional[str] = None
     discount_amount: Optional[float] = None
+    scheduled_time: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -85,6 +86,7 @@ class RideBookingRequest(BaseModel):
     dropoff_latitude: Optional[float] = None
     dropoff_longitude: Optional[float] = None
     coupon_code: Optional[str] = None
+    scheduled_time: Optional[datetime] = None
 
 
 class WalletTopUpRequest(BaseModel):

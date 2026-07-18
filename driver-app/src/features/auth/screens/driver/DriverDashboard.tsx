@@ -64,17 +64,6 @@ export default function DriverDashboard({
     loadDashboard();
     loadCurrentLocation();
     fetchNotificationsFn().catch(() => undefined);
-    fetchIncomingRequests().catch(() => undefined);
-
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (nextAppState === "active") {
-        fetchIncomingRequests().catch(() => undefined);
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
   }, []);
 
   // Removed local incomingRequests navigation side-effect since it's now handled globally in the store

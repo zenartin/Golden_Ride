@@ -227,6 +227,18 @@ export default function PaymentScreen({ route, navigation }: any) {
             <WebView
               source={{ uri: razorpayWebViewUrl }}
               onNavigationStateChange={handleWebViewNavigationChange}
+              onShouldStartLoadWithRequest={(request) => {
+                const { url } = request;
+                if (url.includes("example.com/razorpay/success")) {
+                  handleRazorpayCapture(url);
+                  return false;
+                } else if (url.includes("example.com/razorpay/cancel")) {
+                  setRazorpayWebViewUrl(null);
+                  Alert.alert("Cancelled", "Razorpay payment was cancelled.");
+                  return false;
+                }
+                return true;
+              }}
               startInLoadingState
               renderLoading={() => (
                 <View style={styles.webviewLoader}>

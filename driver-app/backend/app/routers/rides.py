@@ -32,10 +32,6 @@ def get_incoming_requests(
         
     driver_vehicle_type = driver_doc.vehicle_type.lower()
     allowed_classes = [driver_vehicle_type]
-    if driver_vehicle_type == "sedan":
-        allowed_classes.append("comfort")
-    elif driver_vehicle_type == "comfort":
-        allowed_classes.append("sedan")
 
     rides = db.query(Ride).filter(
         Ride.status == "pending",

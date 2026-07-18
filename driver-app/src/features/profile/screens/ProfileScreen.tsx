@@ -55,8 +55,17 @@ export default function ProfileScreen({ navigation }: any) {
   const initials = driverName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const [isOnline, setIsOnline] = React.useState(driver?.is_online ?? false);
 
+  const [dashboard, setDashboard] = React.useState<any>(null);
+
   React.useEffect(() => {
     fetchProfileFn().catch(() => undefined);
+    import("../../../api/axios").then((m) => {
+      import("../../../api/endpoints").then((e) => {
+        m.default.get(e.API_ENDPOINTS.DRIVER_DASHBOARD)
+          .then(res => setDashboard(res.data))
+          .catch(err => console.log("Profile dashboard fetch error:", err));
+      });
+    });
   }, []);
 
   React.useEffect(() => {
@@ -120,7 +129,7 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.statsRow}>
           {[
             { label: "This Month", value: `₹${driverBalance.toLocaleString()}`, icon: "cash-outline" as const, color: Colors.success },
-            { label: "Total KM", value: "0", icon: "navigate-outline" as const, color: Colors.info },
+            { label: "Total KM", value: dashboard?.stats?.find((s: any) => s.label === "Km")?.value || "0", icon: "navigate-outline" as const, color: Colors.info },
             { label: "Acceptance", value: "100%", icon: "checkmark-circle-outline" as const, color: Colors.warning },
           ].map((s) => (
             <View key={s.label} style={styles.statCard}>
