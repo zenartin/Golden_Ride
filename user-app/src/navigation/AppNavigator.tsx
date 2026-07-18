@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { useAuthStore } from "../store/authStore";
@@ -17,6 +18,9 @@ export default function AppNavigator() {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
 
+  // Track whether the GIF splash has finished playing
+  const [gifDone, setGifDone] = useState(false);
+
   useEffect(() => {
     initialize();
   }, [initialize]);
@@ -32,26 +36,38 @@ export default function AppNavigator() {
   // Monitor network connectivity changes
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      console.log("User App network connectivity changed:", state.isConnected);
       if (state.isConnected && isAuthenticated && user && user.id != null && token) {
-        // Reconnect user WebSocket on network recovery
         connectUserWebSocket(user.id, token);
       }
     });
     return () => unsubscribe();
   }, [isAuthenticated, user?.id, token]);
 
-  if (isLoading) {
-    return <SplashScreen />;
-  }
+  // Show GIF splash until BOTH: GIF has played AND auth has finished loading
+  const showSplash = !gifDone || isLoading;
 
   return (
-    <Stack.Navigator id="root-stack" screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <Stack.Screen name="Main" component={MainNavigator} />
-      ) : (
-        <Stack.Screen name="Auth" component={AuthNavigator} />
+    <View style={styles.root}>
+      {/* Main app renders underneath — pre-loads while GIF plays */}
+      {!isLoading && (
+        <Stack.Navigator id="root-stack" screenOptions={{ headerShown: false }}>
+          {isAuthenticated ? (
+            <Stack.Screen name="Main" component={MainNavigator} />
+          ) : (
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          )}
+        </Stack.Navigator>
       )}
-    </Stack.Navigator>
+
+      {/* GIF Splash overlays on top until done */}
+      {showSplash && (
+        <SplashScreen onFinish={() => setGifDone(true)} />
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
+

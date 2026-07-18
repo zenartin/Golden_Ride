@@ -10,7 +10,7 @@ interface Props {
   onFinish?: () => void;
 }
 
-export default function SplashScreen({ onFinish }: Props) {
+export default function GifSplashScreen({ onFinish }: Props) {
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function SplashScreen({ onFinish }: Props) {
   return (
     <Animated.View style={[styles.container, { opacity }]}>
       <Image
-        source={require("../../../assets/intro.gif")}
+        source={require("../../assets/intro.gif")}
         style={styles.gif}
         resizeMode="cover"
       />

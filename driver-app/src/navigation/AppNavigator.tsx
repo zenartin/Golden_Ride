@@ -6,11 +6,12 @@ import MainNavigator from "./MainNavigator";
 import CompleteProfileScreen from "../features/profile/screens/CompleteProfileScreen";
 import { useAuthStore } from "../store/authStore";
 import { useEffect, useState, useRef } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, View, StyleSheet } from "react-native";
 import { navigationRef } from "./navigationRef";
 import { connectDriverWebSocket, disconnectDriverWebSocket } from "../services/websocket";
 import NetInfo from "@react-native-community/netinfo";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import GifSplashScreen from "../screens/GifSplashScreen";
 
 
 
@@ -20,6 +21,9 @@ export default function AppNavigator() {
   const driver = useAuthStore((s) => s.driver);
   const token = useAuthStore((s) => s.token);
   const [ready, setReady] = useState(false);
+
+  // Track whether the GIF splash has finished playing
+  const [gifDone, setGifDone] = useState(false);
 
   useEffect(() => {
     // Restore auth token on startup
@@ -58,21 +62,34 @@ export default function AppNavigator() {
     return () => subscription.remove();
   }, [isAuthenticated, driver?.id, token]);
 
-  if (!ready) {
-    return null;
-  }
+  // Show GIF splash until BOTH: GIF has played AND auth is ready
+  const showSplash = !gifDone || !ready;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <RegistrationProvider>
-        <NavigationContainer ref={navigationRef}>
-          {!isAuthenticated ? (
-            <AuthNavigator />
-          ) : (
-            <MainNavigator />
-          )}
-        </NavigationContainer>
-      </RegistrationProvider>
+      <View style={styles.root}>
+        {/* Main app renders underneath — pre-loads while GIF plays */}
+        {ready && (
+          <RegistrationProvider>
+            <NavigationContainer ref={navigationRef}>
+              {!isAuthenticated ? (
+                <AuthNavigator />
+              ) : (
+                <MainNavigator />
+              )}
+            </NavigationContainer>
+          </RegistrationProvider>
+        )}
+
+        {/* GIF Splash overlays on top until done */}
+        {showSplash && (
+          <GifSplashScreen onFinish={() => setGifDone(true)} />
+        )}
+      </View>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
