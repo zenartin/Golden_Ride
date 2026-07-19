@@ -95,7 +95,7 @@ export default function RideOptionCard({
       onPress={onPress}
       style={[
         styles.card,
-        selected && { borderColor: config.accentColor, borderWidth: 2, backgroundColor: config.bgColor },
+        selected && { borderColor: config.accentColor, borderWidth: 2, backgroundColor: config.bgColor, shadowOpacity: 0.12, shadowRadius: 15 },
       ]}
     >
       {/* Top row: icon + name + badge + price */}
@@ -113,7 +113,7 @@ export default function RideOptionCard({
         {/* Name + subtitle */}
         <View style={styles.nameBlock}>
           <View style={styles.nameRow}>
-            <Text style={[styles.title, selected && { color: config.accentColor }, { flexShrink: 1 }]} numberOfLines={1}>
+            <Text style={[styles.title, selected && { color: config.accentColor }]} numberOfLines={1}>
               {option.title}
             </Text>
             {config.badge && (
@@ -191,9 +191,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: Spacing.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: 2,
+    borderColor: "transparent",
     gap: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   topRow: {
     flexDirection: "row",
@@ -210,11 +214,13 @@ const styles = StyleSheet.create({
   nameBlock: {
     flex: 1,
     gap: 3,
+    paddingRight: 8,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexWrap: "wrap",
   },
   title: {
     color: Colors.textPrimary,

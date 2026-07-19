@@ -28,28 +28,11 @@ export default function WalletScreen() {
     <View style={styles.root}>
       {/* Premium Header with Notch spacing */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.headerTitle}>Wallet & Payments</Text>
+        <Text style={styles.headerTitle}>Transaction History</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.kicker}>Wallet balance</Text>
-          <Text style={styles.balance}>{user?.country === "USA" ? "$" : "₹"}{balance}</Text>
-          <Text style={styles.note}>Use wallet for instant ride payments.</Text>
-        </View>
 
-        {/* Quick Top Up Card */}
-        <View style={styles.card}>
-          <SectionHeader title="Quick top up" />
-          <View style={styles.topUpRow}>
-            {topUps.map((amount) => (
-              <TouchableOpacity key={amount} style={styles.topUpButton} onPress={() => topUpWallet(amount)}>
-                <Text style={styles.topUpText}>+{user?.country === "USA" ? "$" : "₹"}{amount}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
 
         {/* Transactions History Card */}
         <View style={styles.card}>

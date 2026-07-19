@@ -152,9 +152,12 @@ const SignupScreen = ({ navigation }: any) => {
                 onChangeText={(v) => handleChange("password", v)}
                 style={styles.input}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Ionicons
-                  name={showPassword ? "eye-off" : "eye"}
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color="#666"
                 />
@@ -172,9 +175,12 @@ const SignupScreen = ({ navigation }: any) => {
                 onChangeText={(v) => handleChange("confirmPassword", v)}
                 style={styles.input}
               />
-              <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)}>
+              <TouchableOpacity
+                onPress={() => setShowConfirm(!showConfirm)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Ionicons
-                  name={showConfirm ? "eye-off" : "eye"}
+                  name={showConfirm ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color="#666"
                 />
@@ -306,7 +312,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
 
-  input: { flex: 1, marginLeft: 10 },
+  input: { flex: 1, marginLeft: 10, color: "#1a1a1a", fontSize: 15 },
 
   button: {
     flexDirection: "row",

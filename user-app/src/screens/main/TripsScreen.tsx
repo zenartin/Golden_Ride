@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -141,6 +142,27 @@ export default function TripsScreen({ navigation }: Props) {
                   <Text style={styles.location}>{item.dropoff}</Text>
                 </View>
               </View>
+
+              {/* Driver Info if present */}
+              {item.driver ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 12, paddingTop: 4 }}>
+                  {item.driverAvatar ? (
+                    <Image source={{ uri: item.driverAvatar }} style={{ width: 28, height: 28, borderRadius: 14 }} />
+                  ) : (
+                    <Ionicons name="person-circle-outline" size={28} color={Colors.textSecondary} />
+                  )}
+                  <Text style={{ fontSize: Typography.small, fontWeight: "600", color: Colors.textPrimary, flex: 1 }} numberOfLines={1}>
+                    {item.driver}
+                  </Text>
+                  {item.plate && item.plate !== "—" && (
+                    <View style={{ backgroundColor: "#FBBF24", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: "#92400E" }}>
+                      <Text style={{ fontSize: 10, fontWeight: "900", color: "#1C1917", fontFamily: "monospace", letterSpacing: 1 }}>
+                        {item.plate}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : null}
 
               {/* Footer */}
               <View style={styles.cardFooter}>

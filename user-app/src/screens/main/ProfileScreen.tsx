@@ -143,9 +143,13 @@ export default function ProfileScreen({ navigation }: Props) {
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "R";
 
-  // Prepend Base URL to relative static static path
+  // Prepend Base URL to relative static path (avatar may be relative or full URL)
   const hostUrl = BASE_URL.replace("/api", "");
-  const avatarUrl = user?.avatar ? `${hostUrl}${user.avatar}` : null;
+  const avatarUrl = user?.avatar
+    ? user.avatar.startsWith("http")
+      ? user.avatar
+      : `${hostUrl}${user.avatar}`
+    : null;
 
   return (
     <View style={styles.root}>

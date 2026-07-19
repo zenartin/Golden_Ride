@@ -9,7 +9,7 @@ type TabKey = "Home" | "Trips" | "Wallet" | "Profile";
 const tabs: Array<{ key: TabKey; icon: keyof typeof Ionicons.glyphMap; label: string }> = [
   { key: "Home", icon: "car-sport-outline", label: "Book" },
   { key: "Trips", icon: "receipt-outline", label: "Trips" },
-  { key: "Wallet", icon: "wallet-outline", label: "Wallet" },
+  { key: "Wallet", icon: "swap-horizontal-outline", label: "History" },
   { key: "Profile", icon: "person-outline", label: "Profile" },
 ];
 

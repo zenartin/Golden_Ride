@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking, Image } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -228,7 +228,11 @@ export default function TrackRideScreen({ navigation }: Props) {
             <Text style={styles.sectionTitle}>Driver Details</Text>
             <View style={styles.driverRow}>
               <View style={styles.driverAvatar}>
-                <Ionicons name="person" size={24} color={Colors.primary} />
+                {activeTrip.driverAvatar ? (
+                  <Image source={{ uri: activeTrip.driverAvatar }} style={{ width: "100%", height: "100%", borderRadius: 22 }} />
+                ) : (
+                  <Ionicons name="person" size={24} color={Colors.primary} />
+                )}
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -238,7 +242,7 @@ export default function TrackRideScreen({ navigation }: Props) {
                     <Text style={{ fontSize: 10, fontWeight: "800", color: "#D97706", marginLeft: 2 }}>4.8</Text>
                   </View>
                 </View>
-                <Text style={styles.driverMeta} numberOfLines={1}>{activeTrip.car} · {activeTrip.plate}</Text>
+                <Text style={styles.driverMeta} numberOfLines={1}>{activeTrip.car}</Text>
                 {activeTrip.driverPhone ? (
                   <Pressable onPress={() => Linking.openURL(`tel:${activeTrip.driverPhone}`)}>
                     <Text style={[styles.driverMeta, { fontWeight: "bold", marginTop: 4, color: Colors.primary }]}>📞 {activeTrip.driverPhone}</Text>
@@ -249,12 +253,25 @@ export default function TrackRideScreen({ navigation }: Props) {
                 <Ionicons name="navigate" size={18} color={Colors.primary} />
               </Pressable>
             </View>
+
+            {/* Vehicle Number Plate — prominent badge */}
+            <View style={styles.plateRow}>
+              <Ionicons name="car-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.plateLabel}>Number Plate</Text>
+              <View style={styles.plateBadge}>
+                <Text style={styles.plateText}>
+                  {activeTrip.plate && activeTrip.plate !== "—" ? activeTrip.plate : "Awaiting plate info"}
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
               <Text style={styles.fareText}>{user?.country === "USA" ? "$" : "₹"}{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
             </View>
           </View>
         )}
+
 
         {/* Fare summary */}
         {activeTrip.status === "searching" && (
@@ -363,6 +380,32 @@ const styles = StyleSheet.create({
   },
   fareRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
   fareText: { color: Colors.textSecondary, fontSize: Typography.small },
+  plateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  plateLabel: {
+    color: Colors.textSecondary,
+    fontSize: Typography.small,
+    flex: 1,
+  },
+  plateBadge: {
+    backgroundColor: "#FBBF24",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 2,
+    borderColor: "#92400E",
+  },
+  plateText: {
+    color: "#1C1917",
+    fontWeight: "900",
+    fontSize: 14,
+    letterSpacing: 2,
+    fontFamily: "monospace",
+  },
   title: { color: Colors.textPrimary, fontSize: Typography.heading, fontWeight: "900" },
   subtitle: { color: Colors.textSecondary, fontSize: Typography.body, textAlign: "center" },
   timeline: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginTop: 4 },

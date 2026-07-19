@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   StatusBar,
   Switch,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, Typography } from "../../../theme";
+import { BASE_URL } from "../../../api/axios";
 
 import { useAuthStore } from "../../../store/authStore";
 
@@ -106,9 +108,26 @@ export default function ProfileScreen({ navigation }: any) {
           colors={[Colors.primary, Colors.primaryDark]}
           style={styles.profileCard}
         >
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          {(() => {
+            const avatarUrl = driver?.avatar
+              ? driver.avatar.startsWith("http")
+                ? driver.avatar
+                : `${BASE_URL.replace("/api", "")}${driver.avatar}`
+              : null;
+            return (
+              <View style={styles.avatarCircle}>
+                {avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>{initials}</Text>
+                )}
+              </View>
+            );
+          })()}
           <View style={styles.profileInfo}>
             <Text style={styles.driverName}>{driverName}</Text>
             <Text style={styles.driverPhone}>{driverPhone}</Text>
@@ -252,7 +271,9 @@ const styles = StyleSheet.create({
     width: 64, height: 64, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center",
     borderWidth: 2, borderColor: "rgba(255,255,255,0.4)",
+    overflow: "hidden",
   },
+  avatarImage: { width: 64, height: 64, borderRadius: 20 },
   avatarText: { fontSize: 22, fontWeight: "800", color: Colors.white },
   profileInfo: { flex: 1 },
   driverName: { fontSize: Typography.subHeading, fontWeight: "800", color: Colors.white },

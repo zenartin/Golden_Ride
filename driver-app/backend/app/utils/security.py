@@ -10,6 +10,8 @@ from app.config import settings
 from app.database import get_db
 from app.models.driver import Driver
 from app.models.user import User
+from app.models.admin import Admin
+from app.schemas.auth import TokenData
 
 # Using pbkdf2_sha256 for portability and avoiding native compile dependencies (e.g. bcrypt issues on Windows)
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -113,3 +115,32 @@ def get_current_actor(db: Session = Depends(get_db), token: str = Depends(oauth2
         if not user:
             raise credentials_exception
         return {"role": "user", "id": user.id, "obj": user}
+
+def get_current_admin(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        id_str: str = payload.get("sub")
+        role: str = payload.get("role")
+        if id_str is None or role not in ["admin", "super_admin"]:
+            raise credentials_exception
+        token_data = TokenData(id=int(id_str), role=role)
+    except jwt.PyJWTError:
+        raise credentials_exception
+
+    admin = db.query(Admin).filter(Admin.id == token_data.id).first()
+    if admin is None:
+        raise credentials_exception
+    return admin
+
+def get_current_super_admin(current_admin: Admin = Depends(get_current_admin)):
+    if current_admin.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin privileges required"
+        )
+    return current_admin

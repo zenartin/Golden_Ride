@@ -70,7 +70,7 @@ export const useRideStore = create<RideState>((set, get) => ({
 
   addIncomingRequest: (ride) => {
     set((state) => {
-      if (state.incomingRequests.some((r) => r.id === ride.id)) {
+      if (state.incomingRequests.some((r) => String(r.id) === String(ride.id))) {
         return state;
       }
       return { incomingRequests: [ride, ...state.incomingRequests] };

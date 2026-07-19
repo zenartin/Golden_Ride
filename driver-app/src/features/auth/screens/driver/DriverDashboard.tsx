@@ -24,6 +24,7 @@ import { useAuthStore } from "../../../../store/authStore";
 import { useAppStore } from "../../../../store/appStore";
 import { useRideStore } from "../../../../store/rideStore";
 import apiClient from "../../../../api/axios";
+import { BASE_URL } from "../../../../api/axios";
 import { API_ENDPOINTS } from "../../../../api/endpoints";
 import { useState } from "react";
 import { openLocationInMaps } from "../../../../utils/openMaps";
@@ -189,9 +190,26 @@ export default function DriverDashboard({
               </View>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </TouchableOpacity>
+          {(() => {
+            const avatarUrl = driver?.avatar
+              ? driver.avatar.startsWith("http")
+                ? driver.avatar
+                : `${BASE_URL.replace("/api", "")}${driver.avatar}`
+              : null;
+            return (
+              <TouchableOpacity style={styles.avatar}>
+                {avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.avatarImg}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>{initials}</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       </View>
 
@@ -461,7 +479,9 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44, height: 44, borderRadius: 14,
     backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center",
+    overflow: "hidden",
   },
+  avatarImg: { width: 44, height: 44, borderRadius: 14 },
   avatarText: { color: Colors.white, fontWeight: "800", fontSize: 14 },
   scroll: { paddingHorizontal: Spacing.lg, paddingBottom: 24, gap: 16 },
   incompleteProfileBanner: {

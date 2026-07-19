@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getDrivers, getRides } from '../api/client';
-import { ArrowLeft, Car, Phone, Mail, Activity, MapPin, Navigation, DollarSign, Star } from 'lucide-react';
+import { getDriverDetails, getRides } from '../api/client';
+import { ArrowLeft, Car, Phone, Mail, FileText, MapPin, Navigation, DollarSign, Star, CheckCircle } from 'lucide-react';
 
 export default function DriverDetails() {
   const { id } = useParams();
@@ -12,10 +12,10 @@ export default function DriverDetails() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [drivers, rides] = await Promise.all([getDrivers(), getRides()]);
-        const foundDriver = drivers.find((d: any) => d.id === Number(id));
+        if (!id) return;
+        const [driverData, rides] = await Promise.all([getDriverDetails(id), getRides()]);
         const foundRides = rides.filter((r: any) => r.driver_id === Number(id));
-        setDriver(foundDriver);
+        setDriver(driverData);
         setDriverRides(foundRides);
       } catch (e) {
         console.error(e);
@@ -81,48 +81,96 @@ export default function DriverDetails() {
         </div>
 
         {/* Ride History Table */}
-        <div className="glass" style={styles.historyCard}>
-          <div style={styles.historyHeader}>
-            <h3 style={styles.historyTitle}>Completed & Past Rides ({driverRides.length})</h3>
-            <span style={styles.totalRevenueBadge}>Gross Rev: ${totalDriverRevenue.toFixed(2)}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Document & Vehicle Details Card */}
+          <div className="glass" style={{ ...styles.historyCard, padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <FileText size={20} color="var(--primary-accent)" />
+              <h3 style={styles.historyTitle}>Vehicle & Documents</h3>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>Vehicle Number</span>
+                <span style={styles.docValue}>{driver.documents?.vehicle_number || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>License Plate</span>
+                <span style={styles.docValue}>{driver.documents?.vehicle_plate_number || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>Vehicle Model</span>
+                <span style={styles.docValue}>{driver.documents?.vehicle_model || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>License Number</span>
+                <span style={styles.docValue}>{driver.documents?.license_number || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>License State</span>
+                <span style={styles.docValue}>{driver.documents?.license_state || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>Insurance Policy</span>
+                <span style={styles.docValue}>{driver.documents?.insurance_policy || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>Insurance Expiry</span>
+                <span style={styles.docValue}>{driver.documents?.insurance_expiry || 'N/A'}</span>
+              </div>
+              <div style={styles.docItem}>
+                <span style={styles.docLabel}>Background Check</span>
+                <span style={{...styles.docValue, color: driver.documents?.background_check_status === 'approved' ? 'var(--success)' : 'var(--warning)'}}>
+                  {driver.documents?.background_check_status?.toUpperCase() || 'PENDING'}
+                </span>
+              </div>
+            </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Route</th>
-                  <th style={styles.th}>Status</th>
-                  <th style={styles.th}>Gross Fare</th>
-                  <th style={styles.th}>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {driverRides.map((ride) => (
-                  <tr key={ride.id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <div style={styles.routeWrap}>
-                        <div style={styles.routeItem}><MapPin size={14} color="var(--primary-accent)" /> <span style={styles.truncate}>{ride.pickup}</span></div>
-                        <div style={styles.routeItem}><Navigation size={14} color="var(--danger)" /> <span style={styles.truncate}>{ride.dropoff}</span></div>
-                      </div>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{ ...styles.badge, color: getStatusColor(ride.status), backgroundColor: `${getStatusColor(ride.status)}15` }}>
-                        {ride.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{ fontWeight: 600 }}>${ride.fare?.toFixed(2) || '0.00'}</span>
-                    </td>
-                    <td style={styles.td}>{new Date(ride.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-                {driverRides.length === 0 && (
+
+          <div className="glass" style={styles.historyCard}>
+            <div style={styles.historyHeader}>
+              <h3 style={styles.historyTitle}>Completed & Past Rides ({driverRides.length})</h3>
+              <span style={styles.totalRevenueBadge}>Gross Rev: ${totalDriverRevenue.toFixed(2)}</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={styles.table}>
+                <thead>
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No rides assigned yet.</td>
+                    <th style={styles.th}>Route</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Gross Fare</th>
+                    <th style={styles.th}>Date</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {driverRides.map((ride) => (
+                    <tr key={ride.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <div style={styles.routeWrap}>
+                          <div style={styles.routeItem}><MapPin size={14} color="var(--primary-accent)" /> <span style={styles.truncate}>{ride.pickup}</span></div>
+                          <div style={styles.routeItem}><Navigation size={14} color="var(--danger)" /> <span style={styles.truncate}>{ride.dropoff}</span></div>
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ ...styles.badge, color: getStatusColor(ride.status), backgroundColor: `${getStatusColor(ride.status)}15` }}>
+                          {ride.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{ fontWeight: 600 }}>${ride.fare?.toFixed(2) || '0.00'}</span>
+                      </td>
+                      <td style={styles.td}>{new Date(ride.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                  {driverRides.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No rides assigned yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -159,4 +207,7 @@ const styles = {
   routeItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' },
   truncate: { whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' },
   badge: { padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: '11px', fontWeight: 600 },
+  docItem: { display: 'flex', flexDirection: 'column' as const, padding: '12px', backgroundColor: 'var(--bg-base)', borderRadius: '8px', border: '1px solid var(--border-color)' },
+  docLabel: { fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '4px' },
+  docValue: { fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500 },
 };

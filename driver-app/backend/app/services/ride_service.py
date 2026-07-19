@@ -16,19 +16,19 @@ from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAccep
 logger = logging.getLogger("app")
 
 class RideService:
-    # USA rates (USD) — Algorithm: 1 mile = $1
-    USD_BASE_RATES = {"base": 0.0, "per_mile": 1.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 1.0}
+    # USA rates (USD) — Algorithm: 1 km = $1
+    USD_BASE_RATES = {"base": 0.0, "per_km": 1.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 1.0}
     
-    # India rates (INR) — Algorithm: 1 km = ₹50
-    INR_BASE_RATES = {"base": 0.0, "per_km": 50.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 50.0}
+    # India rates (INR) — Algorithm: 1 km = ₹60
+    INR_BASE_RATES = {"base": 0.0, "per_km": 60.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 60.0}
 
     # Class multipliers (matching frontend estimates)
     CLASS_MULTIPLIERS = {
-        "auto": 0.8,
+        "auto": 1.0,
         "hatchback": 1.0,
-        "sedan": 1.4,
-        "comfort": 1.4,
-        "xuv": 1.85,
+        "sedan": 1.0,
+        "comfort": 1.0,
+        "xuv": 1.0,
     }
 
     @staticmethod
@@ -53,8 +53,7 @@ class RideService:
             return amount, f"₹{int(amount)}"
         else:
             rates = cls.USD_BASE_RATES
-            distance_miles = distance_km * 0.621371
-            calc_price = rates["base"] + (distance_miles * rates["per_mile"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
+            calc_price = rates["base"] + (distance_km * rates["per_km"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
             amount = max(rates["min_fare"], calc_price)
             amount = round(amount * multiplier, 2)
             return amount, f"${amount:.2f}"
@@ -164,15 +163,27 @@ class RideService:
                 asyncio.create_task(cls._schedule_future_dispatch(ride.id, delay))
             else:
                 ride = RideRepository.update_status(db, ride, "pending")
-                asyncio.create_task(DispatchService.dispatch_ride(db, ride))
+                asyncio.create_task(cls._safe_dispatch(ride.id))
                 asyncio.create_task(cls._schedule_ride_expiry(ride.id))
         else:
-            # Trigger dispatch process asynchronously immediately
-            asyncio.create_task(DispatchService.dispatch_ride(db, ride))
+            # Trigger dispatch process asynchronously immediately using a safe wrapper
+            asyncio.create_task(cls._safe_dispatch(ride.id))
             # Schedule the 60-second expiry task (Wait, backend says 300s = 5min, we'll keep 300s)
             asyncio.create_task(cls._schedule_ride_expiry(ride.id))
 
         return ride
+
+    @classmethod
+    async def _safe_dispatch(cls, ride_id: int):
+        db = SessionLocal()
+        try:
+            ride = RideRepository.get_by_id(db, ride_id)
+            if ride:
+                await DispatchService.dispatch_ride(db, ride)
+        except Exception as e:
+            logger.error(f"Error in safe dispatch for ride {ride_id}: {e}")
+        finally:
+            db.close()
 
     @classmethod
     async def _schedule_future_dispatch(cls, ride_id: int, delay_seconds: float):

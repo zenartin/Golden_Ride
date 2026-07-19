@@ -54,6 +54,10 @@ class Ride(Base):
         return self.driver.name if self.driver else None
 
     @property
+    def driver_avatar(self) -> Optional[str]:
+        return self.driver.avatar if self.driver else None
+
+    @property
     def rider_phone(self) -> Optional[str]:
         return self.user.phone if self.user else None
 

@@ -29,12 +29,12 @@ export async function searchPlaces(query: string, limit = 6): Promise<GeocodedPl
     const data = await resp.json();
     if (!data.features) return [];
     
-    return data.features.map((item: any) => {
+    return data.features.map((item: any, index: number) => {
       const props = item.properties || {};
       const [lon, lat] = item.geometry?.coordinates || [0, 0];
       const parts = [props.name, props.street, props.city, props.state, props.country].filter(Boolean);
       return {
-        placeId: String(props.osm_id || Math.random()),
+        placeId: props.osm_id ? `${props.osm_id}-${index}` : String(Math.random()),
         displayName: parts.join(", ") || "Unknown Location",
         shortName: props.name || props.street || parts[0] || "Unknown",
         lat,

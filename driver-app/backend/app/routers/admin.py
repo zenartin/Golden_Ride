@@ -6,13 +6,15 @@ from sqlalchemy import func
 
 from app.database import get_db
 from app.models.user import User
-from app.models.driver import Driver
+from app.models.driver import Driver, DriverDocument
 from app.models.ride import Ride
+from app.models.admin import Admin
+from app.utils.security import get_current_admin, get_current_super_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/stats")
-def get_dashboard_stats(db: Session = Depends(get_db)):
+def get_dashboard_stats(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     total_users = db.query(User).count()
     total_drivers = db.query(Driver).count()
     online_drivers = db.query(Driver).filter(Driver.is_online == True).count()
@@ -38,7 +40,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     }
 
 @router.get("/users")
-def get_all_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
+def get_all_users(skip: int = 0, limit: int = 50, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     return [{
         "id": u.id,
@@ -51,7 +53,7 @@ def get_all_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db))
     } for u in users]
 
 @router.get("/drivers")
-def get_all_drivers(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
+def get_all_drivers(skip: int = 0, limit: int = 50, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     drivers = db.query(Driver).order_by(Driver.created_at.desc()).offset(skip).limit(limit).all()
     return [{
         "id": d.id,
@@ -65,7 +67,7 @@ def get_all_drivers(skip: int = 0, limit: int = 50, db: Session = Depends(get_db
     } for d in drivers]
 
 @router.get("/rides")
-def get_all_rides(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
+def get_all_rides(skip: int = 0, limit: int = 50, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     rides = db.query(Ride).order_by(Ride.created_at.desc()).offset(skip).limit(limit).all()
     return [{
         "id": r.id,
@@ -75,12 +77,14 @@ def get_all_rides(skip: int = 0, limit: int = 50, db: Session = Depends(get_db))
         "pickup": r.from_location,
         "dropoff": r.to_location,
         "fare": (r.fare_amount / 83.0) if r.payment_method == "razorpay" else r.fare_amount,
+        "driver_cut": ((r.fare_amount / 83.0) * 0.8) if r.payment_method == "razorpay" else ((r.fare_amount or 0) * 0.8),
+        "admin_cut": ((r.fare_amount / 83.0) * 0.2) if r.payment_method == "razorpay" else ((r.fare_amount or 0) * 0.2),
         "payment_method": r.payment_method,
         "created_at": r.created_at
     } for r in rides]
 
 @router.get("/chart-data")
-def get_chart_data(db: Session = Depends(get_db)):
+def get_chart_data(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     rides = db.query(Ride).filter(Ride.created_at >= seven_days_ago).all()
     
@@ -107,4 +111,33 @@ def get_chart_data(db: Session = Depends(get_db)):
     return {
         "revenue": revenue_list,
         "activity": activity_list
+    }
+
+@router.get("/drivers/{driver_id}/details")
+def get_driver_details(driver_id: int, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+        
+    doc = db.query(DriverDocument).filter(DriverDocument.driver_id == driver_id).first()
+    
+    return {
+        "id": driver.id,
+        "name": driver.name,
+        "email": driver.email,
+        "phone": driver.phone,
+        "is_online": driver.is_online,
+        "is_approved": driver.is_approved,
+        "rating": driver.rating,
+        "created_at": driver.created_at,
+        "documents": {
+            "vehicle_number": doc.vehicle_number if doc else None,
+            "vehicle_plate_number": doc.vehicle_plate_number if doc else None,
+            "vehicle_model": doc.vehicle_model if doc else None,
+            "license_number": doc.license_number if doc else None,
+            "license_state": doc.license_state if doc else None,
+            "insurance_policy": doc.insurance_policy if doc else None,
+            "insurance_expiry": doc.insurance_expiry if doc else None,
+            "background_check_status": doc.criminal_bg_status if doc else None
+        }
     }

@@ -40,6 +40,7 @@ export interface Trip {
   driverLatitude?: number;
   driverLongitude?: number;
   driverUpiId?: string;
+  driverAvatar?: string;
 }
 
 export interface ChatMessage {
@@ -172,6 +173,7 @@ type ApiRide = {
   driver_latitude?: number | null;
   driver_longitude?: number | null;
   driver_upi_id?: string | null;
+  driver_avatar?: string | null;
 };
 
 const mapApiStatus = (status: ApiRide["status"]): RideStatus => {
@@ -215,6 +217,7 @@ const mapApiRide = (ride: ApiRide): Trip => {
     dropoffLongitude: ride.dropoff_longitude ?? undefined,
     driverLatitude: ride.driver_latitude ?? undefined,
     driverLongitude: ride.driver_longitude ?? undefined,
+    driverAvatar: ride.driver_avatar || undefined,
   };
 };
 

@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models.ride import Ride
@@ -25,8 +25,8 @@ router = APIRouter(prefix="/user", tags=["user"])
 
 RIDE_META = {
     "hatchback": {"title": "Hatchback", "subtitle": "Budget compact AC hatchback", "seats": 4, "multiplier": 1.0},
-    "sedan":     {"title": "Sedan",     "subtitle": "Comfortable AC car for daily rides", "seats": 4, "multiplier": 1.4},
-    "xuv":       {"title": "XUV",       "subtitle": "Spacious SUV for groups & luggage",  "seats": 6, "multiplier": 1.85},
+    "sedan":     {"title": "Sedan",     "subtitle": "Comfortable AC car for daily rides", "seats": 4, "multiplier": 1.0},
+    "xuv":       {"title": "XUV",       "subtitle": "Spacious SUV for groups & luggage",  "seats": 6, "multiplier": 1.0},
 }
 
 
@@ -319,6 +319,7 @@ async def book_ride(
 def get_active_ride(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Ride)
+        .options(joinedload(Ride.driver).joinedload("documents"))
         .filter(
             Ride.user_id == current_user.id,
             Ride.status.in_(["pending", "accepted", "arrived", "started"]),
@@ -332,6 +333,7 @@ def get_active_ride(current_user: User = Depends(get_current_user), db: Session 
 def get_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Ride)
+        .options(joinedload(Ride.driver).joinedload("documents"))
         .filter(Ride.user_id == current_user.id, Ride.status.in_(["completed", "cancelled", "declined"]))
         .order_by(Ride.created_at.desc())
         .all()
@@ -340,7 +342,12 @@ def get_history(current_user: User = Depends(get_current_user), db: Session = De
 
 @router.get("/rides/{ride_id}", response_model=RideResponse)
 def get_ride(ride_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    ride = db.query(Ride).filter(Ride.id == ride_id, Ride.user_id == current_user.id).first()
+    ride = (
+        db.query(Ride)
+        .options(joinedload(Ride.driver).joinedload("documents"))
+        .filter(Ride.id == ride_id, Ride.user_id == current_user.id)
+        .first()
+    )
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
     return ride

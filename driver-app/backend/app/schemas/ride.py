@@ -38,6 +38,7 @@ class RideResponse(BaseModel):
     driver_vehicle_type: Optional[str] = None
     driver_latitude: Optional[float] = None
     driver_longitude: Optional[float] = None
+    driver_avatar: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -8,10 +8,15 @@ from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, driver, rides, messages, notifications, user, content, razorpay, admin
+from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth
 from app.websocket.manager import manager
 from app.repositories.driver_repository import DriverRepository
 from app.exceptions import register_exception_handlers
+from app.models.user import User
+from app.models.driver import Driver
+from app.models.ride import Ride
+from app.models.admin import Admin
+from app.utils.security import get_password_hash
 from app.middleware import setup_middleware
 from app.logging_config import setup_logging
 
@@ -21,7 +26,8 @@ logger = logging.getLogger("app")
 
 # Initialize Database tables if they do not exist
 # In production, migrations (using Alembic) are used. 
-# For rapid testing and sandbox delivery, direct metadata mapping is correct, modern, and reliable.
+# Initialize Database tables if they do not exist
+# Initialize Database tables if they do not exist
 Base.metadata.create_all(bind=engine)
 
 def ensure_local_schema_compatibility():
@@ -107,6 +113,27 @@ def ensure_local_schema_compatibility():
                 for name, sql_type in missing_docs:
                     connection.execute(text(f"ALTER TABLE driver_documents ADD COLUMN {name} {sql_type}"))
 
+    # --- admins table ---
+    if "admins" not in table_names:
+        # It will be created by create_all, but we need to seed the default super_admin
+        pass
+
+    # Seed default super admin
+    db = SessionLocal()
+    try:
+        admin = db.query(Admin).filter(Admin.email == "admin@goldenride.com").first()
+        if not admin:
+            default_admin = Admin(
+                email="admin@goldenride.com",
+                name="Super Admin",
+                password_hash=get_password_hash("Admin123!"),
+                role="super_admin"
+            )
+            db.add(default_admin)
+            db.commit()
+    finally:
+        db.close()
+
     # --- users table ---
     if "users" in table_names:
         existing_users = {column["name"] for column in inspector.get_columns("users")}
@@ -159,7 +186,8 @@ app.include_router(messages.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(content.router, prefix="/api")
-app.include_router(razorpay.router, prefix="/api")
+app.include_router(stripe_router.router, prefix="/api")
+app.include_router(admin_auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 
 @app.get("/")

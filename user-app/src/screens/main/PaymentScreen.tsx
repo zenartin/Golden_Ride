@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useStripe } from "@stripe/stripe-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import WebView, { WebViewNavigation } from "react-native-webview";
 import { Colors } from "../../theme";
 import { useRideStore, Trip } from "../../store/rideStore";
@@ -31,10 +31,9 @@ export default function PaymentScreen({ route, navigation }: any) {
   const [processing, setProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
 
-  // Razorpay WebView state
-  const [razorpayWebViewUrl, setRazorpayWebViewUrl] = useState<string | null>(null);
-  const [razorpayLinkId, setRazorpayLinkId] = useState<string | null>(null);
-  const [razorpayCapturing, setRazorpayCapturing] = useState(false);
+  // Stripe WebView state
+  const [stripeWebViewUrl, setStripeWebViewUrl] = useState<string | null>(null);
+  const [stripeCapturing, setStripeCapturing] = useState(false);
 
   useEffect(() => {
     fetchTripDetail(tripId).then(setTrip);
@@ -51,58 +50,10 @@ export default function PaymentScreen({ route, navigation }: any) {
   const totalFare = trip.price;
   const currencySymbol = user?.country === "USA" ? "$" : "₹";
 
-  // Determine which payment method was set on the trip
-  const isRazorpay =
-    trip.paymentMethod?.toLowerCase().includes("razorpay") ?? false;
-
   // ── Stripe Payment ──────────────────────────────────────────────────────────
   const handleStripePayment = async () => {
     setProcessing(true);
-    setProcessingStep("Creating secure payment session…");
-
-    try {
-      const sheetData = await apiRequest<{
-        paymentIntent: string;
-        ephemeralKey: string;
-        customer: string;
-        publishableKey: string;
-      }>(API_ENDPOINTS.STRIPE_PAYMENT_SHEET, {
-        method: "POST",
-        body: { trip_id: Number(tripId) },
-      });
-
-      setProcessingStep("Initialising Stripe…");
-
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: "Golden Ride",
-        paymentIntentClientSecret: sheetData.paymentIntent,
-        defaultBillingDetails: { name: user?.name ?? "" },
-        allowsDelayedPaymentMethods: false,
-      });
-      if (initError) throw new Error(initError.message);
-
-      setProcessing(false);
-
-      const { error: presentError } = await presentPaymentSheet();
-      if (presentError) {
-        throw new Error(presentError.message);
-      }
-
-      setDriverPaid(true);
-      Alert.alert(
-        "Payment Success! 🎉",
-        `${currencySymbol}${totalFare} paid successfully via Stripe.`
-      );
-    } catch (err: any) {
-      setProcessing(false);
-      Alert.alert("Payment Failed", err?.message || "Please try again.");
-    }
-  };
-
-  // ── Razorpay Payment ──────────────────────────────────────────────────────────
-  const handleRazorpayPayment = async () => {
-    setProcessing(true);
-    setProcessingStep("Generating Razorpay link…");
+    setProcessingStep("Generating Stripe link…");
 
     try {
       const orderData = await apiRequest<{
@@ -110,66 +61,53 @@ export default function PaymentScreen({ route, navigation }: any) {
         checkout_url: string;
         currency: string;
         amount: string;
-      }>("/razorpay/create-link", {
+      }>("/stripe/create-link", {
         method: "POST",
         body: { trip_id: Number(tripId) },
       });
 
-      setRazorpayLinkId(orderData.link_id);
       setProcessing(false);
-      // Open WebView with the Razorpay checkout URL
-      setRazorpayWebViewUrl(orderData.checkout_url);
+      // Open WebView with the Stripe checkout URL
+      setStripeWebViewUrl(orderData.checkout_url);
     } catch (err: any) {
       setProcessing(false);
       Alert.alert(
-        "Razorpay Error",
+        "Stripe Error",
         err?.message || "Could not create payment link. Please try again."
       );
     }
   };
 
-  // Called after user pays on Razorpay — intercept return URL and verify
-  const handleRazorpayCapture = async (url: string) => {
-    setRazorpayWebViewUrl(null);
-    setRazorpayCapturing(true);
-    setProcessingStep("Verifying Razorpay payment…");
+  // Called after user pays on Stripe — intercept return URL and verify
+  const handleStripeCapture = async (url: string) => {
+    setStripeWebViewUrl(null);
+    setStripeCapturing(true);
+    setProcessingStep("Verifying Stripe payment…");
 
     try {
-      // Parse query params from callback URL
-      // example.com/razorpay/success?razorpay_payment_id=pay_...&razorpay_payment_link_id=plink_...&razorpay_payment_link_reference_id=...&razorpay_payment_link_status=paid&razorpay_signature=...
       const parseParam = (key: string) => url.match(new RegExp(`[?&]${key}=([^&]+)`))?.[1] ?? "";
-
-      const paymentId = parseParam("razorpay_payment_id");
-      const linkId = parseParam("razorpay_payment_link_id") || razorpayLinkId;
-      const refId = parseParam("razorpay_payment_link_reference_id");
-      const status = parseParam("razorpay_payment_link_status");
-      const signature = parseParam("razorpay_signature");
+      const sessionId = parseParam("session_id");
 
       await apiRequest<{
         status: string;
         trip_id: number;
         payment_method: string;
-        transaction_id: string;
-      }>("/razorpay/verify", {
+      }>("/stripe/verify", {
         method: "POST",
         body: {
           trip_id: Number(tripId),
-          razorpay_payment_id: paymentId,
-          razorpay_payment_link_id: linkId,
-          razorpay_payment_link_reference_id: refId,
-          razorpay_payment_link_status: status,
-          razorpay_signature: signature,
+          session_id: sessionId,
         },
       });
 
-      setRazorpayCapturing(false);
+      setStripeCapturing(false);
       setDriverPaid(true);
       Alert.alert(
         "Payment Success! 🎉",
-        `${currencySymbol}${totalFare} paid successfully via Razorpay.`
+        `${currencySymbol}${totalFare} paid successfully via Stripe.`
       );
     } catch (err: any) {
-      setRazorpayCapturing(false);
+      setStripeCapturing(false);
       Alert.alert(
         "Capture Failed",
         err?.message || "Payment verification failed. Please contact support."
@@ -177,16 +115,16 @@ export default function PaymentScreen({ route, navigation }: any) {
     }
   };
 
-  // WebView navigation handler — detect when Razorpay redirects to return URL
+  // WebView navigation handler — detect when Stripe redirects to return URL
   const handleWebViewNavigationChange = (navState: WebViewNavigation) => {
     const { url } = navState;
     if (!url) return;
 
-    if (url.includes("example.com/razorpay/success")) {
-      handleRazorpayCapture(url);
-    } else if (url.includes("example.com/razorpay/cancel")) {
-      setRazorpayWebViewUrl(null);
-      Alert.alert("Cancelled", "Razorpay payment was cancelled.");
+    if (url.includes("example.com/stripe/success")) {
+      handleStripeCapture(url);
+    } else if (url.includes("example.com/stripe/cancel")) {
+      setStripeWebViewUrl(null);
+      Alert.alert("Cancelled", "Stripe payment was cancelled.");
     }
   };
 
@@ -195,46 +133,42 @@ export default function PaymentScreen({ route, navigation }: any) {
     navigation.navigate("Rating", { tripId });
   };
 
-  const paymentMethodLabel = isRazorpay ? "Razorpay" : "Stripe";
-  const paymentIcon = isRazorpay ? "flash-outline" : "card-outline";
-
-  return (
     <SafeAreaView style={styles.safe}>
-      {/* Razorpay WebView Modal */}
+      {/* Stripe WebView Modal */}
       <Modal
-        visible={!!razorpayWebViewUrl}
+        visible={!!stripeWebViewUrl}
         animationType="slide"
         onRequestClose={() => {
-          setRazorpayWebViewUrl(null);
-          Alert.alert("Cancelled", "Razorpay payment was cancelled.");
+          setStripeWebViewUrl(null);
+          Alert.alert("Cancelled", "Stripe payment was cancelled.");
         }}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#02042B" }}>
-          <View style={[styles.webviewHeader, { backgroundColor: "#02042B" }]}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#635BFF" }}>
+          <View style={[styles.webviewHeader, { backgroundColor: "#635BFF" }]}>
             <Pressable
               style={styles.webviewClose}
               onPress={() => {
-                setRazorpayWebViewUrl(null);
-                Alert.alert("Cancelled", "Razorpay payment was cancelled.");
+                setStripeWebViewUrl(null);
+                Alert.alert("Cancelled", "Stripe payment was cancelled.");
               }}
             >
               <Ionicons name="close" size={24} color="#fff" />
             </Pressable>
-            <Text style={styles.webviewTitle}>Razorpay Secure Checkout</Text>
+            <Text style={styles.webviewTitle}>Stripe Secure Checkout</Text>
             <View style={{ width: 40 }} />
           </View>
-          {razorpayWebViewUrl ? (
+          {stripeWebViewUrl ? (
             <WebView
-              source={{ uri: razorpayWebViewUrl }}
+              source={{ uri: stripeWebViewUrl }}
               onNavigationStateChange={handleWebViewNavigationChange}
               onShouldStartLoadWithRequest={(request) => {
                 const { url } = request;
-                if (url.includes("example.com/razorpay/success")) {
-                  handleRazorpayCapture(url);
+                if (url.includes("example.com/stripe/success")) {
+                  handleStripeCapture(url);
                   return false;
-                } else if (url.includes("example.com/razorpay/cancel")) {
-                  setRazorpayWebViewUrl(null);
-                  Alert.alert("Cancelled", "Razorpay payment was cancelled.");
+                } else if (url.includes("example.com/stripe/cancel")) {
+                  setStripeWebViewUrl(null);
+                  Alert.alert("Cancelled", "Stripe payment was cancelled.");
                   return false;
                 }
                 return true;
@@ -242,9 +176,9 @@ export default function PaymentScreen({ route, navigation }: any) {
               startInLoadingState
               renderLoading={() => (
                 <View style={styles.webviewLoader}>
-                  <ActivityIndicator size="large" color="#02042B" />
-                  <Text style={[styles.webviewLoaderText, { color: "#02042B" }]}>
-                    Loading Razorpay…
+                  <ActivityIndicator size="large" color="#635BFF" />
+                  <Text style={[styles.webviewLoaderText, { color: "#635BFF" }]}>
+                    Loading Stripe…
                   </Text>
                 </View>
               )}
@@ -279,26 +213,24 @@ export default function PaymentScreen({ route, navigation }: any) {
         {!driverPaid ? (
           <>
             {/* Payment Gateway Info Card */}
-            <View style={[styles.card, isRazorpay ? styles.razorpayInfoCard : styles.stripeInfoCard]}>
+            <View style={[styles.card, styles.stripeInfoCard]}>
               <View style={styles.alertHeader}>
                 <Ionicons
-                  name={paymentIcon as any}
+                  name="card-outline"
                   size={24}
-                  color={isRazorpay ? "#02042B" : "#16A34A"}
+                  color="#16A34A"
                 />
                 <Text
                   style={[
                     styles.alertTitle,
-                    { color: isRazorpay ? "#02042B" : "#B45309" },
+                    { color: "#B45309" },
                   ]}
                 >
-                  {isRazorpay ? "Razorpay Secure Checkout" : "Secure Stripe Payment"}
+                  Secure Stripe Payment
                 </Text>
               </View>
               <Text style={styles.alertText}>
-                {isRazorpay
-                  ? "You will be redirected to Razorpay to complete your payment via UPI, Card, or Netbanking. Your Golden Ride account will be updated automatically."
-                  : "Your payment is processed securely through Stripe. OTP / 3D-Secure authentication will be triggered if required by your bank."}
+                Your payment is processed securely through Stripe. OTP / 3D-Secure authentication will be triggered if required by your bank.
               </Text>
             </View>
 
@@ -306,23 +238,11 @@ export default function PaymentScreen({ route, navigation }: any) {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Pay Now</Text>
 
-              {(processing || razorpayCapturing) ? (
+              {(processing || stripeCapturing) ? (
                 <View style={styles.processingContainer}>
                   <ActivityIndicator size="small" color={Colors.primary} />
                   <Text style={styles.processingText}>{processingStep}</Text>
                 </View>
-              ) : isRazorpay ? (
-                <>
-                  <AppButton
-                    title={`Pay ${currencySymbol}${totalFare} with Razorpay`}
-                    onPress={handleRazorpayPayment}
-                    disabled={processing}
-                    style={styles.razorpayButton}
-                  />
-                  <Text style={styles.paypalSubtext}>
-                    🔒 Fast & secure Indian payments
-                  </Text>
-                </>
               ) : (
                 <AppButton
                   title={`Pay ${currencySymbol}${totalFare} via Stripe`}
@@ -341,7 +261,7 @@ export default function PaymentScreen({ route, navigation }: any) {
               <Text style={styles.receiptTitle}>Payment Successful</Text>
             </View>
             <Text style={styles.receiptBody}>
-              Your {paymentMethodLabel} payment has been verified and confirmed
+              Your Stripe payment has been verified and confirmed
               successfully.
             </Text>
 
@@ -366,13 +286,12 @@ export default function PaymentScreen({ route, navigation }: any) {
               </View>
               <View style={styles.accountRow}>
                 <Text style={styles.accountLabel}>Payment Method</Text>
-                <Text style={styles.accountValue}>{paymentMethodLabel}</Text>
+                <Text style={styles.accountValue}>Stripe</Text>
               </View>
             </View>
 
             <Text style={styles.pciLabel}>
-              🔒 PCI-DSS Compliant ·{" "}
-              {isRazorpay ? "Razorpay Secured" : "Stripe Secured"}
+              🔒 PCI-DSS Compliant · Stripe Secured
             </Text>
           </View>
         )}

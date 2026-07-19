@@ -37,6 +37,8 @@ export default function RidesList() {
                 <th style={styles.th}>Route</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Fare</th>
+                <th style={styles.th}>Admin (20%)</th>
+                <th style={styles.th}>Driver (80%)</th>
                 <th style={styles.th}>Payment</th>
                 <th style={styles.th}>Date</th>
                 <th style={styles.th}>Actions</th>
@@ -71,6 +73,16 @@ export default function RidesList() {
                     <span style={{ fontWeight: 600 }}>${ride.fare?.toFixed(2) || '0.00'}</span>
                   </td>
                   <td style={styles.td}>
+                    <span style={{ fontWeight: 600, color: 'var(--primary-accent)' }}>
+                      ${ride.admin_cut?.toFixed(2) || '0.00'}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>
+                      ${ride.driver_cut?.toFixed(2) || '0.00'}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
                     <span style={styles.paymentBadge}>{ride.payment_method?.toUpperCase()}</span>
                   </td>
                   <td style={styles.td}>{new Date(ride.created_at).toLocaleString()}</td>
@@ -83,7 +95,7 @@ export default function RidesList() {
               ))}
               {rides.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                     No rides found.
                   </td>
                 </tr>

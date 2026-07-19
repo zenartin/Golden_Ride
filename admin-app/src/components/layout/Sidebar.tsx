@@ -1,15 +1,24 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Car, Map, Settings, HelpCircle, FileText, Bell } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Users, Car, Map, Settings, FileText, LogOut } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
 
 export default function Sidebar() {
+  const { role, name, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/' },
     { icon: <Users size={20} />, label: 'Users', path: '/users' },
     { icon: <Car size={20} />, label: 'Drivers', path: '/drivers' },
     { icon: <Map size={20} />, label: 'Rides', path: '/rides' },
     { icon: <FileText size={20} />, label: 'Reports', path: '/reports' },
-    { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
+    ...(role === 'super_admin' ? [{ icon: <Settings size={20} />, label: 'Settings', path: '/settings' }] : []),
   ];
 
   return (
@@ -42,11 +51,19 @@ export default function Sidebar() {
 
       <div style={styles.footer}>
         <div style={styles.adminProfile}>
-          <div style={styles.avatar}>A</div>
-          <div>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Super Admin</p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>admin@goldenride.com</p>
+          <div style={styles.avatar}>{name ? name.charAt(0).toUpperCase() : 'A'}</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{name || 'Admin'}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {role === 'super_admin' ? 'Super Admin' : 'Admin'}
+            </p>
           </div>
+          <LogOut 
+            size={18} 
+            color="var(--text-muted)" 
+            style={{ cursor: 'pointer' }} 
+            onClick={handleLogout} 
+          />
         </div>
       </div>
     </aside>

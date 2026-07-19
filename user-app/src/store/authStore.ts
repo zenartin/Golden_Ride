@@ -299,9 +299,21 @@ export const useAuthStore = create<AuthState>()(
           
           if (response.ok) {
             const data = await response.json();
-            set((state) => ({
-              user: state.user ? { ...state.user, avatar: data.avatar_url } : null
-            }));
+            // Backend may return avatar_url or avatar field
+            const newAvatar = data.avatar_url || data.avatar;
+            if (newAvatar) {
+              set((state) => ({
+                user: state.user ? { ...state.user, avatar: newAvatar } : null
+              }));
+            } else {
+              // Re-fetch profile to get updated avatar from server
+              try {
+                const profile = await apiRequest<any>(API_ENDPOINTS.PROFILE);
+                set((state) => ({
+                  user: state.user ? { ...state.user, avatar: profile.avatar } : null
+                }));
+              } catch { /* ignore */ }
+            }
             return true;
           }
           return false;

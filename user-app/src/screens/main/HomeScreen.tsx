@@ -126,7 +126,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     }
   }, [activeTrip?.status]);
 
-  const [paymentMethod, setPaymentMethod] = useState<"Razorpay"|"Card"|"UPI"|"Wallet">("Wallet");
+  const [paymentMethod, setPaymentMethod] = useState<"Stripe">("Stripe");
   const [upiId, setUpiId] = useState("");
   const [tempUpiId, setTempUpiId] = useState("");
   const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "", name: "" });
@@ -136,10 +136,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   const [showCardForm, setShowCardForm] = useState(false);
   const [showUpiForm, setShowUpiForm] = useState(false);
   
-  // Date Picker State
-  const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  
+
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const walletBalance = useRideStore((s) => s.walletBalance);
@@ -210,34 +207,17 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     const chosenOption = rideOptions.find((item) => item.id === selectedRideClass) ?? rideOptions[0];
     if (!chosenOption) return;
 
-    if (paymentMethod === "UPI" && !upiId.trim()) {
-      Alert.alert("Payment Required", "Please configure your UPI ID first.");
-      setTempUpiId(upiId);
-      setShowUpiForm(true);
-      return;
-    }
-
-    if (paymentMethod === "Card" && (!cardDetails.number || !cardDetails.expiry || !cardDetails.cvv || !cardDetails.name)) {
-      Alert.alert("Payment Required", "Please enter your card details first.");
-      setTempCardDetails(cardDetails);
-      setShowCardForm(true);
-      return;
-    }
+    // Stripe is the only payment method now. No client-side validation needed for mock forms.
 
     setBooking(true);
     setBookError(null);
     try {
       // 1. Book the ride first to get the trip ID and fare
-      const trip = await bookRide(paymentMethod, scheduledTime ? scheduledTime.toISOString() : undefined);
+      const trip = await bookRide(paymentMethod, undefined);
       if (!trip) throw new Error("Booking failed. Please try again.");
 
-      if (scheduledTime) {
-        Alert.alert("Ride Scheduled", "Your ride has been scheduled successfully!");
-        useRideStore.setState({ rideOptions: [], pickup: "", dropoff: "" });
-      } else {
-        // After booking, automatically navigate to the tracking screen
-        navigation.navigate("TrackRide");
-      }
+      // After booking, automatically navigate to the tracking screen
+      navigation.navigate("TrackRide");
     } catch (err: any) {
       const msg = err?.message || "Payment failed. Please try again.";
       setBookError(msg);
@@ -365,21 +345,77 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
 
 
 
-        {/* Location inputs or Summary */}
+        {/* Bottom Sheet Content */}
         {rideOptions.length > 0 ? (
-          <View style={styles.summaryCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.summaryLabel}>Pickup</Text>
-              <Text style={styles.summaryValue} numberOfLines={1}>{pickup}</Text>
+          <View style={{ backgroundColor: Colors.surface, borderRadius: 24, padding: Spacing.lg, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 24, shadowOffset: { width: 0, height: -4 }, elevation: 10 }}>
+            {/* 1. Summary View */}
+            <View style={{ paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, marginBottom: 4 }}>
+              <View style={styles.inputRow}>
+                <View style={styles.dotLine}>
+                  <Ionicons name="location" size={18} color="#10B981" />
+                  <View style={[styles.line, { height: 16, marginVertical: 2 }]} />
+                  <Ionicons name="flag" size={16} color="#EF4444" />
+                </View>
+                <View style={{ flex: 1, gap: 8, justifyContent: "center", overflow: "hidden" }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{pickup}</Text>
+                  <View style={{ height: 1, backgroundColor: Colors.border, width: "100%" }} />
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{dropoff}</Text>
+                </View>
+                <Pressable onPress={() => useRideStore.setState({ rideOptions: [] })} style={{ padding: 8, alignSelf: "center", backgroundColor: Colors.background, borderRadius: 20 }}>
+                  <Ionicons name="pencil" size={18} color={Colors.primary} />
+                </Pressable>
+              </View>
             </View>
-            <Ionicons name="arrow-forward" size={20} color={Colors.textSecondary} style={{ marginHorizontal: 12 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.summaryLabel}>Dropoff</Text>
-              <Text style={styles.summaryValue} numberOfLines={1}>{dropoff}</Text>
+
+            {/* 2. Ride options */}
+            <View style={{ marginTop: 16, paddingBottom: 10 }}>
+              <Text style={{ fontSize: Typography.heading, fontWeight: "900", color: Colors.textPrimary, marginBottom: 16, paddingHorizontal: 4 }}>Choose a ride</Text>
+              <View style={{ gap: 12 }}>
+                {rideOptions.map((option) => (
+                  <RideOptionCard
+                    key={option.id}
+                    option={option}
+                    selected={option.id === selectedRideClass}
+                    onPress={() => setSelectedRideClass(option.id)}
+                  />
+                ))}
+              </View>
+
+              {/* Payment Method Selector Row */}
+              <View style={[styles.paymentSelector, { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border }]}>
+                <View style={[styles.paymentSelectorLeft, { flex: 1 }]}>
+                  <View style={[styles.paymentBadge, { backgroundColor: "#635BFF" + "1A" }]}>
+                    <Ionicons name="card" size={20} color="#635BFF" />
+                  </View>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.paymentMethodTitle}>Payment Method</Text>
+                    <Text style={styles.paymentMethodValue} numberOfLines={1}>
+                      Stripe
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {bookError ? <Text style={[styles.errorText, { marginTop: 12 }]}>{bookError}</Text> : null}
+
+              <Pressable
+                style={[
+                  styles.bookBtn,
+                  booking && styles.bookBtnDisabled,
+                  { marginTop: 20, minHeight: 60, shadowColor: Colors.primary, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 }
+                ]}
+                onPress={handleBook}
+                disabled={booking}
+              >
+                  {booking ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={[styles.bookBtnText, { fontSize: 18, fontWeight: "900", letterSpacing: 0.5 }]}>
+                      {selectedRideClass ? `Confirm ${selectedRideClass.charAt(0).toUpperCase() + selectedRideClass.slice(1)}` : "Select a Ride"}
+                    </Text>
+                  )}
+              </Pressable>
             </View>
-            <Pressable onPress={() => useRideStore.setState({ rideOptions: [] })} style={styles.editBtn}>
-              <Ionicons name="pencil" size={18} color={Colors.primary} />
-            </Pressable>
           </View>
         ) : (
           <View style={styles.card}>
@@ -398,9 +434,11 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   style={[styles.inputBox, pickup ? styles.inputBoxFilled : null]}
                   onPress={() => navigation.navigate("LocationPicker", { mode: "pickup" })}
                 >
-                  <Text style={pickup ? styles.inputText : styles.inputPlaceholder} numberOfLines={1}>
-                    {pickup || "Tap to set pickup location"}
-                  </Text>
+                  <View style={[styles.row, { flex: 1 }]}>
+                    <Text style={[pickup ? styles.inputText : styles.inputPlaceholder, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+                      {pickup || "Current Location"}
+                    </Text>
+                  </View>
                   <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
                 </Pressable>
 
@@ -409,9 +447,11 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   style={[styles.inputBox, dropoff ? styles.inputBoxFilled : null]}
                   onPress={() => navigation.navigate("LocationPicker", { mode: "dropoff" })}
                 >
-                  <Text style={dropoff ? styles.inputText : styles.inputPlaceholder} numberOfLines={1}>
-                    {dropoff || "Tap to set destination"}
-                  </Text>
+                  <View style={[styles.row, { flex: 1 }]}>
+                    <Text style={[dropoff ? styles.inputText : styles.inputPlaceholder, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
+                      {dropoff || "Where to?"}
+                    </Text>
+                  </View>
                   <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
                 </Pressable>
               </View>
@@ -431,81 +471,8 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           </View>
         )}
 
-        {/* Ride options */}
-        {rideOptions.length > 0 && (
-          <View style={[styles.card, { marginTop: 12, flex: 1 }]}>
-            <SectionHeader title="Choose your ride" />
-            <View style={{ gap: 10 }}>
-              {rideOptions.map((option) => (
-                <RideOptionCard
-                  key={option.id}
-                  option={option}
-                  selected={option.id === selectedRideClass}
-                  onPress={() => setSelectedRideClass(option.id)}
-                />
-              ))}
-            </View>
 
-            {/* Payment Method Selector Row */}
-            <Pressable style={styles.paymentSelector} onPress={() => setShowPaymentModal(true)}>
-              <View style={styles.paymentSelectorLeft}>
-                <View style={[styles.paymentBadge, { backgroundColor: getPaymentColor(paymentMethod) + "1A" }]}>
-                  <Ionicons name={getPaymentIcon(paymentMethod)} size={20} color={getPaymentColor(paymentMethod)} />
-                </View>
-                <View>
-                  <Text style={styles.paymentMethodTitle}>Payment Method</Text>
-                  <Text style={styles.paymentMethodValue}>
-                    {paymentMethod === "Wallet" ? `Wallet (Balance: ${user?.country === "USA" ? "$" : "₹"}${walletBalance})` : paymentMethod}
-                    {paymentMethod === "Card" && cardDetails.number ? ` (ending in ${cardDetails.number.slice(-4)})` : ""}
-                    {paymentMethod === "UPI" && upiId ? ` (${upiId})` : ""}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.changeText}>Change</Text>
-            </Pressable>
 
-            {bookError ? <Text style={styles.errorText}>{bookError}</Text> : null}
-
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
-              <Pressable
-                style={[styles.bookBtn, booking && styles.bookBtnDisabled, { flex: 1, backgroundColor: "#E0E7FF" }]}
-                onPress={() => setShowDatePicker(true)}
-                disabled={booking}
-              >
-                <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-                <Text style={[styles.bookBtnText, { color: Colors.primary }]}>
-                  {scheduledTime ? scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Schedule"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.bookBtn, booking && styles.bookBtnDisabled, { flex: 2 }]}
-                onPress={handleBook}
-                disabled={booking}
-              >
-                {booking ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="car-sport" size={20} color="#fff" />
-                    <Text style={styles.bookBtnText}>Book Ride</Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {/* Quick Actions (only when no options) */}
-        {rideOptions.length === 0 && !searching && (
-          <UserQuickActions
-            actions={[
-              { icon: "car-sport-outline", label: "Ride", color: "#FEF3C7", onPress: () => openTab("Home") },
-              { icon: "receipt-outline", label: "Trips", color: "#DBEAFE", onPress: () => openTab("Trips") },
-              { icon: "wallet-outline", label: "Wallet", color: "#DCFCE7", onPress: () => openTab("Wallet") },
-            ]}
-          />
-        )}
       </ScrollView>
       </View>
 
@@ -521,19 +488,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
             </View>
 
             <View style={{ gap: 12, paddingVertical: 10 }}>
-              <Pressable
-                style={[styles.optionRow, paymentMethod === "Wallet" && styles.optionRowSelected]}
-                onPress={() => { setPaymentMethod("Wallet"); setShowPaymentModal(false); }}
-              >
-                <View style={[styles.paymentBadge, { backgroundColor: "#10B981" + "1A" }]}>
-                  <Ionicons name="wallet-outline" size={22} color="#10B981" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionName}>Golden Wallet</Text>
-                  <Text style={styles.optionSub}>Balance: {user?.country === "USA" ? "$" : "₹"}{walletBalance}</Text>
-                </View>
-                {paymentMethod === "Wallet" && <Ionicons name="checkmark-circle" size={20} color="#10B981" />}
-              </Pressable>
+
 
               <Pressable
                 style={[styles.optionRow, paymentMethod === "Razorpay" && styles.optionRowSelected]}
@@ -552,20 +507,6 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           </View>
         </Pressable>
       </Modal>
-
-      {/* Date Time Picker Modal */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={scheduledTime || new Date()}
-          mode="time"
-          is24Hour={false}
-          display="spinner"
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) setScheduledTime(selectedDate);
-          }}
-        />
-      )}
 
       {/* ── MODAL 2: Credit Card Form + Interactive Preview ── */}
       <Modal visible={showCardForm} transparent animationType="slide">

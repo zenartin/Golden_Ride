@@ -57,8 +57,7 @@ class DispatchService:
             db.query(Driver)
             .join(DriverDocument)
             .filter(
-                Driver.is_online == True,
-                func.lower(DriverDocument.vehicle_type).in_(target_classes)
+                Driver.is_online == True
             )
             .all()
         )
