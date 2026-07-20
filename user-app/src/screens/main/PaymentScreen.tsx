@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Ionicons } from "@expo/vector-icons";
 import WebView, { WebViewNavigation } from "react-native-webview";
 import { Colors } from "../../theme";
 import { useRideStore, Trip } from "../../store/rideStore";
