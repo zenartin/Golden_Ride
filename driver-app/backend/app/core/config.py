@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     
     # Storage setting for document/photo uploads
     UPLOAD_DIR: str = "uploads"
+    AWS_S3_BUCKET_NAME: str = os.getenv("AWS_S3_BUCKET_NAME", "")
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
 
     # Stripe Payment Configurations
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_replace_me")

@@ -132,6 +132,7 @@ export default function PaymentScreen({ route, navigation }: any) {
     navigation.navigate("Rating", { tripId });
   };
 
+  return (
     <SafeAreaView style={styles.safe}>
       {/* Stripe WebView Modal */}
       <Modal
