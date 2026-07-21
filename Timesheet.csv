@@ -1,0 +1,5 @@
+Date,Employee Name,Project,Task Description,Start Time,End Time,Hours Spent,Remarks
+20-Jul-2026,Antigravity (AI),Golden Ride,Configured local build environment and generated initial release APKs for User and Driver apps,10:20 PM,11:20 PM,1.0,Successful Gradle local builds
+21-Jul-2026,Antigravity (AI),Golden Ride,Guided local APK extraction and provided file paths for client delivery,03:50 AM,06:30 PM,0.5,Intermittent support for file access
+21-Jul-2026,Antigravity (AI),Golden Ride,"AWS Production Migration: Provisioned EC2 server, PostgreSQL, S3 buckets, and deployed Admin Dashboard",09:40 PM,10:40 PM,1.0,Budget-friendly infrastructure setup
+21-Jul-2026,Antigravity (AI),Golden Ride,"Fixed Android cleartext network bugs, updated API URLs, and compiled final production APKs",10:40 PM,11:15 PM,0.5,Resolved Network Error bug completely

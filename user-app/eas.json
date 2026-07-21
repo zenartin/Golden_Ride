@@ -5,7 +5,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api-production-e0cf.up.railway.app/api"
+        "EXPO_PUBLIC_API_URL": "http://54.167.55.102:8001/api"
       }
     },
     "production": {
@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api-production-e0cf.up.railway.app/api"
+        "EXPO_PUBLIC_API_URL": "http://54.167.55.102:8001/api"
       }
     }
   }
