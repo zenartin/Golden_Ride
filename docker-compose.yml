@@ -31,7 +31,7 @@ services:
       - FARE_PER_KM_COMFORT=16.2
       - FARE_PER_KM_PREMIUM=21.6
     ports:
-      - "8001:8001"
+      - "8001:8000"
     volumes:
       - ./driver-app/backend/uploads:/workspace/uploads
     depends_on:
