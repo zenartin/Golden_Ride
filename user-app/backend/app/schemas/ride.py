@@ -10,7 +10,9 @@ class RideResponse(BaseModel):
     rider_name: str
     rider_rating: float
     rider_trips: int
+    rider_avatar: Optional[str] = None
     driver_upi_id: Optional[str] = None
+    driver_avatar: Optional[str] = None
     ride_class: str = "comfort"
     from_location: str
     to_location: str

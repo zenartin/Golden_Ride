@@ -10,6 +10,7 @@ import MessagesScreen from "../features/home/screens/MessagesScreen";
 import ProfileScreen from "../features/profile/screens/ProfileScreen";
 import BottomTabBar from "../components/BottomTabBar";
 import { Colors } from "../theme";
+import { useRideStore } from "../store/rideStore";
 
 
 type TabName = "Home" | "Trips" | "Earnings" | "Messages" | "Profile";
@@ -17,6 +18,8 @@ type TabName = "Home" | "Trips" | "Earnings" | "Messages" | "Profile";
 export default function DriverTabNavigator({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<TabName>("Home");
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
+  const activeRide = useRideStore((s) => s.activeRide);
+  const isRideActive = activeRide && (activeRide.status === "accepted" || activeRide.status === "arrived" || activeRide.status === "started");
 
   React.useEffect(() => {
     (async () => {
@@ -83,6 +86,38 @@ export default function DriverTabNavigator({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.screen}>{renderScreen()}</View>
+      
+      {/* Floating Active Ride Banner across all tabs */}
+      {isRideActive && (
+        <TouchableOpacity
+          style={styles.floatingActiveBanner}
+          onPress={() => navigation.navigate("ActiveRide", { rideId: activeRide.id })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.bannerIconBox}>
+            <Ionicons name="car-sport" size={20} color="#fff" />
+          </View>
+          <View style={styles.bannerInfo}>
+            <View style={styles.bannerBadgeRow}>
+              <View style={styles.pulseGreenDot} />
+              <Text style={styles.bannerStatusTitle}>
+                {activeRide.status === "accepted"
+                  ? "Heading to Pickup"
+                  : activeRide.status === "arrived"
+                  ? "Arrived at Pickup"
+                  : "Ride in Progress"}
+              </Text>
+            </View>
+            <Text style={styles.bannerSubText} numberOfLines={1}>
+              {activeRide.rider_name} • {activeRide.to_location || activeRide.from_location}
+            </Text>
+          </View>
+          <View style={styles.bannerBtn}>
+            <Text style={styles.bannerBtnText}>Resume ➔</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       <BottomTabBar activeTab={activeTab} onTabPress={(tab) => setActiveTab(tab as TabName)} />
     </View>
   );
@@ -130,5 +165,67 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: "800",
     fontSize: 16,
+  },
+  floatingActiveBanner: {
+    position: "absolute",
+    bottom: 75,
+    left: 12,
+    right: 12,
+    backgroundColor: "#111827",
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderColor: "#10B981",
+    zIndex: 9999,
+  },
+  bannerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bannerInfo: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  bannerBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  pulseGreenDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+  },
+  bannerStatusTitle: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  bannerSubText: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  bannerBtn: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  bannerBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 12,
   },
 });

@@ -18,6 +18,7 @@ import { useAuthStore } from "../../store/authStore";
 import { apiRequest } from "../../api/client";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import AppButton from "../../components/AppButton";
+import { useStripe } from "@stripe/stripe-react-native";
 
 export default function PaymentScreen({ route, navigation }: any) {
   const { tripId } = route.params;

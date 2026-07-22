@@ -45,6 +45,13 @@ export default function ApiConsoleScreen({ navigation }: Props) {
   const [rides, setRides] = useState<ApiRide[]>([]);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState("Tap an API action to see the backend response here.");
+  const [customApiUrl, setCustomApiUrl] = useState(BASE_URL);
+
+  React.useEffect(() => {
+    AsyncStorage.getItem("CUSTOM_API_URL").then((url) => {
+      if (url) setCustomApiUrl(url);
+    });
+  }, []);
 
   const selectedOption = useMemo(() => options.find((option) => option.id === rideClass), [options, rideClass]);
   const rootUrl = BASE_URL.replace(/\/api\/?$/, "");
@@ -140,6 +147,13 @@ export default function ApiConsoleScreen({ navigation }: Props) {
           <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="user@example.com" />
           <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone" />
           <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+          
+          <AppInput label="Custom Backend URL" value={customApiUrl} onChangeText={(text) => {
+            setCustomApiUrl(text);
+            AsyncStorage.setItem("CUSTOM_API_URL", text);
+            Alert.alert("URL Saved", "The app will now use this URL for API requests.");
+          }} placeholder="http://192.168.1.5:8001/api" />
+          
           <View style={styles.routeAction}>
             <RouteRow method="POST" path={API_ENDPOINTS.REGISTER} note="Register" />
             <AppButton

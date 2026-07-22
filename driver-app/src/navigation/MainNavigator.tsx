@@ -18,15 +18,18 @@ const Stack = createNativeStackNavigator();
 
 export default function MainNavigator() {
   const fetchIncomingRequests = useRideStore((s) => s.fetchIncomingRequests);
+  const fetchActiveRide = useRideStore((s) => s.fetchActiveRide);
 
   useEffect(() => {
     // Initial fetch when navigator mounts
     fetchIncomingRequests().catch(() => undefined);
+    fetchActiveRide().catch(() => undefined);
 
     // Global listener for foregrounding the app
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (nextAppState === "active") {
         fetchIncomingRequests().catch(() => undefined);
+        fetchActiveRide().catch(() => undefined);
       }
     });
 

@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 
@@ -7,6 +9,7 @@ export interface Ride {
   driver_id?: number;
   rider_name: string;
   rider_phone?: string;
+  rider_avatar?: string;
   rider_rating: number;
   rider_trips: number;
   from_location: string;
@@ -60,7 +63,9 @@ interface RideState {
   setActiveRide: (ride: Ride | null) => void;
 }
 
-export const useRideStore = create<RideState>((set, get) => ({
+export const useRideStore = create<RideState>()(
+  persist(
+    (set, get) => ({
   incomingRequests: [],
   activeRide: null,
   history: [],
@@ -217,4 +222,11 @@ export const useRideStore = create<RideState>((set, get) => ({
       return false;
     }
   },
-}));
+    }),
+    {
+      name: "driver-ride-store",
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ activeRide: state.activeRide }),
+    }
+  )
+);

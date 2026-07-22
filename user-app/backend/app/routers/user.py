@@ -60,22 +60,22 @@ def _estimate_distance(pickup: str, dropoff: str, lat1: Optional[float] = None, 
     return max(2.1, min(24.0, (seed % 21) + 2.3))
 
 
-def _build_options(pickup: str, dropoff: str, lat1: Optional[float] = None, lon1: Optional[float] = None, lat2: Optional[float] = None, lon2: Optional[float] = None) -> List[RideOption]:
+def _build_options(pickup: str, dropoff: str, lat1: Optional[float] = None, lon1: Optional[float] = None, lat2: Optional[float] = None, lon2: Optional[float] = None, country: str = "India") -> List[RideOption]:
     distance_km = _estimate_distance(pickup, dropoff, lat1, lon1, lat2, lon2)
-    distance_miles = distance_km * 0.621371
     duration_min = max(10, round(distance_km * 4))
     eta_base = max(4, round(distance_km / 2))
 
-    base_fare = 2.00
-    booking_fee = 2.00
-    per_mile = 0.80
-    per_minute = 0.15
-    
-    calc_price = base_fare + booking_fee + (distance_miles * per_mile) + (duration_min * per_minute)
-    final_price = max(6.00, calc_price)
+    is_india = (country != "USA") and (lat1 is None or lon1 is None or lon1 >= -50 or country == "India")
+
+    if is_india:
+        base_price = max(50.0, distance_km * 50.0)
+    else:
+        base_price = max(0.7, distance_km * 0.7)
 
     options = []
     for index, (ride_class, meta) in enumerate(RIDE_META.items()):
+        final_price = base_price * meta["multiplier"]
+        price_val = round(final_price) if is_india else round(final_price, 2)
         options.append(
             RideOption(
                 id=ride_class,
@@ -83,7 +83,7 @@ def _build_options(pickup: str, dropoff: str, lat1: Optional[float] = None, lon1
                 subtitle=meta["subtitle"],
                 seats=meta["seats"],
                 eta=f"{eta_base + index * 3} min",
-                price=round(final_price * meta["multiplier"], 2),
+                price=price_val,
                 distance=f"{distance_km:.1f} km",
                 duration=f"{duration_min} min",
             )
@@ -315,7 +315,8 @@ def get_ride_options(payload: RideEstimateRequest, current_user: User = Depends(
     return RideEstimateResponse(options=_build_options(
         payload.pickup, payload.dropoff,
         payload.pickup_latitude, payload.pickup_longitude,
-        payload.dropoff_latitude, payload.dropoff_longitude
+        payload.dropoff_latitude, payload.dropoff_longitude,
+        country=current_user.country or "India"
     ))
 
 
@@ -328,7 +329,8 @@ def book_ride(
     options = _build_options(
         payload.pickup, payload.dropoff,
         payload.pickup_latitude, payload.pickup_longitude,
-        payload.dropoff_latitude, payload.dropoff_longitude
+        payload.dropoff_latitude, payload.dropoff_longitude,
+        country=current_user.country or "India"
     )
     chosen = next((option for option in options if option.id == payload.ride_class), options[1])
 

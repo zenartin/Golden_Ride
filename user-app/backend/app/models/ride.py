@@ -43,6 +43,14 @@ class Ride(Base):
     def driver_upi_id(self):
         return self.driver.documents.upi_id if self.driver and self.driver.documents else None
 
+    @property
+    def rider_avatar(self):
+        return self.user.avatar if self.user else None
+
+    @property
+    def driver_avatar(self):
+        return self.driver.avatar if self.driver else None
+
 
 class Withdrawal(Base):
     __tablename__ = "withdrawals"

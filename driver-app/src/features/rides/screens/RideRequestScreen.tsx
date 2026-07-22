@@ -7,6 +7,7 @@ import {
   Animated,
   Alert,
   StatusBar,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -121,7 +122,11 @@ export default function RideRequestScreen({ navigation, route }: any) {
         <View style={styles.riderRow}>
           <Animated.View style={[styles.avatarWrap, { transform: [{ scale: pulseAnim }] }]}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{riderInitials}</Text>
+              {RIDE.rider_avatar ? (
+                <Image source={{ uri: RIDE.rider_avatar }} style={{ width: "100%", height: "100%", borderRadius: 18 }} />
+              ) : (
+                <Text style={styles.avatarInitial}>{riderInitials}</Text>
+              )}
             </View>
           </Animated.View>
           <View style={styles.riderInfo}>

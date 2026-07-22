@@ -30,8 +30,9 @@ export function connectDriverWebSocket(driverId: number, token: string) {
     console.log("Driver WebSocket connection established");
     reconnectDelay = 1000;
     
-    // Fetch pending rides automatically when connected
+    // Fetch pending rides and active ride automatically when connected
     useRideStore.getState().fetchIncomingRequests();
+    useRideStore.getState().fetchActiveRide();
     
     // Start heartbeat
     heartbeatInterval = setInterval(() => {

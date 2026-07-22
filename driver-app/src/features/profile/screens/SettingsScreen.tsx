@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   StatusBar,
   Switch,
+  TextInput,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useAppStore } from "../../../store/appStore";
 
@@ -59,9 +62,13 @@ const SECTIONS: { title: string; items: SettingRow[] }[] = [
 
 export default function SettingsScreen({ navigation }: any) {
   const { settings, fetchSettings, updateSettings } = useAppStore();
+  const [customUrl, setCustomUrl] = useState("");
 
   useEffect(() => {
     fetchSettings();
+    AsyncStorage.getItem("CUSTOM_API_URL").then(url => {
+      if (url) setCustomUrl(url);
+    });
   }, []);
 
   const [localToggles, setLocalToggles] = useState<Record<string, boolean>>({
@@ -128,6 +135,51 @@ export default function SettingsScreen({ navigation }: any) {
             </View>
           </View>
         ))}
+
+        {/* Developer Zone */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: Colors.primary }]}>Developer Options</Text>
+          <View style={[styles.card, { padding: Spacing.md }]}>
+            <Text style={styles.rowLabel}>Custom API URL</Text>
+            <Text style={[styles.rowSub, { marginBottom: 8 }]}>Overrides the default backend URL (e.g. your local IP). Clear to reset.</Text>
+            <TextInput
+              style={{
+                backgroundColor: Colors.background,
+                padding: 12,
+                borderRadius: 8,
+                color: Colors.textPrimary,
+                borderColor: Colors.border,
+                borderWidth: 1,
+                fontSize: Typography.small
+              }}
+              value={customUrl}
+              onChangeText={setCustomUrl}
+              placeholder="http://192.168.x.x:8001/api"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity 
+              style={{
+                marginTop: 8,
+                backgroundColor: Colors.primary,
+                paddingVertical: 10,
+                borderRadius: 8,
+                alignItems: "center"
+              }}
+              onPress={() => {
+                if (customUrl.trim() === "") {
+                  AsyncStorage.removeItem("CUSTOM_API_URL");
+                  Alert.alert("Reset", "Custom API URL cleared. App will use default.");
+                } else {
+                  AsyncStorage.setItem("CUSTOM_API_URL", customUrl.trim());
+                  Alert.alert("Saved", "Custom API URL saved successfully.");
+                }
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>Save URL</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Danger Zone */}
         <View style={styles.section}>

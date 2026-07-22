@@ -127,12 +127,9 @@ const createOptions = (pickup: string, dropoff: string, pickupCoords?: any, drop
 
   let basePrice = 0;
   if (isIndia) {
-    // 1 km = 50 INR
     basePrice = Math.max(50.0, distanceKm * 50.0);
   } else {
-    // 1 mile = 1 USD
-    const distanceMiles = distanceKm * 0.621371;
-    basePrice = Math.max(1.0, distanceMiles * 1.0);
+    basePrice = Math.max(0.7, distanceKm * 0.7);
   }
 
   return (Object.keys(rideMeta) as RideClass[]).map((rideClass, index) => {

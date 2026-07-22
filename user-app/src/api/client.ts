@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 // Production URL from EAS build env, falls back to localtunnel
-export const BASE_URL = "http://54.167.55.102:8001/api";
+export const BASE_URL = "http://98.93.224.64:8001/api";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -13,6 +13,10 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
+  const customUrl = await AsyncStorage.getItem("CUSTOM_API_URL");
+  if (customUrl) {
+    config.baseURL = customUrl;
+  }
   const token = await AsyncStorage.getItem("userToken");
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -33,7 +37,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    const customUrl = await AsyncStorage.getItem("CUSTOM_API_URL");
+    const activeBaseUrl = customUrl || BASE_URL;
+    response = await fetch(`${activeBaseUrl}${path}`, {
       method: options.method || "GET",
       headers: {
         "Content-Type": "application/json",

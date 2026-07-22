@@ -59,6 +59,7 @@ export default function DriverDashboard({
   const [locationLoading, setLocationLoading] = useState(false);
 
   const incomingRequests = useRideStore((s) => s.incomingRequests);
+  const activeRide = useRideStore((s) => s.activeRide);
   const fetchIncomingRequests = useRideStore((s) => s.fetchIncomingRequests);
 
   useEffect(() => {
@@ -235,6 +236,39 @@ export default function DriverDashboard({
               <Text style={styles.bannerSub}>Complete your details to start accepting rides.</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+          </TouchableOpacity>
+        )}
+
+        {/* Ongoing Active Ride Card */}
+        {activeRide && (activeRide.status === "accepted" || activeRide.status === "arrived" || activeRide.status === "started") && (
+          <TouchableOpacity
+            style={styles.activeRideDashCard}
+            onPress={() => navigation.navigate("ActiveRide", { rideId: activeRide.id })}
+            activeOpacity={0.88}
+          >
+            <LinearGradient
+              colors={["#059669", "#10B981"]}
+              style={styles.activeGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={styles.activeDashTop}>
+                <View style={styles.activeBadgeTextRow}>
+                  <View style={styles.activePulseDot} />
+                  <Text style={styles.activeBadgeTitle}>ACTIVE RIDE IN PROGRESS</Text>
+                </View>
+                <Text style={styles.activeFareText}>{activeRide.fare}</Text>
+              </View>
+
+              <Text style={styles.activeRiderName}>Passenger: {activeRide.rider_name}</Text>
+              <Text style={styles.activeRouteText} numberOfLines={1}>
+                📍 {activeRide.from_location} ➔ 🏁 {activeRide.to_location}
+              </Text>
+
+              <View style={styles.activeResumeBtn}>
+                <Text style={styles.activeResumeBtnText}>Resume Active Trip Navigation ➔</Text>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -618,4 +652,70 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   actionLabel: { fontSize: Typography.small, color: Colors.textPrimary, fontWeight: "600" },
+  activeRideDashCard: {
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#10B981",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  activeGradient: {
+    padding: Spacing.lg,
+    borderRadius: 20,
+  },
+  activeDashTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  activeBadgeTextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  activePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#fff",
+  },
+  activeBadgeTitle: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  activeFareText: {
+    color: "#fff",
+    fontWeight: "900",
+    fontSize: 20,
+  },
+  activeRiderName: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  activeRouteText: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  activeResumeBtn: {
+    backgroundColor: "#fff",
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  activeResumeBtnText: {
+    color: "#059669",
+    fontWeight: "800",
+    fontSize: 13,
+  },
 });
