@@ -18,7 +18,7 @@ import { useAuthStore } from "../../store/authStore";
 import { apiRequest } from "../../api/client";
 import { API_ENDPOINTS } from "../../api/endpoints";
 import AppButton from "../../components/AppButton";
-import { useStripe } from "@stripe/stripe-react-native";
+import { useStripe } from "../../utils/stripeWrapper";
 
 export default function PaymentScreen({ route, navigation }: any) {
   const { tripId } = route.params;
@@ -86,7 +86,7 @@ export default function PaymentScreen({ route, navigation }: any) {
   }
 
   const totalFare = trip.price;
-  const currencySymbol = user?.country === "USA" ? "$" : "₹";
+  const currencySymbol = user?.country === "India" ? "₹" : "$";
 
   // ── Stripe Payment ──────────────────────────────────────────────────────────
   const handleStripePayment = async () => {

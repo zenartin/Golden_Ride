@@ -81,7 +81,7 @@ export default function RideOptionCard({
   onPress: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
-  const symbol = user?.country === "USA" ? "$" : "₹";
+  const symbol = user?.country === "India" ? "₹" : "$";
   
   const config = VEHICLE_CONFIG[option.id] ?? {
     badge: undefined,

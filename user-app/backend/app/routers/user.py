@@ -42,7 +42,7 @@ def _token_response(user: User) -> dict:
         "phone": user.phone,
         "email": user.email,
         "wallet_balance": user.wallet_balance,
-        "country": user.country or "India",
+        "country": user.country or "USA",
     }
 
 
@@ -60,17 +60,17 @@ def _estimate_distance(pickup: str, dropoff: str, lat1: Optional[float] = None, 
     return max(2.1, min(24.0, (seed % 21) + 2.3))
 
 
-def _build_options(pickup: str, dropoff: str, lat1: Optional[float] = None, lon1: Optional[float] = None, lat2: Optional[float] = None, lon2: Optional[float] = None, country: str = "India") -> List[RideOption]:
+def _build_options(pickup: str, dropoff: str, lat1: Optional[float] = None, lon1: Optional[float] = None, lat2: Optional[float] = None, lon2: Optional[float] = None, country: str = "USA") -> List[RideOption]:
     distance_km = _estimate_distance(pickup, dropoff, lat1, lon1, lat2, lon2)
     duration_min = max(10, round(distance_km * 4))
     eta_base = max(4, round(distance_km / 2))
 
-    is_india = (country != "USA") and (lat1 is None or lon1 is None or lon1 >= -50 or country == "India")
+    is_india = (country == "India")
 
     if is_india:
         base_price = max(50.0, distance_km * 50.0)
     else:
-        base_price = max(0.7, distance_km * 0.7)
+        base_price = max(12.0, distance_km * 1.8)
 
     options = []
     for index, (ride_class, meta) in enumerate(RIDE_META.items()):
@@ -164,7 +164,7 @@ def get_profile(current_user: User = Depends(get_current_user)):
         "avatar": current_user.avatar,
         "rating": current_user.rating,
         "wallet_balance": current_user.wallet_balance,
-        "country": current_user.country or "India",
+        "country": current_user.country or "USA",
         "card_number": current_user.card_number,
         "card_expiry": current_user.card_expiry,
         "card_cvv": current_user.card_cvv,
@@ -227,7 +227,7 @@ def update_profile(
         "name": current_user.name,
         "email": current_user.email,
         "phone": current_user.phone,
-        "country": current_user.country or "India",
+        "country": current_user.country or "USA",
         "avatar": current_user.avatar,
         "card_number": current_user.card_number,
         "card_expiry": current_user.card_expiry,
@@ -261,7 +261,7 @@ def update_card(
         "name": current_user.name,
         "email": current_user.email,
         "phone": current_user.phone,
-        "country": current_user.country or "India",
+        "country": current_user.country or "USA",
         "card_number": current_user.card_number,
         "card_expiry": current_user.card_expiry,
         "card_cvv": current_user.card_cvv,
@@ -316,7 +316,7 @@ def get_ride_options(payload: RideEstimateRequest, current_user: User = Depends(
         payload.pickup, payload.dropoff,
         payload.pickup_latitude, payload.pickup_longitude,
         payload.dropoff_latitude, payload.dropoff_longitude,
-        country=current_user.country or "India"
+        country=current_user.country or "USA"
     ))
 
 
@@ -330,7 +330,7 @@ def book_ride(
         payload.pickup, payload.dropoff,
         payload.pickup_latitude, payload.pickup_longitude,
         payload.dropoff_latitude, payload.dropoff_longitude,
-        country=current_user.country or "India"
+        country=current_user.country or "USA"
     )
     chosen = next((option for option in options if option.id == payload.ride_class), options[1])
 

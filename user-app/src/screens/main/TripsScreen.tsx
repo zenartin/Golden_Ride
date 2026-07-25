@@ -172,7 +172,7 @@ export default function TripsScreen({ navigation }: Props) {
                   <Ionicons name="cash-outline" size={14} color={Colors.textSecondary} style={{ marginLeft: 8 }} />
                   <Text style={styles.metaText}>{item.paymentMethod}</Text>
                 </View>
-                <Text style={styles.fareText}>{user?.country === "USA" ? "$" : "₹"} {item.price}</Text>
+                <Text style={styles.fareText}>{user?.country === "India" ? "₹" : "$"} {item.price}</Text>
               </View>
             </TouchableOpacity>
           );

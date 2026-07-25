@@ -12,7 +12,7 @@ import {
   Inter_700Bold 
 } from "@expo-google-fonts/inter";
 import { navigationRef } from "./src/navigation/navigationRef";
-import { StripeProvider } from '@stripe/stripe-react-native';
+import { StripeProvider } from "./src/utils/stripeWrapper";
 import AppNavigator from "./src/navigation/AppNavigator";
 
 export default function App() {

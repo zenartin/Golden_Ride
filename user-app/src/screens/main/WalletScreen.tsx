@@ -53,7 +53,7 @@ export default function WalletScreen() {
                     <Text style={styles.txMeta}>{tx.date.slice(0, 10)}</Text>
                   </View>
                   <Text style={[styles.txAmount, { color: tx.type === "credit" ? "#10B981" : "#EF4444" }]}>
-                    {tx.type === "credit" ? "+" : "-"}{user?.country === "USA" ? "$" : "₹"}{tx.amount}
+                    {tx.type === "credit" ? "+" : "-"}{user?.country === "India" ? "₹" : "$"}{tx.amount}
                   </Text>
                 </View>
               ))
