@@ -126,7 +126,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     }
   }, [activeTrip?.status]);
 
-  const [paymentMethod, setPaymentMethod] = useState<"Stripe">("Stripe");
+  const [paymentMethod, setPaymentMethod] = useState<string>("Stripe");
   const [upiId, setUpiId] = useState("");
   const [tempUpiId, setTempUpiId] = useState("");
   const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "", name: "" });

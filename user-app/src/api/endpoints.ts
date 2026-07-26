@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   REMOVE_AVATAR: "/user/profile/remove-avatar",
 
   // Stripe Payments
+  STRIPE_CONFIG: "/stripe/config",
   STRIPE_PAYMENT_SHEET: "/stripe/payment-sheet",
 
   // PayPal Payments

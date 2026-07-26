@@ -12,7 +12,7 @@ import { apiClient, BASE_URL } from "../../api/client";
 
 type Props = {
   navigation: {
-    navigate: (screen: keyof MainStackParamList) => void;
+    navigate: (screen: any, params?: any) => void;
   };
 };
 
@@ -36,7 +36,7 @@ export default function ProfileScreen({ navigation }: Props) {
   };
 
   const handleEditPhoto = () => {
-    const options = [
+    const options: any[] = [
       { text: "Take Photo", onPress: takePhoto },
       { text: "Choose from Gallery", onPress: pickImage },
     ];

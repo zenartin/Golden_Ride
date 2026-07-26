@@ -17,7 +17,7 @@ type Props = NativeStackScreenProps<MainStackParamList, "ApiConsole">;
 
 type ApiRide = {
   id: number;
-  ride_class: "economy" | "comfort" | "premium";
+  ride_class: string;
   from_location: string;
   to_location: string;
   distance: string;
@@ -38,7 +38,7 @@ export default function ApiConsoleScreen({ navigation }: Props) {
   const [tokenPreview, setTokenPreview] = useState("Current app token will be used for protected APIs.");
   const [pickup, setPickup] = useState("Indiranagar");
   const [dropoff, setDropoff] = useState("MG Road, Bengaluru");
-  const [rideClass, setRideClass] = useState<"economy" | "comfort" | "premium">("comfort");
+  const [rideClass, setRideClass] = useState<any>("comfort");
   const [rideId, setRideId] = useState("");
   const [topUpAmount, setTopUpAmount] = useState("500");
   const [options, setOptions] = useState<RideOption[]>([]);

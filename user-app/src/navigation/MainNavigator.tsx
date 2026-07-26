@@ -26,6 +26,7 @@ export type MainStackParamList = {
   PaymentMethods: undefined;
   Payment: { tripId: string };
   Rating: { tripId: string };
+  ApiConsole: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
