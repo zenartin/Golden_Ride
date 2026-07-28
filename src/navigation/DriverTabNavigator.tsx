@@ -21,28 +21,44 @@ export default function DriverTabNavigator({ navigation }: any) {
   const activeRide = useRideStore((s) => s.activeRide);
   const isRideActive = activeRide && (activeRide.status === "accepted" || activeRide.status === "arrived" || activeRide.status === "started");
   React.useEffect(() => {
+    let active = true;
     (async () => {
-      try {
-        // Check current permissions first (instant, non-blocking check)
-        const current = await Location.getForegroundPermissionsAsync();
-        if (current.status === "granted") {
-          setHasLocationPermission(true);
-          return;
+      const getPermissionsWithTimeout = async () => {
+        try {
+          const current = await Location.getForegroundPermissionsAsync();
+          if (current.status === "granted") {
+            return true;
+          }
+          const request = await Location.requestForegroundPermissionsAsync();
+          return request.status === "granted";
+        } catch (e) {
+          console.log("Internal permission error:", e);
+          return false;
         }
+      };
 
-        // If not granted, request with a 2.5-second timeout fallback
-        const requestPromise = Location.requestForegroundPermissionsAsync();
-        const timeoutPromise = new Promise<any>((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 2500)
-        );
+      const timeoutPromise = new Promise<boolean>((resolve) =>
+        setTimeout(() => resolve(false), 3000)
+      );
 
-        const result = await Promise.race([requestPromise, timeoutPromise]);
-        setHasLocationPermission(result.status === "granted");
+      try {
+        const hasPermission = await Promise.race([
+          getPermissionsWithTimeout(),
+          timeoutPromise,
+        ]);
+        if (active) {
+          setHasLocationPermission(hasPermission);
+        }
       } catch (err) {
-        console.log("Location permission check failed or timed out:", err);
-        setHasLocationPermission(false);
+        console.log("Location permission check timed out or failed:", err);
+        if (active) {
+          setHasLocationPermission(false);
+        }
       }
     })();
+    return () => {
+      active = false;
+    };
   }, []);
   useFocusEffect(
     React.useCallback(() => {

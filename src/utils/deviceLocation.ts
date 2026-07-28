@@ -6,47 +6,60 @@ export interface DeviceCoords {
 }
 
 export const getCurrentDeviceLocation = async (): Promise<DeviceCoords | null> => {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      return null;
-    }
-
-    const servicesEnabled = await Location.hasServicesEnabledAsync();
-    const lastKnown = await Location.getLastKnownPositionAsync();
-
-    if (lastKnown) {
-      return {
-        latitude: lastKnown.coords.latitude,
-        longitude: lastKnown.coords.longitude,
-      };
-    }
-
-    if (!servicesEnabled) {
-      return null;
-    }
-
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-
-    return {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    };
-  } catch (error) {
-    console.log("Device location error:", error);
+  const getLocationTask = async (): Promise<DeviceCoords | null> => {
     try {
-      const fallback = await Location.getLastKnownPositionAsync();
-      if (fallback) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        return null;
+      }
+
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      const lastKnown = await Location.getLastKnownPositionAsync();
+
+      if (lastKnown) {
         return {
-          latitude: fallback.coords.latitude,
-          longitude: fallback.coords.longitude,
+          latitude: lastKnown.coords.latitude,
+          longitude: lastKnown.coords.longitude,
         };
       }
-    } catch (fallbackError) {
-      console.log("Last known location error:", fallbackError);
+
+      if (!servicesEnabled) {
+        return null;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      return {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+    } catch (error) {
+      console.log("Device location error:", error);
+      try {
+        const fallback = await Location.getLastKnownPositionAsync();
+        if (fallback) {
+          return {
+            latitude: fallback.coords.latitude,
+            longitude: fallback.coords.longitude,
+          };
+        }
+      } catch (fallbackError) {
+        console.log("Last known location error:", fallbackError);
+      }
+      return null;
     }
+  };
+
+  const timeoutPromise = new Promise<null>((resolve) =>
+    setTimeout(() => resolve(null), 4000)
+  );
+
+  try {
+    return await Promise.race([getLocationTask(), timeoutPromise]);
+  } catch (err) {
+    console.log("getCurrentDeviceLocation timed out or failed:", err);
     return null;
   }
 };
