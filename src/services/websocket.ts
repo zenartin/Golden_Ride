@@ -17,10 +17,19 @@ export function connectDriverWebSocket(driverId: number, token: string) {
   
   isExplicitDisconnect = false;
 
-  // Resolve ws URL from base axios URL
-  // http://10.233.162.121:8000/api -> ws://10.233.162.121:8000/ws/driver/{id}
-  const host = BASE_URL.replace("/api", "").replace("http://", "ws://").replace("https://", "wss://");
-  const wsUrl = `${host}/ws/driver/${driverId}?token=${token}`;
+  // Build WebSocket URL robustly from BASE_URL
+  // Strip trailing /api or /api/ to get the base host, then switch to wss://
+  let baseHost = BASE_URL
+    .replace(/\/api\/?$/, "")          // remove trailing /api
+    .replace(/^https:\/\//, "wss://")  // https -> wss
+    .replace(/^http:\/\//, "ws://");   // http -> ws
+  
+  // Safety check: if host starts with "." something went wrong, fallback to known WSS host
+  if (baseHost.includes("://.") || !baseHost.startsWith("ws")) {
+    baseHost = "wss://api.golden-ride.com";
+  }
+  
+  const wsUrl = `${baseHost}/ws/driver/${driverId}?token=${token}`;
 
   console.log("Connecting driver WebSocket to:", wsUrl);
 
