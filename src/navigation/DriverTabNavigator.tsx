@@ -85,44 +85,6 @@ export default function DriverTabNavigator({ navigation }: any) {
     }
   };
 
-  if (hasLocationPermission === null) {
-    return (
-      <View style={styles.centerLoader}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
-  if (hasLocationPermission === false) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Ionicons name="location" size={80} color={Colors.primary} />
-        <Text style={styles.permissionTitle}>Location Access Required</Text>
-        <Text style={styles.permissionDesc}>
-          As a driver, location access is strictly required to receive rides and track trips.
-          Please enable location permissions to use the app.
-        </Text>
-        <TouchableOpacity
-          style={styles.permissionBtn}
-          onPress={async () => {
-            try {
-              const requestPromise = Location.requestForegroundPermissionsAsync();
-              const timeoutPromise = new Promise<any>((_, reject) =>
-                setTimeout(() => reject(new Error("Timeout")), 3000)
-              );
-              const result = await Promise.race([requestPromise, timeoutPromise]);
-              setHasLocationPermission(result.status === "granted");
-            } catch (err) {
-              setHasLocationPermission(false);
-            }
-          }}
-        >
-          <Text style={styles.permissionBtnText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.screen}>{renderScreen()}</View>
