@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models.ride import Ride
 from app.models.user import User, WalletTransaction
+from app.models.driver import Driver
 from app.schemas.auth import LoginRequest, OtpRequest, OtpVerifyRequest, UserRegisterRequest, UserToken, ProfileUpdateRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.ride import (
     RideBookingRequest,
@@ -319,7 +320,7 @@ async def book_ride(
 def get_active_ride(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload("documents"))
+        .options(joinedload(Ride.driver).joinedload(Driver.documents))
         .filter(
             Ride.user_id == current_user.id,
             Ride.status.in_(["pending", "accepted", "arrived", "started"]),
@@ -333,7 +334,7 @@ def get_active_ride(current_user: User = Depends(get_current_user), db: Session 
 def get_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload("documents"))
+        .options(joinedload(Ride.driver).joinedload(Driver.documents))
         .filter(Ride.user_id == current_user.id, Ride.status.in_(["completed", "cancelled", "declined"]))
         .order_by(Ride.created_at.desc())
         .all()
@@ -344,7 +345,7 @@ def get_history(current_user: User = Depends(get_current_user), db: Session = De
 def get_ride(ride_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ride = (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload("documents"))
+        .options(joinedload(Ride.driver).joinedload(Driver.documents))
         .filter(Ride.id == ride_id, Ride.user_id == current_user.id)
         .first()
     )
