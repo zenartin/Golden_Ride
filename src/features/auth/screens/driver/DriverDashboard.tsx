@@ -53,7 +53,7 @@ export default function DriverDashboard({
   const fetchNotificationsFn = useAppStore((s) => s.fetchNotifications);
 
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -139,16 +139,7 @@ export default function DriverDashboard({
     });
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centerLoader}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loaderText}>Loading Dashboard...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Dashboard renders immediately — stats load in background
 
   const stats = dashboard?.stats ?? [];
   const recentTrips = dashboard?.recent_trips ?? [];
@@ -296,34 +287,65 @@ export default function DriverDashboard({
         </LinearGradient>
 
         {/* Quick Stats Grid (2x2 for responsiveness) */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statsRow}>
-            {stats.slice(0, 2).map((s) => (
-              <View key={s.label} style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: (ICON_COLORS[s.icon] ?? Colors.primary) + "20" }]}>
-                  <Ionicons name={s.icon} size={18} color={ICON_COLORS[s.icon] ?? Colors.primary} />
+        {!dashboard ? (
+          <View style={styles.statsGrid}>
+            <View style={styles.statsRow}>
+              {[{ label: "Today", icon: "cash-outline" }, { label: "Trips", icon: "car-sport-outline" }].map((s) => (
+                <View key={s.label} style={styles.statCard}>
+                  <View style={[styles.statIcon, { backgroundColor: (ICON_COLORS[s.icon] ?? Colors.primary) + "20" }]}>
+                    <Ionicons name={s.icon as any} size={18} color={ICON_COLORS[s.icon] ?? Colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ActivityIndicator size="small" color={Colors.primary} style={{ alignSelf: "flex-start" }} />
+                    <Text style={styles.statLabel} numberOfLines={1}>{s.label}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{s.value}</Text>
-                  <Text style={styles.statLabel} numberOfLines={1}>{s.label}</Text>
+              ))}
+            </View>
+            <View style={styles.statsRow}>
+              {[{ label: "Rating", icon: "star-outline" }, { label: "Km", icon: "navigate-outline" }].map((s) => (
+                <View key={s.label} style={styles.statCard}>
+                  <View style={[styles.statIcon, { backgroundColor: (ICON_COLORS[s.icon] ?? Colors.primary) + "20" }]}>
+                    <Ionicons name={s.icon as any} size={18} color={ICON_COLORS[s.icon] ?? Colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ActivityIndicator size="small" color={Colors.primary} style={{ alignSelf: "flex-start" }} />
+                    <Text style={styles.statLabel} numberOfLines={1}>{s.label}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-          <View style={styles.statsRow}>
-            {stats.slice(2, 4).map((s) => (
-              <View key={s.label} style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: (ICON_COLORS[s.icon] ?? Colors.primary) + "20" }]}>
-                  <Ionicons name={s.icon} size={18} color={ICON_COLORS[s.icon] ?? Colors.primary} />
+        ) : (
+          <View style={styles.statsGrid}>
+            <View style={styles.statsRow}>
+              {stats.slice(0, 2).map((s) => (
+                <View key={s.label} style={styles.statCard}>
+                  <View style={[styles.statIcon, { backgroundColor: (ICON_COLORS[s.icon] ?? Colors.primary) + "20" }]}>
+                    <Ionicons name={s.icon} size={18} color={ICON_COLORS[s.icon] ?? Colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{s.value}</Text>
+                    <Text style={styles.statLabel} numberOfLines={1}>{s.label}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{s.value}</Text>
-                  <Text style={styles.statLabel} numberOfLines={1}>{s.label}</Text>
+              ))}
+            </View>
+            <View style={styles.statsRow}>
+              {stats.slice(2, 4).map((s) => (
+                <View key={s.label} style={styles.statCard}>
+                  <View style={[styles.statIcon, { backgroundColor: (ICON_COLORS[s.icon] ?? Colors.primary) + "20" }]}>
+                    <Ionicons name={s.icon} size={18} color={ICON_COLORS[s.icon] ?? Colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{s.value}</Text>
+                    <Text style={styles.statLabel} numberOfLines={1}>{s.label}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Live Map Card — shows driver's current location inline */}
         <TouchableOpacity style={styles.mapCard} onPress={handleOpenMap} activeOpacity={0.85}>
