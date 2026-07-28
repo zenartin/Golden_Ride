@@ -23,10 +23,23 @@ export default function DriverTabNavigator({ navigation }: any) {
   React.useEffect(() => {
     (async () => {
       try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        setHasLocationPermission(status === "granted");
+        // Check current permissions first (instant, non-blocking check)
+        const current = await Location.getForegroundPermissionsAsync();
+        if (current.status === "granted") {
+          setHasLocationPermission(true);
+          return;
+        }
+
+        // If not granted, request with a 2.5-second timeout fallback
+        const requestPromise = Location.requestForegroundPermissionsAsync();
+        const timeoutPromise = new Promise<any>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 2500)
+        );
+
+        const result = await Promise.race([requestPromise, timeoutPromise]);
+        setHasLocationPermission(result.status === "granted");
       } catch (err) {
-        console.log("Location permission request failed:", err);
+        console.log("Location permission check failed or timed out:", err);
         setHasLocationPermission(false);
       }
     })();
@@ -76,8 +89,16 @@ export default function DriverTabNavigator({ navigation }: any) {
         <TouchableOpacity
           style={styles.permissionBtn}
           onPress={async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            setHasLocationPermission(status === "granted");
+            try {
+              const requestPromise = Location.requestForegroundPermissionsAsync();
+              const timeoutPromise = new Promise<any>((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 3000)
+              );
+              const result = await Promise.race([requestPromise, timeoutPromise]);
+              setHasLocationPermission(result.status === "granted");
+            } catch (err) {
+              setHasLocationPermission(false);
+            }
           }}
         >
           <Text style={styles.permissionBtnText}>Grant Permission</Text>
