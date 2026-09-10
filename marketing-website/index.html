@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Golden Ride — Premium Taxi Booking Service</title>
+  <meta name="description" content="Golden Ride — Book a professional taxi in seconds. Fixed USD pricing, verified drivers, real-time tracking across 200+ cities."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet"/>
+  <style>
+/* ── RESET ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:#fff;color:#1a1a2e;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{max-width:100%;display:block}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#F5B800;border-radius:3px}
+
+/* ── TOKENS ── */
+:root{
+  --y:#F5B800; --yh:#FFD03A; --yd:#D4A000;
+  --dk:#0e0e18; --dk2:#181828; --dk3:#22223a;
+  --txt:#2a2a3a; --muted:#6a6a82;
+  --border:#e5e5ef; --off:#f7f7fc;
+  --r:8px; --rl:16px; --rxl:24px;
+  --shadow:0 4px 24px rgba(0,0,0,.08);
+  --shadow-lg:0 12px 48px rgba(0,0,0,.14);
+}
+
+/* ── UTILITIES ── */
+.container{max-width:1220px;margin:0 auto;padding:0 28px}
+.btn-y{display:inline-flex;align-items:center;gap:9px;background:var(--y);color:#000;font-weight:700;font-size:.92rem;padding:13px 30px;border-radius:var(--r);border:2px solid var(--y);cursor:pointer;transition:all .22s;white-space:nowrap}
+.btn-y:hover{background:var(--yh);transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,184,0,.38)}
+.btn-y-ol{display:inline-flex;align-items:center;gap:9px;background:transparent;color:var(--y);font-weight:700;font-size:.92rem;padding:11px 28px;border-radius:var(--r);border:2px solid var(--y);cursor:pointer;transition:all .22s}
+.btn-y-ol:hover{background:var(--y);color:#000}
+.btn-dk{display:inline-flex;align-items:center;gap:9px;background:var(--dk);color:#fff;font-weight:700;font-size:.92rem;padding:13px 30px;border-radius:var(--r);border:2px solid var(--dk);cursor:pointer;transition:all .22s}
+.btn-dk:hover{background:var(--dk2);transform:translateY(-2px)}
+.slabel{display:inline-flex;align-items:center;gap:9px;font-size:.72rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--y);margin-bottom:14px}
+.slabel::before{content:'';width:26px;height:3px;background:var(--y);border-radius:2px;flex-shrink:0}
+.sh{font-family:'Barlow',sans-serif;font-size:clamp(1.9rem,3.5vw,3rem);font-weight:900;line-height:1.08;letter-spacing:-.5px;color:var(--dk);margin-bottom:16px}
+.sh.w{color:#fff}
+.sp{font-size:1rem;color:var(--muted);line-height:1.8;max-width:520px}
+.sp.w{color:rgba(255,255,255,.6)}
+
+/* ── ANIM ── */
+.fade{opacity:0;transform:translateY(28px);transition:opacity .55s ease,transform .55s ease}
+.fade-l{opacity:0;transform:translateX(-28px);transition:opacity .55s ease,transform .55s ease}
+.fade-r{opacity:0;transform:translateX(28px);transition:opacity .55s ease,transform .55s ease}
+.fade.in,.fade-l.in,.fade-r.in{opacity:1;transform:none}
+
+/* ═══════════════════════════
+   TOP BAR
+════════════════════════════ */
+#topbar{background:var(--dk);padding:10px 0}
+.tb-inner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tb-left{display:flex;gap:22px;flex-wrap:wrap}
+.tb-item{display:flex;align-items:center;gap:7px;font-size:.8rem;color:rgba(255,255,255,.5)}
+.tb-item strong{color:var(--y)}
+.tb-right{display:flex;gap:8px}
+.tb-soc{width:30px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:rgba(255,255,255,.38);transition:all .22s}
+.tb-soc:hover{border-color:var(--y);color:var(--y)}
+
+/* ═══════════════════════════
+   NAVBAR
+════════════════════════════ */
+#nav{position:sticky;top:0;z-index:999;background:#fff;box-shadow:0 2px 18px rgba(0,0,0,.07);padding:0}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:76px;gap:20px}
+/* Logo */
+.logo{display:flex;align-items:center;gap:11px}
+.logo-ico{width:46px;height:46px;background:var(--y);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;box-shadow:0 4px 14px rgba(245,184,0,.3)}
+.logo-name{font-family:'Barlow',sans-serif;font-size:1.3rem;font-weight:900;color:var(--dk);letter-spacing:-.4px;line-height:1}
+.logo-name span{color:var(--y)}
+.logo-tag{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+/* Nav links */
+.nav-links{display:flex;align-items:center;gap:2px;list-style:none}
+.nav-links a{display:block;padding:8px 14px;font-size:.88rem;font-weight:600;color:var(--txt);border-radius:var(--r);transition:color .2s}
+.nav-links a:hover,.nav-links li.active a{color:var(--y)}
+/* Phone */
+.nav-phone{display:flex;align-items:center;gap:10px}
+.np-ico{width:40px;height:40px;border-radius:50%;background:var(--y);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+.np-lbl{font-size:.68rem;color:var(--muted);font-weight:600}
+.np-num{font-size:.9rem;font-weight:800;color:var(--dk)}
+/* Mobile hamburger */
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:5px;border:none;background:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--dk);border-radius:2px;transition:all .3s}
+
+/* ═══════════════════════════
+   HERO
+════════════════════════════ */
+#hero{
+  background:var(--dk);
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  align-items:center;
+  position:relative;
+  overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 65% 80% at 80% 50%, rgba(245,184,0,.08), transparent 65%),
+    radial-gradient(ellipse 40% 55% at 20% 30%, rgba(245,184,0,.05), transparent 60%);
+  pointer-events:none;
+}
+/* Grid dots pattern */
+.hero-bg::after{
+  content:'';position:absolute;inset:0;
+  background-image:
+    radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size:32px 32px;
+  pointer-events:none;
+}
+.hero-left{padding:120px 0 80px;position:relative;z-index:2}
+.hero-pill{display:inline-flex;align-items:center;gap:9px;background:rgba(245,184,0,.1);border:1px solid rgba(245,184,0,.26);border-radius:100px;padding:7px 18px;margin-bottom:26px}
+.hero-dot{width:7px;height:7px;border-radius:50%;background:var(--y);box-shadow:0 0 7px var(--y)}
+.hero-pill-txt{font-size:.73rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--y)}
+.hero-h1{font-family:'Barlow',sans-serif;font-size:clamp(3rem,5.5vw,5.8rem);font-weight:900;line-height:.96;letter-spacing:-2px;color:#fff;margin-bottom:24px}
+.hero-h1 em{font-style:italic;color:var(--y)}
+.hero-p{font-size:1.06rem;color:rgba(255,255,255,.6);line-height:1.82;max-width:440px;margin-bottom:38px}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:56px}
+.hero-trust{display:flex;gap:26px;flex-wrap:wrap}
+.ht{display:flex;align-items:center;gap:10px}
+.ht-ico{width:40px;height:40px;border-radius:50%;background:rgba(245,184,0,.1);border:1px solid rgba(245,184,0,.2);display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0}
+.ht-n{font-size:1.2rem;font-weight:900;color:#fff;line-height:1}
+.ht-l{font-size:.66rem;color:rgba(255,255,255,.44);font-weight:600;text-transform:uppercase;letter-spacing:1px}
+
+/* Hero right — illustrated car mockup */
+.hero-right{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:center;
+  padding:80px 0;
+}
+.car-showcase{
+  width:100%;max-width:540px;
+  background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:32px;
+  padding:48px 40px 36px;
+  position:relative;
+}
+.car-main-img{
+  width:100%;
+  aspect-ratio:16/9;
+  background:linear-gradient(135deg, #1a1a30 0%, #0e0e1e 100%);
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  overflow:hidden;
+  margin-bottom:28px;
+}
+/* SVG taxi side view */
+.taxi-svg{width:85%;max-width:380px}
+.car-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden}
+.cm-item{background:rgba(255,255,255,.03);padding:14px;text-align:center}
+.cm-n{font-family:'Barlow',sans-serif;font-size:1.3rem;font-weight:900;color:var(--y);line-height:1}
+.cm-l{font-size:.66rem;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+/* Gold glow behind car */
+.car-glow{position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);width:280px;height:60px;background:radial-gradient(ellipse,rgba(245,184,0,.25),transparent 70%);border-radius:50%;pointer-events:none}
+/* Floating badges */
+.car-badge-1{
+  position:absolute;top:-18px;right:-18px;
+  background:#fff;border-radius:14px;padding:14px 16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.2);
+  display:flex;align-items:center;gap:10px;
+}
+.cb-ico{font-size:1.4rem}
+.cb-n{font-size:1.1rem;font-weight:900;color:var(--dk);line-height:1}
+.cb-l{font-size:.68rem;color:var(--muted);font-weight:600}
+.car-badge-2{
+  position:absolute;bottom:-18px;left:-18px;
+  background:var(--y);border-radius:14px;padding:12px 18px;
+  box-shadow:0 8px 24px rgba(245,184,0,.4);
+  display:flex;align-items:center;gap:10px;
+}
+.cb2-txt{font-family:'Barlow',sans-serif;font-size:.85rem;font-weight:900;color:#000;line-height:1.2}
+
+/* ═══════════════════════════
+   BOOKING BAR
+════════════════════════════ */
+#book-bar{background:var(--y);position:relative;z-index:10}
+.book-form{display:grid;grid-template-columns:1fr 1fr 1fr auto}
+.bf-g{border-right:1px solid rgba(0,0,0,.1)}
+.bf-g:last-child{border:none}
+.bf-lbl{font-size:.66rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(0,0,0,.44);padding:17px 22px 0;display:block}
+.bf-inp{width:100%;border:none;background:transparent;font-size:.97rem;font-weight:600;color:#000;padding:4px 22px 17px;outline:none;font-family:'Inter',sans-serif;cursor:pointer}
+.bf-inp::placeholder{color:rgba(0,0,0,.36);font-weight:500}
+.bf-btn{padding:0 34px;background:#000;color:var(--y);font-weight:800;font-size:.94rem;border:none;cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .22s;white-space:nowrap}
+.bf-btn:hover{background:var(--dk2)}
+
+/* ═══════════════════════════
+   SERVICES
+════════════════════════════ */
+#services{padding:96px 0;background:#fff}
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:52px}
+.svc-card{
+  border:1px solid var(--border);border-radius:var(--rl);padding:34px 28px;
+  position:relative;overflow:hidden;background:#fff;
+  transition:transform .3s,box-shadow .3s,border-color .3s;cursor:default;
+}
+.svc-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:var(--y);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.svc-card:hover{transform:translateY(-7px);box-shadow:0 20px 48px rgba(0,0,0,.1);border-color:var(--y)}
+.svc-card:hover::after{transform:scaleX(1)}
+.svc-n{position:absolute;top:18px;right:20px;font-size:3.5rem;font-weight:900;color:rgba(0,0,0,.04);line-height:1;font-family:'Barlow',sans-serif}
+.svc-ico{width:66px;height:66px;border-radius:var(--r);background:#fff8e0;display:flex;align-items:center;justify-content:center;font-size:1.9rem;margin-bottom:20px;transition:background .3s}
+.svc-card:hover .svc-ico{background:var(--y)}
+.svc-title{font-family:'Barlow',sans-serif;font-size:1.18rem;font-weight:800;margin-bottom:9px;color:var(--dk)}
+.svc-desc{font-size:.88rem;color:var(--muted);line-height:1.76}
+.svc-more{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;font-weight:700;color:var(--y);margin-top:16px;transition:gap .25s}
+.svc-more:hover{gap:10px}
+
+/* ═══════════════════════════
+   HOW IT WORKS
+════════════════════════════ */
+#how{padding:96px 0;background:var(--dk);position:relative;overflow:hidden}
+#how::before{content:'';position:absolute;top:-200px;right:-200px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(245,184,0,.06),transparent 65%);pointer-events:none}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;margin-top:56px}
+.how-steps{display:flex;flex-direction:column}
+.how-step{display:flex;gap:20px;padding:22px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.how-step:last-child{border-bottom:none}
+.how-step:hover .how-num{background:var(--y);border-color:var(--y);color:#000}
+.how-num{width:52px;height:52px;border-radius:50%;background:transparent;border:2px solid rgba(245,184,0,.3);color:var(--y);font-family:'Barlow',sans-serif;font-size:1.2rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
+.how-stitle{font-family:'Barlow',sans-serif;font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:5px}
+.how-sdesc{font-size:.87rem;color:rgba(255,255,255,.5);line-height:1.74}
+/* How right side — visual card */
+.how-visual{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:var(--rxl);padding:36px 32px;
+}
+.how-app-mockup{
+  width:100%;background:linear-gradient(145deg,#1a1a2e,#0e0e1e);
+  border-radius:var(--rl);padding:28px;margin-bottom:22px;
+  border:1px solid rgba(255,255,255,.06);
+}
+.hm-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.hm-logo{display:flex;align-items:center;gap:8px}
+.hm-logo-ico{width:32px;height:32px;background:var(--y);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.hm-logo-txt{font-family:'Barlow',sans-serif;font-weight:900;font-size:.95rem;color:#fff}
+.hm-logo-txt span{color:var(--y)}
+.hm-status{font-size:.72rem;font-weight:700;color:#22cc66;background:rgba(34,204,102,.12);border:1px solid rgba(34,204,102,.25);padding:4px 12px;border-radius:100px}
+.hm-map{
+  width:100%;height:160px;border-radius:12px;
+  background:linear-gradient(145deg,#0d1a2e,#101824);
+  position:relative;overflow:hidden;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:center;
+}
+/* Fake map grid */
+.hm-map::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:30px 30px;
+}
+.hm-map-car{position:relative;z-index:2;font-size:2rem}
+.hm-route{
+  position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--y),transparent);
+}
+.hm-fields{display:flex;flex-direction:column;gap:10px}
+.hm-field{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px}
+.hm-field-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hm-field-txt{font-size:.82rem;color:rgba(255,255,255,.55);font-weight:500}
+.hm-field-txt strong{color:#fff;font-weight:600}
+.how-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.07);border-radius:var(--rl);overflow:hidden}
+.hstat{background:rgba(255,255,255,.03);padding:18px;text-align:center}
+.hstat-n{font-family:'Barlow',sans-serif;font-size:1.7rem;font-weight:900;color:var(--y);line-height:1}
+.hstat-l{font-size:.67rem;color:rgba(255,255,255,.42);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+
+/* ═══════════════════════════
+   FLEET
+════════════════════════════ */
+#fleet{padding:96px 0;background:var(--off)}
+.fleet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:50px}
+.fleet-card{background:#fff;border-radius:var(--rl);overflow:hidden;border:1px solid var(--border);transition:transform .3s,box-shadow .3s,border-color .3s}
+.fleet-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-lg);border-color:var(--y)}
+.fleet-thumb{
+  height:188px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.fleet-thumb-inner{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:5rem;
+  position:relative;
+}
+.fleet-car-label{
+  position:absolute;top:12px;left:12px;
+  font-family:'Barlow',sans-serif;font-weight:900;font-size:.7rem;
+  letter-spacing:2px;text-transform:uppercase;
+  padding:5px 14px;border-radius:100px;
+}
+.fleet-pop-badge{
+  position:absolute;top:12px;right:12px;
+  background:var(--y);color:#000;font-size:.66rem;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;padding:5px 14px;border-radius:100px;z-index:2;
+}
+.fleet-body{padding:20px 22px 24px}
+.fleet-type{font-size:.7rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--y);margin-bottom:5px}
+.fleet-name{font-family:'Barlow',sans-serif;font-size:1.18rem;font-weight:800;color:var(--dk);margin-bottom:10px}
+.fleet-specs{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.fleet-spec{font-size:.8rem;color:var(--muted);font-weight:600}
+.fleet-pr-row{display:flex;align-items:center;justify-content:space-between}
+.fleet-pr{font-family:'Barlow',sans-serif;font-size:1.45rem;font-weight:900;color:var(--dk)}
+.fleet-pr span{font-size:.8rem;font-weight:500;color:var(--muted)}
+
+/* ═══════════════════════════
+   WHY US
+════════════════════════════ */
+#why{padding:96px 0;background:#fff}
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+/* Visual side */
+.why-visual{position:relative}
+.why-visual-card{
+  border-radius:var(--rxl);overflow:hidden;
+  background:linear-gradient(145deg,var(--dk),var(--dk2));
+  padding:44px 40px;
+  position:relative;
+}
+.why-visual-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 80% at 80% 20%,rgba(245,184,0,.1),transparent 65%);
+}
+.why-big-stat{
+  font-family:'Barlow',sans-serif;font-size:5.5rem;font-weight:900;
+  color:var(--y);line-height:1;margin-bottom:6px;position:relative;
+}
+.why-big-lbl{font-size:1rem;color:rgba(255,255,255,.55);margin-bottom:36px;position:relative}
+.why-mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;position:relative}
+.wms{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px}
+.wms-n{font-family:'Barlow',sans-serif;font-size:2rem;font-weight:900;color:#fff;line-height:1;margin-bottom:4px}
+.wms-l{font-size:.72rem;color:rgba(255,255,255,.45);font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.why-badge{
+  position:absolute;bottom:-20px;right:-20px;
+  background:#fff;border-radius:var(--rl);padding:16px 20px;
+  box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:12px;min-width:190px;
+}
+.wb-ico{width:46px;height:46px;border-radius:50%;background:var(--y);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.wb-n{font-family:'Barlow',sans-serif;font-size:1.5rem;font-weight:900;color:var(--dk);line-height:1}
+.wb-l{font-size:.72rem;color:var(--muted);font-weight:600}
+/* Features */
+.why-feats{display:flex;flex-direction:column;margin-top:32px}
+.wf{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
+.wf:last-child{border-bottom:none}
+.wf-ico{width:50px;height:50px;border-radius:var(--r);background:#fff8e0;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;transition:background .3s}
+.wf:hover .wf-ico{background:var(--y)}
+.wf-t{font-family:'Barlow',sans-serif;font-size:1rem;font-weight:800;color:var(--dk);margin-bottom:4px}
+.wf-d{font-size:.87rem;color:var(--muted);line-height:1.72}
+
+/* ═══════════════════════════
+   STATS BAND
+════════════════════════════ */
+#stats-band{background:var(--y);padding:54px 0}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat-c{text-align:center;padding:8px 20px;border-right:1px solid rgba(0,0,0,.1)}
+.stat-c:last-child{border:none}
+.stat-n{font-family:'Barlow',sans-serif;font-size:clamp(2.2rem,3.8vw,3.3rem);font-weight:900;color:#000;line-height:1;margin-bottom:6px}
+.stat-l{font-size:.74rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(0,0,0,.54)}
+
+/* ═══════════════════════════
+   TESTIMONIALS
+════════════════════════════ */
+#testi{padding:96px 0;background:var(--off)}
+.testi-head{text-align:center;margin-bottom:52px}
+.testi-head .sp{margin:0 auto}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.tc{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:28px;position:relative;transition:transform .3s,box-shadow .3s,border-color .3s}
+.tc:hover{transform:translateY(-6px);box-shadow:0 20px 44px rgba(0,0,0,.09);border-color:var(--y)}
+.tc-q{position:absolute;top:18px;right:20px;font-size:3.5rem;color:rgba(245,184,0,.1);line-height:1;font-family:Georgia,serif}
+.tc-stars{display:flex;gap:3px;margin-bottom:14px}
+.star{color:var(--y);font-size:.9rem}
+.tc-txt{font-size:.91rem;color:var(--txt);line-height:1.8;margin-bottom:20px;font-style:italic}
+.tc-author{display:flex;align-items:center;gap:12px;padding-top:16px;border-top:1px solid var(--border)}
+.tc-av{width:44px;height:44px;border-radius:50%;background:var(--y);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#000;flex-shrink:0}
+.tc-name{font-weight:800;font-size:.9rem;color:var(--dk);margin-bottom:2px}
+.tc-loc{font-size:.74rem;color:var(--muted)}
+
+/* ═══════════════════════════
+   CTA BAND
+════════════════════════════ */
+#cta{padding:84px 0;background:var(--dk);position:relative;overflow:hidden}
+#cta::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.cta-inner{display:grid;grid-template-columns:1fr auto;align-items:center;gap:44px;position:relative}
+.cta-h{font-family:'Barlow',sans-serif;font-size:clamp(1.9rem,3.5vw,2.9rem);font-weight:900;color:#fff;line-height:1.1;margin-bottom:10px}
+.cta-p{font-size:.96rem;color:rgba(255,255,255,.52);max-width:460px}
+.cta-btns{display:flex;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.cta-app{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:13px 20px;color:#fff;transition:all .3s}
+.cta-app:hover{background:var(--y);border-color:var(--y);color:#000}
+.cta-app-ico{font-size:1.8rem}
+.cta-app-sub{font-size:.62rem;opacity:.55;font-weight:600}
+.cta-app-name{font-size:.95rem;font-weight:800}
+
+/* ═══════════════════════════
+   DRIVER
+════════════════════════════ */
+#driver{padding:84px 0;background:var(--y)}
+.driver-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.driver-visual{
+  background:var(--dk);border-radius:var(--rxl);padding:36px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:340px;position:relative;overflow:hidden;
+}
+.driver-visual::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 30%,rgba(245,184,0,.08),transparent 65%)}
+.driver-big-ico{font-size:5rem;margin-bottom:18px;position:relative;z-index:1}
+.driver-perks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:26px 0 32px}
+.dp{background:rgba(0,0,0,.08);border-radius:var(--r);padding:13px 15px;display:flex;align-items:center;gap:9px}
+.dp-ico{font-size:1.05rem}
+.dp-t{font-size:.85rem;font-weight:700;color:#000}
+
+/* ═══════════════════════════
+   FOOTER
+════════════════════════════ */
+footer{background:var(--dk2);padding:68px 0 0}
+.foot-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:44px;margin-bottom:52px}
+.fb-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.fb-logo-ico{width:38px;height:38px;background:var(--y);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.fb-logo-txt{font-family:'Barlow',sans-serif;font-size:1.2rem;font-weight:900;color:#fff;letter-spacing:-.4px}
+.fb-logo-txt span{color:var(--y)}
+.fb-desc{font-size:.85rem;color:rgba(255,255,255,.4);line-height:1.74;margin-bottom:22px}
+.fb-soc{display:flex;gap:8px}
+.fsoc{width:34px;height:34px;border-radius:7px;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:rgba(255,255,255,.35);transition:all .22s}
+.fsoc:hover{border-color:var(--y);color:var(--y)}
+.fc-ttl{font-size:.68rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--y);margin-bottom:16px}
+.flinks{display:flex;flex-direction:column;gap:10px}
+.flinks a{color:rgba(255,255,255,.4);font-size:.85rem;transition:color .22s}
+.flinks a:hover{color:var(--y)}
+.fci{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.fci-ico{width:28px;height:28px;border-radius:6px;background:rgba(245,184,0,.1);border:1px solid rgba(245,184,0,.16);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+.fci-txt{font-size:.82rem;color:rgba(255,255,255,.4);line-height:1.56}
+.fci-txt b{color:rgba(255,255,255,.72);display:block}
+.fbot{background:rgba(0,0,0,.3);border-top:1px solid rgba(255,255,255,.05);padding:18px 0}
+.fbot-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.fcp{font-size:.78rem;color:rgba(255,255,255,.28)}
+.fbl{display:flex;gap:18px}
+.fbl a{font-size:.78rem;color:rgba(255,255,255,.28);transition:color .22s}
+.fbl a:hover{color:var(--y)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1024px){
+  #hero{grid-template-columns:1fr;min-height:auto}
+  .hero-right{display:none}
+  .hero-left{padding:120px 0 60px}
+  .svc-grid,.fleet-grid,.testi-grid{grid-template-columns:repeat(2,1fr)}
+  .how-grid,.why-grid,.driver-grid,.cta-inner{grid-template-columns:1fr;gap:40px}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .stat-c{border-bottom:1px solid rgba(0,0,0,.08)}
+  .foot-top{grid-template-columns:1fr 1fr}
+  .why-badge{right:0;bottom:-16px}
+}
+@media(max-width:768px){
+  .nav-links,.nav-phone{display:none}
+  .hamburger{display:flex}
+  .book-form{grid-template-columns:1fr}
+  .bf-g{border-right:none;border-bottom:1px solid rgba(0,0,0,.1)}
+  .bf-btn{height:52px;justify-content:center}
+  .svc-grid,.fleet-grid,.testi-grid{grid-template-columns:1fr}
+  .driver-perks{grid-template-columns:1fr}
+  .foot-top{grid-template-columns:1fr}
+  .hero-h1{letter-spacing:-1px}
+  #services,#how,#fleet,#why,#testi,#cta,#driver{padding:68px 0}
+  .tb-left{display:none}
+}
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div id="topbar">
+  <div class="container">
+    <div class="tb-inner">
+      <div class="tb-left">
+        <span class="tb-item">📍 <strong>200+ Cities</strong>&nbsp;Nationwide</span>
+        <span class="tb-item">📞 <strong>+1 (800) 465-3694</strong></span>
+        <span class="tb-item">✉️ <strong>support@goldenride.com</strong></span>
+      </div>
+      <div class="tb-right">
+        <a href="#" class="tb-soc">𝕏</a>
+        <a href="#" class="tb-soc">f</a>
+        <a href="#" class="tb-soc">in</a>
+        <a href="#" class="tb-soc">▶</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NAVBAR ══ -->
+<nav id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <div class="logo">
+        <div class="logo-ico">🚖</div>
+        <div>
+          <div class="logo-name">Golden<span>Ride</span></div>
+          <div class="logo-tag">Premium Taxi Service</div>
+        </div>
+      </div>
+      <ul class="nav-links">
+        <li class="active"><a href="#hero">Home</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#fleet">Fleet</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#testi">Reviews</a></li>
+        <li><a href="#driver">Drive With Us</a></li>
+      </ul>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="nav-phone">
+          <div class="np-ico">📞</div>
+          <div>
+            <div class="np-lbl">Call Anytime</div>
+            <div class="np-num">+1 (800) 465-3694</div>
+          </div>
+        </div>
+        <a href="#book-bar" class="btn-y">Book a Ride</a>
+      </div>
+      <button class="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section id="hero">
+  <div class="hero-bg"></div>
+
+  <!-- Left -->
+  <div class="container" style="position:relative;z-index:2;grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+    <div class="hero-left" style="padding-top:0">
+      <div class="hero-pill">
+        <div class="hero-dot"></div>
+        <span class="hero-pill-txt">Now Live in 200+ Cities</span>
+      </div>
+      <h1 class="hero-h1 fade-l">
+        Ride Safe,<br/><em>Ride Golden</em><br/>Every Time
+      </h1>
+      <p class="hero-p fade-l">Premium on-demand taxi service with verified professional drivers, transparent USD fares, and real-time GPS tracking. Book in under 60 seconds.</p>
+      <div class="hero-btns fade-l">
+        <a href="#book-bar" class="btn-y">🚖&nbsp; Book Your Ride</a>
+        <a href="#how" class="btn-y-ol">How It Works</a>
+      </div>
+      <div class="hero-trust">
+        <div class="ht fade">
+          <div class="ht-ico">🛡️</div>
+          <div><div class="ht-n">100%</div><div class="ht-l">Verified Drivers</div></div>
+        </div>
+        <div class="ht fade">
+          <div class="ht-ico">💵</div>
+          <div><div class="ht-n">$0</div><div class="ht-l">Hidden Fees</div></div>
+        </div>
+        <div class="ht fade">
+          <div class="ht-ico">⚡</div>
+          <div><div class="ht-n">&lt;60s</div><div class="ht-l">Matching Time</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right showcase -->
+    <div class="hero-right" style="padding:100px 0">
+      <div class="car-showcase fade-r">
+        <div class="car-badge-1">
+          <span class="cb-ico">🏆</span>
+          <div><div class="cb-n">#1</div><div class="cb-l">Rated App 2025</div></div>
+        </div>
+        <div class="car-main-img">
+          <!-- Professional taxi SVG illustration -->
+          <svg class="taxi-svg" viewBox="0 0 480 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Shadow -->
+            <ellipse cx="240" cy="188" rx="185" ry="10" fill="rgba(0,0,0,0.5)"/>
+            <!-- Body lower -->
+            <rect x="42" y="118" width="396" height="55" rx="8" fill="#D4950A"/>
+            <!-- Body upper / cabin -->
+            <path d="M120 118 L148 70 Q155 58 168 56 L310 56 Q323 58 330 68 L360 118 Z" fill="#C8860A"/>
+            <!-- Roof -->
+            <rect x="158" y="50" width="162" height="6" rx="3" fill="#B87800"/>
+            <!-- Windshield front -->
+            <path d="M310 56 L328 92 L312 118 L290 118 L290 70 Z" fill="#1a3a60" opacity="0.85"/>
+            <!-- Windshield rear -->
+            <path d="M170 56 L152 90 L168 118 L188 118 L188 68 Z" fill="#1a3a60" opacity="0.85"/>
+            <!-- Side windows -->
+            <rect x="200" y="64" width="80" height="46" rx="4" fill="#1a3a60" opacity="0.8"/>
+            <!-- B-pillar -->
+            <rect x="283" y="64" width="6" height="46" rx="2" fill="#B87800"/>
+            <!-- Waist chrome strip -->
+            <rect x="42" y="134" width="396" height="5" rx="2" fill="#e0e0e0" opacity="0.5"/>
+            <!-- Door lines -->
+            <line x1="283" y1="138" x2="283" y2="173" stroke="#B87800" stroke-width="1.5" opacity="0.6"/>
+            <!-- Front bumper -->
+            <path d="M420 138 Q440 140 442 155 L442 173 Q440 178 435 178 L416 178 Z" fill="#1a1a1a"/>
+            <rect x="426" y="150" width="16" height="5" rx="2" fill="#e0e0e0" opacity="0.6"/>
+            <!-- Rear bumper -->
+            <path d="M60 138 Q40 140 38 155 L38 173 Q40 178 45 178 L64 178 Z" fill="#1a1a1a"/>
+            <rect x="38" y="150" width="16" height="5" rx="2" fill="#e0e0e0" opacity="0.6"/>
+            <!-- Grille -->
+            <rect x="428" y="140" width="14" height="18" rx="2" fill="#111"/>
+            <rect x="430" y="143" width="10" height="2" rx="1" fill="#888"/>
+            <rect x="430" y="147" width="10" height="2" rx="1" fill="#888"/>
+            <rect x="430" y="151" width="10" height="2" rx="1" fill="#888"/>
+            <!-- Headlights -->
+            <rect x="416" y="126" width="22" height="12" rx="3" fill="white" opacity="0.9"/>
+            <rect x="416" y="140" width="18" height="4" rx="2" fill="white" opacity="0.7"/>
+            <!-- Taillights -->
+            <rect x="42" y="126" width="22" height="12" rx="3" fill="#ff2200" opacity="0.9"/>
+            <rect x="42" y="140" width="18" height="4" rx="2" fill="#ff3300" opacity="0.7"/>
+            <!-- Rear taillight strip -->
+            <rect x="38" y="132" width="6" height="26" rx="2" fill="#cc1100"/>
+            <!-- Wheels -->
+            <!-- Front wheel -->
+            <circle cx="360" cy="178" r="28" fill="#111"/>
+            <circle cx="360" cy="178" r="22" fill="#333"/>
+            <circle cx="360" cy="178" r="14" fill="#666"/>
+            <circle cx="360" cy="178" r="6" fill="#888"/>
+            <!-- Front spokes -->
+            <line x1="360" y1="164" x2="360" y2="192" stroke="#999" stroke-width="2.5"/>
+            <line x1="346" y1="178" x2="374" y2="178" stroke="#999" stroke-width="2.5"/>
+            <line x1="350" y1="168" x2="370" y2="188" stroke="#999" stroke-width="2"/>
+            <line x1="370" y1="168" x2="350" y2="188" stroke="#999" stroke-width="2"/>
+            <!-- Rear wheel -->
+            <circle cx="118" cy="178" r="28" fill="#111"/>
+            <circle cx="118" cy="178" r="22" fill="#333"/>
+            <circle cx="118" cy="178" r="14" fill="#666"/>
+            <circle cx="118" cy="178" r="6" fill="#888"/>
+            <line x1="118" y1="164" x2="118" y2="192" stroke="#999" stroke-width="2.5"/>
+            <line x1="104" y1="178" x2="132" y2="178" stroke="#999" stroke-width="2.5"/>
+            <line x1="108" y1="168" x2="128" y2="188" stroke="#999" stroke-width="2"/>
+            <line x1="128" y1="168" x2="108" y2="188" stroke="#999" stroke-width="2"/>
+            <!-- TAXI sign -->
+            <rect x="196" y="40" width="88" height="22" rx="5" fill="#FFD700"/>
+            <rect x="198" y="42" width="84" height="18" rx="4" fill="#FFE030"/>
+            <text x="240" y="55" text-anchor="middle" font-family="Arial Black,sans-serif" font-weight="900" font-size="12" fill="#000">TAXI</text>
+            <!-- Side mirrors -->
+            <rect x="330" y="80" width="18" height="8" rx="3" fill="#1a1a1a"/>
+            <rect x="152" y="80" width="18" height="8" rx="3" fill="#1a1a1a"/>
+            <!-- Door handles -->
+            <rect x="246" y="148" width="18" height="4" rx="2" fill="#e0e0e0" opacity="0.7"/>
+            <rect x="186" y="148" width="14" height="4" rx="2" fill="#e0e0e0" opacity="0.7"/>
+            <!-- Golden stripe accent on body -->
+            <rect x="62" y="152" width="354" height="3" rx="1" fill="#FFD700" opacity="0.35"/>
+          </svg>
+          <div class="car-glow"></div>
+        </div>
+        <div class="car-meta">
+          <div class="cm-item"><div class="cm-n">4.9★</div><div class="cm-l">Rating</div></div>
+          <div class="cm-item"><div class="cm-n">5M+</div><div class="cm-l">Rides</div></div>
+          <div class="cm-item"><div class="cm-n">200+</div><div class="cm-l">Cities</div></div>
+        </div>
+        <div class="car-badge-2">
+          <span style="font-size:1.3rem">✅</span>
+          <div class="cb2-txt">Driver verified<br/>& on the way</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BOOKING BAR ══ -->
+<div id="book-bar">
+  <div class="book-form">
+    <div class="bf-g">
+      <label class="bf-lbl">Pickup Location</label>
+      <input class="bf-inp" id="inp-from" type="text" placeholder="Enter pickup address…"/>
+    </div>
+    <div class="bf-g">
+      <label class="bf-lbl">Drop-off Location</label>
+      <input class="bf-inp" id="inp-to" type="text" placeholder="Enter destination…"/>
+    </div>
+    <div class="bf-g">
+      <label class="bf-lbl">Vehicle Type</label>
+      <select class="bf-inp" id="sel-veh">
+        <option>Standard Sedan</option>
+        <option>Golden Premier</option>
+        <option>Golden XL (SUV)</option>
+      </select>
+    </div>
+    <button class="bf-btn" onclick="doBook()">🚖 &nbsp;Book Now</button>
+  </div>
+</div>
+
+<!-- ══ SERVICES ══ -->
+<section id="services">
+  <div class="container">
+    <div class="slabel">What We Offer</div>
+    <h2 class="sh">Our Premium<br/>Ride Services</h2>
+    <p class="sp">From daily commutes to special occasions — a Golden Ride service tailored for every journey.</p>
+    <div class="svc-grid">
+      <div class="svc-card fade"><span class="svc-n">01</span><div class="svc-ico">🌆</div><div class="svc-title">City Rides</div><p class="svc-desc">Reliable everyday rides for your commute, errands, and night outs. Fixed USD pricing, clean cars, driver at your door in minutes.</p><a href="#" class="svc-more">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">02</span><div class="svc-ico">✈️</div><div class="svc-title">Airport Transfers</div><p class="svc-desc">On-time guaranteed airport pickups and drop-offs. Real flight tracking ensures your driver waits — even if your flight is delayed.</p><a href="#" class="svc-more">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">03</span><div class="svc-ico">👑</div><div class="svc-title">Golden Premier</div><p class="svc-desc">Luxury sedan experience for corporate travel and special occasions. Leather interiors, premium drivers, and complimentary amenities.</p><a href="#" class="svc-more">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">04</span><div class="svc-ico">👨‍👩‍👧‍👦</div><div class="svc-title">Group & XL Rides</div><p class="svc-desc">Spacious SUVs and minivans for groups up to 6 passengers. Perfect for families, events, and corporate outings.</p><a href="#" class="svc-more">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">05</span><div class="svc-ico">🕐</div><div class="svc-title">Hourly Hire</div><p class="svc-desc">Book a driver by the hour for meetings, shopping, or sightseeing. Full flexibility — go wherever you need, whenever you need.</p><a href="#" class="svc-more">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">06</span><div class="svc-ico">🏢</div><div class="svc-title">Corporate Accounts</div><p class="svc-desc">Dedicated business accounts with monthly invoicing, priority dispatch, and a dedicated account manager for your team's travel needs.</p><a href="#" class="svc-more">Learn More →</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section id="how">
+  <div class="container">
+    <div class="slabel" style="color:var(--y)">Simple Process</div>
+    <h2 class="sh w">How Golden Ride<br/>Works for You</h2>
+    <div class="how-grid">
+      <div class="how-steps">
+        <div class="how-step fade-l"><div class="how-num">01</div><div><div class="how-stitle">Set Your Route</div><p class="how-sdesc">Enter your pickup and destination. Our engine shows the optimal route and your fixed USD fare — locked in before you confirm. No surprises, ever.</p></div></div>
+        <div class="how-step fade-l"><div class="how-num">02</div><div><div class="how-stitle">Get Matched Instantly</div><p class="how-sdesc">Our AI dispatch connects you with the nearest verified driver in under 60 seconds. Watch them approach live on the map with a real-time ETA.</p></div></div>
+        <div class="how-step fade-l"><div class="how-num">03</div><div><div class="how-stitle">Ride & Pay Automatically</div><p class="how-sdesc">Relax in a clean, premium vehicle. Payment is automated on arrival — no cash, no fuss. Rate your driver and get your digital receipt instantly.</p></div></div>
+        <div class="how-step fade-l"><div class="how-num">04</div><div><div class="how-stitle">Track & Share Live</div><p class="how-sdesc">Share your live ride with family or colleagues. They see your driver's exact GPS position in real time — complete transparency start to finish.</p></div></div>
+      </div>
+      <div class="fade-r">
+        <div class="how-visual">
+          <div class="how-app-mockup">
+            <div class="hm-bar">
+              <div class="hm-logo">
+                <div class="hm-logo-ico">🚖</div>
+                <div class="hm-logo-txt">Golden<span>Ride</span></div>
+              </div>
+              <div class="hm-status">● Driver Matched</div>
+            </div>
+            <div class="hm-map">
+              <div class="hm-map-car">🚖</div>
+              <div class="hm-route"></div>
+            </div>
+            <div class="hm-fields">
+              <div class="hm-field"><div class="hm-field-dot" style="background:#22cc66"></div><div class="hm-field-txt"><strong>180 Park Avenue, Manhattan</strong></div></div>
+              <div class="hm-field"><div class="hm-field-dot" style="background:var(--y)"></div><div class="hm-field-txt"><strong>JFK International Airport, Terminal 4</strong></div></div>
+            </div>
+          </div>
+          <div class="how-stats">
+            <div class="hstat"><div class="hstat-n" data-count="50" data-suf="K+">50K+</div><div class="hstat-l">Drivers</div></div>
+            <div class="hstat"><div class="hstat-n" data-count="5" data-suf="M+">5M+</div><div class="hstat-l">Rides</div></div>
+            <div class="hstat"><div class="hstat-n">4.9★</div><div class="hstat-l">Rating</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FLEET ══ -->
+<section id="fleet">
+  <div class="container">
+    <div class="slabel">Our Fleet</div>
+    <h2 class="sh">Choose Your<br/>Perfect Ride</h2>
+    <p class="sp">Every vehicle is regularly inspected, spotlessly clean, and air-conditioned — premium comfort guaranteed.</p>
+    <div class="fleet-grid">
+
+      <div class="fleet-card fade" style="position:relative">
+        <div class="fleet-thumb" style="background:linear-gradient(135deg,#1a1a2e,#2a2a4a)">
+          <div class="fleet-thumb-inner">
+            <svg viewBox="0 0 320 140" style="width:88%" fill="none">
+              <ellipse cx="160" cy="132" rx="130" ry="7" fill="rgba(0,0,0,0.4)"/>
+              <rect x="28" y="78" width="264" height="42" rx="6" fill="#B8860B"/>
+              <path d="M82 78 L100 44 Q106 36 116 34 L204 34 Q214 36 220 44 L238 78Z" fill="#A07808"/>
+              <path d="M204 34 L220 56 L210 78 L194 78 L194 44Z" fill="#1a3a60" opacity="0.8"/>
+              <path d="M116 34 L100 54 L110 78 L126 78 L126 42Z" fill="#1a3a60" opacity="0.8"/>
+              <rect x="136" y="40" width="54" height="32" rx="3" fill="#1a3a60" opacity="0.75"/>
+              <rect x="192" y="40" width="4" height="32" rx="2" fill="#8a6600"/>
+              <rect x="28" y="90" width="264" height="4" rx="2" fill="#d0d0d0" opacity="0.4"/>
+              <path d="M276 91 Q290 93 292 102L292 120 Q290 124 286 124L268 124Z" fill="#111"/>
+              <rect x="280" y="102" width="12" height="4" rx="2" fill="#aaa" opacity="0.6"/>
+              <path d="M44 91 Q30 93 28 102L28 120 Q30 124 34 124L52 124Z" fill="#111"/>
+              <rect x="28" y="102" width="12" height="4" rx="2" fill="#aaa" opacity="0.6"/>
+              <rect x="278" y="82" width="16" height="9" rx="2" fill="white" opacity="0.85"/>
+              <rect x="278" y="92" width="12" height="3" rx="1" fill="white" opacity="0.6"/>
+              <rect x="26" y="82" width="16" height="9" rx="2" fill="#ff2200" opacity="0.85"/>
+              <rect x="22" y="86" width="4" height="20" rx="2" fill="#cc1100"/>
+              <circle cx="240" cy="124" r="20" fill="#111"/><circle cx="240" cy="124" r="15" fill="#333"/><circle cx="240" cy="124" r="8" fill="#666"/><circle cx="240" cy="124" r="3" fill="#888"/>
+              <line x1="240" y1="114" x2="240" y2="134" stroke="#999" stroke-width="2"/><line x1="230" y1="124" x2="250" y2="124" stroke="#999" stroke-width="2"/>
+              <circle cx="80" cy="124" r="20" fill="#111"/><circle cx="80" cy="124" r="15" fill="#333"/><circle cx="80" cy="124" r="8" fill="#666"/><circle cx="80" cy="124" r="3" fill="#888"/>
+              <line x1="80" y1="114" x2="80" y2="134" stroke="#999" stroke-width="2"/><line x1="70" y1="124" x2="90" y2="124" stroke="#999" stroke-width="2"/>
+              <rect x="130" y="26" width="60" height="15" rx="4" fill="#FFD700"/>
+              <text x="160" y="37" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="9" fill="#000">TAXI</text>
+            </svg>
+          </div>
+          <div class="fleet-car-label" style="background:rgba(184,134,11,.2);color:#FFD700;border:1px solid rgba(255,215,0,.3)">Standard</div>
+        </div>
+        <div class="fleet-body">
+          <div class="fleet-type">Standard</div>
+          <div class="fleet-name">Golden Standard</div>
+          <div class="fleet-specs">
+            <span class="fleet-spec">👤 1–3 Passengers</span>
+            <span class="fleet-spec">🧳 2 Bags</span>
+            <span class="fleet-spec">❄️ A/C</span>
+          </div>
+          <div class="fleet-pr-row">
+            <div class="fleet-pr">$1.20 <span>/ mile</span></div>
+            <a href="#book-bar" class="btn-y" style="padding:9px 18px;font-size:.82rem">Book Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="fleet-card fade" style="position:relative">
+        <div class="fleet-pop-badge">Most Popular</div>
+        <div class="fleet-thumb" style="background:linear-gradient(135deg,#0d1a0d,#1a2a1a)">
+          <div class="fleet-thumb-inner">
+            <svg viewBox="0 0 320 140" style="width:88%" fill="none">
+              <ellipse cx="160" cy="132" rx="130" ry="7" fill="rgba(0,0,0,0.4)"/>
+              <rect x="28" y="78" width="264" height="42" rx="6" fill="#111"/>
+              <path d="M82 78 L100 44 Q106 36 116 34 L204 34 Q214 36 220 44 L238 78Z" fill="#0a0a0a"/>
+              <path d="M204 34 L220 56 L210 78 L194 78 L194 44Z" fill="#1a3a60" opacity="0.8"/>
+              <path d="M116 34 L100 54 L110 78 L126 78 L126 42Z" fill="#1a3a60" opacity="0.8"/>
+              <rect x="136" y="40" width="54" height="32" rx="3" fill="#1a3a60" opacity="0.75"/>
+              <rect x="192" y="40" width="4" height="32" rx="2" fill="#333"/>
+              <rect x="28" y="90" width="264" height="4" rx="2" fill="#F5B800" opacity="0.6"/>
+              <path d="M276 91 Q290 93 292 102L292 120 Q290 124 286 124L268 124Z" fill="#222"/>
+              <path d="M44 91 Q30 93 28 102L28 120 Q30 124 34 124L52 124Z" fill="#222"/>
+              <rect x="278" y="82" width="16" height="9" rx="2" fill="white" opacity="0.9"/>
+              <rect x="278" y="92" width="12" height="3" rx="1" fill="white" opacity="0.7"/>
+              <rect x="26" y="82" width="16" height="9" rx="2" fill="#ff2200" opacity="0.9"/>
+              <rect x="22" y="86" width="4" height="20" rx="2" fill="#cc1100"/>
+              <circle cx="240" cy="124" r="20" fill="#111"/><circle cx="240" cy="124" r="15" fill="#444"/><circle cx="240" cy="124" r="8" fill="#888"/><circle cx="240" cy="124" r="3" fill="#aaa"/>
+              <line x1="240" y1="114" x2="240" y2="134" stroke="#ccc" stroke-width="2"/><line x1="230" y1="124" x2="250" y2="124" stroke="#ccc" stroke-width="2"/>
+              <circle cx="80" cy="124" r="20" fill="#111"/><circle cx="80" cy="124" r="15" fill="#444"/><circle cx="80" cy="124" r="8" fill="#888"/><circle cx="80" cy="124" r="3" fill="#aaa"/>
+              <line x1="80" y1="114" x2="80" y2="134" stroke="#ccc" stroke-width="2"/><line x1="70" y1="124" x2="90" y2="124" stroke="#ccc" stroke-width="2"/>
+              <rect x="130" y="26" width="60" height="15" rx="4" fill="#F5B800"/>
+              <text x="160" y="37" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="9" fill="#000">PREMIER</text>
+            </svg>
+          </div>
+          <div class="fleet-car-label" style="background:rgba(245,184,0,.2);color:#F5B800;border:1px solid rgba(245,184,0,.35)">Premier</div>
+        </div>
+        <div class="fleet-body">
+          <div class="fleet-type">Premier</div>
+          <div class="fleet-name">Golden Premier</div>
+          <div class="fleet-specs">
+            <span class="fleet-spec">👤 1–4 Passengers</span>
+            <span class="fleet-spec">🧳 3 Bags</span>
+            <span class="fleet-spec">🌟 Luxury</span>
+          </div>
+          <div class="fleet-pr-row">
+            <div class="fleet-pr">$2.40 <span>/ mile</span></div>
+            <a href="#book-bar" class="btn-y" style="padding:9px 18px;font-size:.82rem">Book Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="fleet-card fade">
+        <div class="fleet-thumb" style="background:linear-gradient(135deg,#0d1520,#1a2535)">
+          <div class="fleet-thumb-inner">
+            <svg viewBox="0 0 320 140" style="width:88%" fill="none">
+              <ellipse cx="160" cy="132" rx="140" ry="7" fill="rgba(0,0,0,0.4)"/>
+              <!-- SUV — taller, boxier -->
+              <rect x="20" y="65" width="280" height="58" rx="7" fill="#2255aa"/>
+              <path d="M75 65 L90 32 Q96 24 108 22 L212 22 Q224 24 230 32 L245 65Z" fill="#1a4498"/>
+              <path d="M212 22 L230 46 L220 65 L200 65 L200 30Z" fill="#1a3a60" opacity="0.8"/>
+              <path d="M108 22 L90 44 L100 65 L120 65 L120 30Z" fill="#1a3a60" opacity="0.8"/>
+              <rect x="130" y="28" width="60" height="30" rx="3" fill="#1a3a60" opacity="0.75"/>
+              <rect x="192" y="28" width="5" height="30" rx="2" fill="#1a4498"/>
+              <rect x="20" y="80" width="280" height="5" rx="2" fill="#4488dd" opacity="0.5"/>
+              <!-- Front -->
+              <path d="M284 83 Q300 85 302 98L302 123 Q300 128 295 128L274 128Z" fill="#111"/>
+              <rect x="288" y="96" width="14" height="5" rx="2" fill="#aaa" opacity="0.6"/>
+              <!-- Rear -->
+              <path d="M36 83 Q20 85 18 98L18 123 Q20 128 25 128L46 128Z" fill="#111"/>
+              <rect x="18" y="96" width="14" height="5" rx="2" fill="#aaa" opacity="0.6"/>
+              <rect x="288" y="70" width="16" height="10" rx="2" fill="white" opacity="0.9"/>
+              <rect x="22" y="70" width="16" height="10" rx="2" fill="#ff2200" opacity="0.9"/>
+              <rect x="14" y="74" width="5" height="22" rx="2" fill="#cc1100"/>
+              <!-- Big SUV wheels -->
+              <circle cx="248" cy="125" r="22" fill="#111"/><circle cx="248" cy="125" r="17" fill="#333"/><circle cx="248" cy="125" r="10" fill="#555"/><circle cx="248" cy="125" r="4" fill="#888"/>
+              <line x1="248" y1="113" x2="248" y2="137" stroke="#999" stroke-width="2.5"/><line x1="236" y1="125" x2="260" y2="125" stroke="#999" stroke-width="2.5"/>
+              <circle cx="72" cy="125" r="22" fill="#111"/><circle cx="72" cy="125" r="17" fill="#333"/><circle cx="72" cy="125" r="10" fill="#555"/><circle cx="72" cy="125" r="4" fill="#888"/>
+              <line x1="72" y1="113" x2="72" y2="137" stroke="#999" stroke-width="2.5"/><line x1="60" y1="125" x2="84" y2="125" stroke="#999" stroke-width="2.5"/>
+              <!-- Roof rack -->
+              <rect x="100" y="17" width="120" height="5" rx="2" fill="#1a4498"/>
+              <rect x="108" y="13" width="4" height="9" rx="2" fill="#1a4498"/>
+              <rect x="208" y="13" width="4" height="9" rx="2" fill="#1a4498"/>
+              <rect x="120" y="12" width="80" height="5" rx="2" fill="#F5B800" opacity="0.7"/>
+              <rect x="130" y="14" width="60" height="12" rx="3" fill="#F5B800"/>
+              <text x="160" y="23" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="8" fill="#000">TAXI XL</text>
+            </svg>
+          </div>
+          <div class="fleet-car-label" style="background:rgba(34,85,170,.3);color:#88aaff;border:1px solid rgba(34,85,170,.4)">XL / Group</div>
+        </div>
+        <div class="fleet-body">
+          <div class="fleet-type">XL / Group</div>
+          <div class="fleet-name">Golden XL</div>
+          <div class="fleet-specs">
+            <span class="fleet-spec">👤 1–6 Passengers</span>
+            <span class="fleet-spec">🧳 5 Bags</span>
+            <span class="fleet-spec">❄️ A/C</span>
+          </div>
+          <div class="fleet-pr-row">
+            <div class="fleet-pr">$1.90 <span>/ mile</span></div>
+            <a href="#book-bar" class="btn-y" style="padding:9px 18px;font-size:.82rem">Book Now</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ WHY US ══ -->
+<section id="why">
+  <div class="container">
+    <div class="why-grid">
+      <div class="why-visual fade-l">
+        <div class="why-visual-card">
+          <div class="why-big-stat">4.9★</div>
+          <div class="why-big-lbl">Average passenger rating across 5M+ completed rides</div>
+          <div class="why-mini-stats">
+            <div class="wms"><div class="wms-n" data-count="50" data-suf="K+">50K+</div><div class="wms-l">Active Drivers</div></div>
+            <div class="wms"><div class="wms-n" data-count="200" data-suf="+">200+</div><div class="wms-l">Cities</div></div>
+            <div class="wms"><div class="wms-n">99%</div><div class="wms-l">On-Time Rate</div></div>
+            <div class="wms"><div class="wms-n">$0</div><div class="wms-l">Hidden Fees</div></div>
+          </div>
+        </div>
+        <div class="why-badge">
+          <div class="wb-ico">🏆</div>
+          <div><div class="wb-n">#1</div><div class="wb-l">Rated Taxi App 2025</div></div>
+        </div>
+      </div>
+      <div class="fade-r">
+        <div class="slabel">Why Golden Ride</div>
+        <h2 class="sh">The Smarter Way<br/>To Get Around</h2>
+        <p class="sp">We built Golden Ride with one goal: the safest, most transparent, most comfortable ride possible — every single time.</p>
+        <div class="why-feats">
+          <div class="wf"><div class="wf-ico">🛡️</div><div><div class="wf-t">Fully Verified Drivers</div><p class="wf-d">Every driver passes a comprehensive background check, driving record review, and in-person vehicle inspection before their first ride.</p></div></div>
+          <div class="wf"><div class="wf-ico">💵</div><div><div class="wf-t">Fixed USD Pricing</div><p class="wf-d">Your fare is calculated and locked before you confirm. Zero surge pricing, zero hidden fees — pay exactly what you're quoted.</p></div></div>
+          <div class="wf"><div class="wf-ico">📍</div><div><div class="wf-t">Real-Time Live Tracking</div><p class="wf-d">Track your driver door to door on an interactive map. Share your live ride with anyone for added peace of mind.</p></div></div>
+          <div class="wf"><div class="wf-ico">⚡</div><div><div class="wf-t">24/7 Safety Support</div><p class="wf-d">Our dedicated safety team is available around the clock. In-app SOS connects you to local emergency services instantly.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ STATS ══ -->
+<div id="stats-band">
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-c fade"><div class="stat-n" data-count="50" data-suf="K+">50K+</div><div class="stat-l">Active Drivers</div></div>
+      <div class="stat-c fade"><div class="stat-n" data-count="200" data-suf="+">200+</div><div class="stat-l">Cities Covered</div></div>
+      <div class="stat-c fade"><div class="stat-n" data-count="5" data-suf="M+">5M+</div><div class="stat-l">Rides Completed</div></div>
+      <div class="stat-c fade"><div class="stat-n">99%</div><div class="stat-l">On-Time Rate</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TESTIMONIALS ══ -->
+<section id="testi">
+  <div class="container">
+    <div class="testi-head">
+      <div class="slabel" style="justify-content:center">Passenger Stories</div>
+      <h2 class="sh" style="text-align:center">What Our Riders Say</h2>
+      <p class="sp" style="text-align:center">Real experiences from real Golden Ride passengers around the country.</p>
+    </div>
+    <div class="testi-grid">
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"The car arrived in 3 minutes and was spotless. My driver was incredibly professional. This is genuinely the best taxi app I've ever used."</p><div class="tc-author"><div class="tc-av">A</div><div><div class="tc-name">Alex Mitchell</div><div class="tc-loc">📍 New York City, NY</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"Fixed pricing is a game-changer. No surge charges, no surprises. I book Golden Ride for every airport transfer and it's been flawless every time."</p><div class="tc-author"><div class="tc-av">S</div><div><div class="tc-name">Sarah Kowalski</div><div class="tc-loc">📍 Chicago, IL</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"I booked a Golden Premier for a client dinner — blown away. The driver had water ready, the car was immaculate, and we arrived right on time."</p><div class="tc-author"><div class="tc-av">M</div><div><div class="tc-name">Maya Patel</div><div class="tc-loc">📍 San Francisco, CA</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"The live tracking is incredible. My wife can always see where I am on late-night rides. Clean cars, great drivers — Golden Ride is in a class of its own."</p><div class="tc-author"><div class="tc-av">J</div><div><div class="tc-name">James Thornton</div><div class="tc-loc">📍 Houston, TX</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"Switched from every other app last year and haven't looked back. Reliable, affordable, and drivers are always kind. Golden Ride gets it right every time."</p><div class="tc-author"><div class="tc-av">R</div><div><div class="tc-name">Ryan Torres</div><div class="tc-loc">📍 Miami, FL</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"Used the XL for my sister's wedding with 6 people — perfectly on time and coordinated. The in-app tracking was brilliant. Will absolutely use again!"</p><div class="tc-author"><div class="tc-av">L</div><div><div class="tc-name">Lauren Kim</div><div class="tc-loc">📍 Seattle, WA</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ══ -->
+<section id="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <div>
+        <h2 class="cta-h">Ready for Your<br/>Golden Ride Experience?</h2>
+        <p class="cta-p">Download the app and book your first ride in seconds. Professional drivers, fixed USD pricing, real-time tracking — all in one tap.</p>
+      </div>
+      <div class="cta-btns">
+        <a href="#" class="cta-app" id="ios-btn">
+          <span class="cta-app-ico">🍎</span>
+          <div><div class="cta-app-sub">Download on the</div><div class="cta-app-name">App Store</div></div>
+        </a>
+        <a href="#" class="cta-app" id="android-btn">
+          <span class="cta-app-ico">▶</span>
+          <div><div class="cta-app-sub">Get it on</div><div class="cta-app-name">Google Play</div></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DRIVER ══ -->
+<section id="driver">
+  <div class="container">
+    <div class="driver-grid">
+      <div>
+        <div class="slabel" style="color:#000">Drive With Us</div>
+        <h2 class="sh" style="color:#000">Earn More.<br/>Drive Golden.</h2>
+        <p class="sp" style="color:rgba(0,0,0,.62);margin-bottom:26px">Join 50,000+ professional drivers. Set your own hours, keep more of what you earn, and get paid weekly — no hidden fees, no catches.</p>
+        <div class="driver-perks">
+          <div class="dp"><span class="dp-ico">💸</span><span class="dp-t">Weekly Guaranteed Pay</span></div>
+          <div class="dp"><span class="dp-ico">🕐</span><span class="dp-t">Flexible Hours</span></div>
+          <div class="dp"><span class="dp-ico">🛡️</span><span class="dp-t">Insurance Included</span></div>
+          <div class="dp"><span class="dp-ico">📱</span><span class="dp-t">Easy Driver App</span></div>
+        </div>
+        <a href="#" class="btn-dk">Apply as a Driver →</a>
+      </div>
+      <div class="driver-visual fade-r">
+        <div class="driver-big-ico">🚖</div>
+        <div style="text-align:center;position:relative;z-index:1">
+          <div style="font-family:'Barlow',sans-serif;font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:6px">$850</div>
+          <div style="font-size:.82rem;color:rgba(255,255,255,.5);font-weight:600">Avg weekly earnings</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:28px;width:100%;position:relative;z-index:1">
+          <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-family:'Barlow',sans-serif;font-size:1.5rem;font-weight:900;color:var(--y)">50K+</div>
+            <div style="font-size:.68rem;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:3px">Drivers</div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-family:'Barlow',sans-serif;font-size:1.5rem;font-weight:900;color:var(--y)">4.8★</div>
+            <div style="font-size:.68rem;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:3px">Driver Rating</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="container">
+    <div class="foot-top">
+      <div>
+        <div class="fb-logo">
+          <div class="fb-logo-ico">🚖</div>
+          <div class="fb-logo-txt">Golden<span>Ride</span></div>
+        </div>
+        <p class="fb-desc">Premium on-demand taxi service across 200+ cities. Your ride, your safety, our priority — every single time.</p>
+        <div class="fb-soc">
+          <a href="#" class="fsoc">𝕏</a><a href="#" class="fsoc">f</a>
+          <a href="#" class="fsoc">in</a><a href="#" class="fsoc">▶</a>
+        </div>
+      </div>
+      <div>
+        <div class="fc-ttl">Quick Links</div>
+        <div class="flinks">
+          <a href="#services">Services</a><a href="#fleet">Our Fleet</a>
+          <a href="#how">How It Works</a><a href="#testi">Reviews</a>
+          <a href="#driver">Drive With Us</a>
+        </div>
+      </div>
+      <div>
+        <div class="fc-ttl">Company</div>
+        <div class="flinks">
+          <a href="#">About Us</a><a href="#">Careers</a>
+          <a href="#">Press Room</a><a href="#">Blog</a>
+          <a href="#">Partners</a>
+        </div>
+      </div>
+      <div>
+        <div class="fc-ttl">Contact</div>
+        <div class="fci"><div class="fci-ico">📍</div><div class="fci-txt"><b>Headquarters</b>180 Park Ave, New York, NY 10017</div></div>
+        <div class="fci"><div class="fci-ico">📞</div><div class="fci-txt"><b>24/7 Support</b>+1 (800) 465-3694</div></div>
+        <div class="fci"><div class="fci-ico">✉️</div><div class="fci-txt"><b>Email</b>support@goldenride.com</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="fbot">
+    <div class="container">
+      <div class="fbot-inner">
+        <span class="fcp">© 2025 Golden Ride Inc. All rights reserved.</span>
+        <div class="fbl">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── Scroll fade-in ── */
+const io = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) setTimeout(() => e.target.classList.add('in'), i * 70);
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade,.fade-l,.fade-r').forEach(el => io.observe(el));
+
+/* ── Number counter ── */
+const cio = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target, tgt = parseInt(el.dataset.count), suf = el.dataset.suf || '';
+    if (!tgt) return;
+    let cur = 0; const step = tgt / 55;
+    const iv = setInterval(() => {
+      cur = Math.min(cur + step, tgt);
+      el.textContent = Math.round(cur) + suf;
+      if (cur >= tgt) clearInterval(iv);
+    }, 22);
+    cio.unobserve(el);
+  });
+}, { threshold: 0.6 });
+document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+
+/* ── Booking ── */
+function doBook() {
+  const f = document.getElementById('inp-from').value.trim();
+  const t = document.getElementById('inp-to').value.trim();
+  const v = document.getElementById('sel-veh').value;
+  if (!f || !t) { alert('Please enter both pickup and drop-off locations.'); return; }
+  alert(`✅ Booking Confirmed!\n\n📍 From: ${f}\n🏁 To: ${t}\n🚖 Vehicle: ${v}\n\nA verified driver is being matched to you now.`);
+}
+
+/* ── Nav scroll ── */
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').style.boxShadow =
+    scrollY > 10 ? '0 2px 28px rgba(0,0,0,.12)' : '0 2px 18px rgba(0,0,0,.07)';
+});
+</script>
+</body>
+</html>
