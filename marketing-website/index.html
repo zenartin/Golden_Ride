@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Golden Ride — Premium Taxi Booking Service</title>
   <meta name="description" content="Golden Ride — Book a professional taxi in seconds. Fixed USD pricing, verified drivers, real-time tracking across 200+ cities."/>
+  <!-- Favicon (inline SVG data URI — no 404) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23F5B800'/><text y='.9em' font-size='72' x='14'>🚖</text></svg>"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet"/>
@@ -55,29 +57,42 @@ img{max-width:100%;display:block}
 ════════════════════════════ */
 #topbar{background:var(--dk);padding:10px 0}
 .tb-inner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.tb-left{display:flex;gap:22px;flex-wrap:wrap}
-.tb-item{display:flex;align-items:center;gap:7px;font-size:.8rem;color:rgba(255,255,255,.5)}
+.tb-left{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+.tb-item{display:flex;align-items:center;gap:7px;font-size:.8rem;color:rgba(255,255,255,.7)}
 .tb-item strong{color:var(--y)}
-.tb-right{display:flex;gap:8px}
-.tb-soc{width:30px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:rgba(255,255,255,.38);transition:all .22s}
-.tb-soc:hover{border-color:var(--y);color:var(--y)}
+/* Social icons in topbar */
+.tb-right{display:flex;gap:8px;align-items:center}
+.tb-soc{
+  width:32px;height:32px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.7);transition:all .22s;
+  background:rgba(255,255,255,.05);
+}
+.tb-soc svg{width:15px;height:15px;fill:currentColor}
+.tb-soc:hover{border-color:var(--y);color:var(--y);background:rgba(245,184,0,.1)}
 
 /* ═══════════════════════════
    NAVBAR
 ════════════════════════════ */
 #nav{position:sticky;top:0;z-index:999;background:#fff;box-shadow:0 2px 18px rgba(0,0,0,.07);padding:0}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;height:76px;gap:20px}
-/* Logo */
 .logo{display:flex;align-items:center;gap:11px}
 .logo-ico{width:46px;height:46px;background:var(--y);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;box-shadow:0 4px 14px rgba(245,184,0,.3)}
 .logo-name{font-family:'Barlow',sans-serif;font-size:1.3rem;font-weight:900;color:var(--dk);letter-spacing:-.4px;line-height:1}
 .logo-name span{color:var(--y)}
-.logo-tag{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px}
-/* Nav links */
+/* Nav links — active highlight fix (#issue 4) */
 .nav-links{display:flex;align-items:center;gap:2px;list-style:none}
-.nav-links a{display:block;padding:8px 14px;font-size:.88rem;font-weight:600;color:var(--txt);border-radius:var(--r);transition:color .2s}
-.nav-links a:hover,.nav-links li.active a{color:var(--y)}
-/* Phone */
+.nav-links a{
+  display:block;padding:8px 14px;font-size:.88rem;font-weight:600;
+  color:var(--txt);border-radius:var(--r);transition:all .2s;
+}
+.nav-links a:hover{color:var(--y);background:rgba(245,184,0,.06)}
+.nav-links li.active a{
+  color:var(--y);
+  background:rgba(245,184,0,.1);
+  border-bottom:2px solid var(--y);
+}
 .nav-phone{display:flex;align-items:center;gap:10px}
 .np-ico{width:40px;height:40px;border-radius:50%;background:var(--y);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
 .np-lbl{font-size:.68rem;color:var(--muted);font-weight:600}
@@ -88,33 +103,15 @@ img{max-width:100%;display:block}
 .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 .hamburger.open span:nth-child(2){opacity:0}
 .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-
 /* Mobile Nav Drawer */
 .mobile-nav{
-  display:none;
-  position:fixed;
-  top:76px;
-  left:0;
-  right:0;
-  background:#fff;
-  z-index:998;
-  padding:16px 28px 24px;
-  box-shadow:0 8px 30px rgba(0,0,0,.12);
-  border-top:1px solid var(--border);
-  flex-direction:column;
-  gap:4px;
+  display:none;position:fixed;top:76px;left:0;right:0;background:#fff;
+  z-index:998;padding:16px 28px 24px;box-shadow:0 8px 30px rgba(0,0,0,.12);
+  border-top:1px solid var(--border);flex-direction:column;gap:4px;
 }
 .mobile-nav.open{display:flex;animation:slideDown .25s ease forwards}
-@keyframes slideDown{
-  from{opacity:0;transform:translateY(-10px)}
-  to{opacity:1;transform:translateY(0)}
-}
-.mobile-nav a{
-  display:block;padding:13px 16px;
-  font-size:.96rem;font-weight:600;color:var(--txt);
-  border-radius:var(--r);
-  transition:background .18s,color .18s;
-}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.mobile-nav a{display:block;padding:13px 16px;font-size:.96rem;font-weight:600;color:var(--txt);border-radius:var(--r);transition:background .18s,color .18s}
 .mobile-nav a:hover{background:var(--off);color:var(--y)}
 .mobile-nav .btn-y{margin-top:10px;justify-content:center}
 
@@ -130,21 +127,8 @@ img{max-width:100%;display:block}
   position:relative;
   overflow:hidden;
 }
-.hero-bg{
-  position:absolute;inset:0;
-  background:
-    radial-gradient(ellipse 65% 80% at 80% 50%, rgba(245,184,0,.08), transparent 65%),
-    radial-gradient(ellipse 40% 55% at 20% 30%, rgba(245,184,0,.05), transparent 60%);
-  pointer-events:none;
-}
-/* Grid dots pattern */
-.hero-bg::after{
-  content:'';position:absolute;inset:0;
-  background-image:
-    radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
-  background-size:32px 32px;
-  pointer-events:none;
-}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 65% 80% at 80% 50%,rgba(245,184,0,.08),transparent 65%),radial-gradient(ellipse 40% 55% at 20% 30%,rgba(245,184,0,.05),transparent 60%);pointer-events:none}
+.hero-bg::after{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
 .hero-left{padding:120px 0 80px;position:relative;z-index:2}
 .hero-pill{display:inline-flex;align-items:center;gap:9px;background:rgba(245,184,0,.1);border:1px solid rgba(245,184,0,.26);border-radius:100px;padding:7px 18px;margin-bottom:26px}
 .hero-dot{width:7px;height:7px;border-radius:50%;background:var(--y);box-shadow:0 0 7px var(--y)}
@@ -159,83 +143,57 @@ img{max-width:100%;display:block}
 .ht-n{font-size:1.2rem;font-weight:900;color:#fff;line-height:1}
 .ht-l{font-size:.66rem;color:rgba(255,255,255,.44);font-weight:600;text-transform:uppercase;letter-spacing:1px}
 
-/* Hero right — illustrated car mockup */
-.hero-right{
-  position:relative;z-index:2;
-  display:flex;align-items:center;justify-content:center;
-  padding:80px 0;
-}
-.car-showcase{
-  width:100%;max-width:540px;
-  background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:32px;
-  padding:48px 40px 36px;
-  position:relative;
-}
-.car-main-img{
-  width:100%;
-  aspect-ratio:16/9;
-  background:linear-gradient(135deg, #1a1a30 0%, #0e0e1e 100%);
-  border-radius:20px;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-  overflow:hidden;
-  margin-bottom:28px;
-}
-/* SVG taxi side view */
+/* Hero right */
+.hero-right{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;padding:80px 0}
+.car-showcase{width:100%;max-width:540px;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.06);border-radius:32px;padding:48px 40px 36px;position:relative}
+.car-main-img{width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#1a1a30 0%,#0e0e1e 100%);border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:28px}
 .taxi-svg{width:85%;max-width:380px}
 .car-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden}
 .cm-item{background:rgba(255,255,255,.03);padding:14px;text-align:center}
 .cm-n{font-family:'Barlow',sans-serif;font-size:1.3rem;font-weight:900;color:var(--y);line-height:1}
 .cm-l{font-size:.66rem;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
-/* Gold glow behind car */
 .car-glow{position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);width:280px;height:60px;background:radial-gradient(ellipse,rgba(245,184,0,.25),transparent 70%);border-radius:50%;pointer-events:none}
-/* Floating badges */
+
+/* Floating badges — fixed overlap (#issue 8 & 13) */
 .car-badge-1{
   position:absolute;top:-18px;right:-18px;
   background:#fff;border-radius:14px;padding:14px 16px;
   box-shadow:0 8px 28px rgba(0,0,0,.2);
   display:flex;align-items:center;gap:10px;
+  z-index:3;
 }
 .cb-ico{font-size:1.4rem}
 .cb-n{font-size:1.1rem;font-weight:900;color:var(--dk);line-height:1}
 .cb-l{font-size:.68rem;color:var(--muted);font-weight:600}
+/* Driver Verified badge moved down to avoid overlap (#issue 8 & 13) */
 .car-badge-2{
-  position:absolute;bottom:-18px;left:-18px;
+  position:absolute;bottom:-36px;left:-18px;
   background:var(--y);border-radius:14px;padding:12px 18px;
   box-shadow:0 8px 24px rgba(245,184,0,.4);
   display:flex;align-items:center;gap:10px;
+  z-index:3;
 }
 .cb2-txt{font-family:'Barlow',sans-serif;font-size:.85rem;font-weight:900;color:#000;line-height:1.2}
-
-/* ═══════════════════════════
-   BOOKING BAR
-════════════════════════════ */
-#book-bar{background:var(--y);position:relative;z-index:10}
-.book-form{display:grid;grid-template-columns:1fr 1fr 1fr auto}
-.bf-g{border-right:1px solid rgba(0,0,0,.1)}
-.bf-g:last-child{border:none}
-.bf-lbl{font-size:.66rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(0,0,0,.44);padding:17px 22px 0;display:block}
-.bf-inp{width:100%;border:none;background:transparent;font-size:.97rem;font-weight:600;color:#000;padding:4px 22px 17px;outline:none;font-family:'Inter',sans-serif;cursor:pointer}
-.bf-inp::placeholder{color:rgba(0,0,0,.36);font-weight:500}
-.bf-btn{padding:0 34px;background:#000;color:var(--y);font-weight:800;font-size:.94rem;border:none;cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .22s;white-space:nowrap}
-.bf-btn:hover{background:var(--dk2)}
+.mini-car-track{position:absolute;bottom:0;left:0;width:100%;height:2px;background:rgba(255,215,0,.1);overflow:hidden;z-index:10}
+.mini-car{position:absolute;bottom:2px;font-size:1.5rem;animation:driveAcross 15s linear infinite}
 
 /* ═══════════════════════════
    SERVICES
 ════════════════════════════ */
 #services{padding:96px 0;background:#fff}
 .svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:52px}
-.svc-card{
-  border:1px solid var(--border);border-radius:var(--rl);padding:34px 28px;
-  position:relative;overflow:hidden;background:#fff;
-  transition:transform .3s,box-shadow .3s,border-color .3s;cursor:default;
-}
+.svc-card{border:1px solid var(--border);border-radius:var(--rl);padding:34px 28px;position:relative;overflow:hidden;background:#fff;transition:transform .3s,box-shadow .3s,border-color .3s;cursor:default}
 .svc-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:var(--y);transform:scaleX(0);transform-origin:left;transition:transform .3s}
 .svc-card:hover{transform:translateY(-7px);box-shadow:0 20px 48px rgba(0,0,0,.1);border-color:var(--y)}
 .svc-card:hover::after{transform:scaleX(1)}
-.svc-n{position:absolute;top:18px;right:20px;font-size:3.5rem;font-weight:900;color:rgba(0,0,0,.04);line-height:1;font-family:'Barlow',sans-serif}
+/* Serial numbers clearly visible (#issue 10) */
+.svc-n{
+  position:absolute;top:14px;right:18px;
+  font-size:2.8rem;font-weight:900;
+  color:rgba(245,184,0,.18);
+  line-height:1;font-family:'Barlow',sans-serif;
+  user-select:none;
+}
 .svc-ico{width:66px;height:66px;border-radius:var(--r);background:#fff8e0;display:flex;align-items:center;justify-content:center;font-size:1.9rem;margin-bottom:20px;transition:background .3s}
 .svc-card:hover .svc-ico{background:var(--y)}
 .svc-title{font-family:'Barlow',sans-serif;font-size:1.18rem;font-weight:800;margin-bottom:9px;color:var(--dk)}
@@ -256,41 +214,18 @@ img{max-width:100%;display:block}
 .how-num{width:52px;height:52px;border-radius:50%;background:transparent;border:2px solid rgba(245,184,0,.3);color:var(--y);font-family:'Barlow',sans-serif;font-size:1.2rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
 .how-stitle{font-family:'Barlow',sans-serif;font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:5px}
 .how-sdesc{font-size:.87rem;color:rgba(255,255,255,.5);line-height:1.74}
-/* How right side — visual card */
-.how-visual{
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:var(--rxl);padding:36px 32px;
-}
-.how-app-mockup{
-  width:100%;background:linear-gradient(145deg,#1a1a2e,#0e0e1e);
-  border-radius:var(--rl);padding:28px;margin-bottom:22px;
-  border:1px solid rgba(255,255,255,.06);
-}
+.how-visual{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:var(--rxl);padding:36px 32px}
+.how-app-mockup{width:100%;background:linear-gradient(145deg,#1a1a2e,#0e0e1e);border-radius:var(--rl);padding:28px;margin-bottom:22px;border:1px solid rgba(255,255,255,.06)}
 .hm-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .hm-logo{display:flex;align-items:center;gap:8px}
 .hm-logo-ico{width:32px;height:32px;background:var(--y);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem}
 .hm-logo-txt{font-family:'Barlow',sans-serif;font-weight:900;font-size:.95rem;color:#fff}
 .hm-logo-txt span{color:var(--y)}
 .hm-status{font-size:.72rem;font-weight:700;color:#22cc66;background:rgba(34,204,102,.12);border:1px solid rgba(34,204,102,.25);padding:4px 12px;border-radius:100px}
-.hm-map{
-  width:100%;height:160px;border-radius:12px;
-  background:linear-gradient(145deg,#0d1a2e,#101824);
-  position:relative;overflow:hidden;margin-bottom:16px;
-  display:flex;align-items:center;justify-content:center;
-}
-/* Fake map grid */
-.hm-map::before{
-  content:'';position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
-  background-size:30px 30px;
-}
+.hm-map{width:100%;height:160px;border-radius:12px;background:linear-gradient(145deg,#0d1a2e,#101824);position:relative;overflow:hidden;margin-bottom:16px;display:flex;align-items:center;justify-content:center}
+.hm-map::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:30px 30px}
 .hm-map-car{position:relative;z-index:2;font-size:2rem}
-.hm-route{
-  position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,transparent,var(--y),transparent);
-}
+.hm-route{position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--y),transparent)}
 .hm-fields{display:flex;flex-direction:column;gap:10px}
 .hm-field{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px}
 .hm-field-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
@@ -308,84 +243,58 @@ img{max-width:100%;display:block}
 .fleet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:50px}
 .fleet-card{background:#fff;border-radius:var(--rl);overflow:hidden;border:1px solid var(--border);transition:transform .3s,box-shadow .3s,border-color .3s}
 .fleet-card:hover{transform:translateY(-8px);box-shadow:var(--shadow-lg);border-color:var(--y)}
-.fleet-thumb{
-  height:188px;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;
-}
-.fleet-thumb-inner{
-  width:100%;height:100%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:5rem;
-  position:relative;
-}
-.fleet-car-label{
-  position:absolute;top:12px;left:12px;
-  font-family:'Barlow',sans-serif;font-weight:900;font-size:.7rem;
-  letter-spacing:2px;text-transform:uppercase;
-  padding:5px 14px;border-radius:100px;
-}
-.fleet-pop-badge{
-  position:absolute;top:12px;right:12px;
-  background:var(--y);color:#000;font-size:.66rem;font-weight:800;
-  letter-spacing:1px;text-transform:uppercase;padding:5px 14px;border-radius:100px;z-index:2;
-}
+.fleet-thumb{height:200px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#f0f4ff}
+.fleet-thumb-inner{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
+.fleet-thumb-inner img{width:100%;height:100%;object-fit:contain;transition:transform .4s cubic-bezier(.2,.8,.2,1);padding:16px}
+.fleet-card:hover .fleet-thumb-inner img{transform:scale(1.06) translateY(-4px)}
+.fleet-car-label{position:absolute;top:12px;left:12px;font-family:'Barlow',sans-serif;font-weight:900;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:100px}
+.fleet-pop-badge{position:absolute;top:12px;right:12px;background:var(--y);color:#000;font-size:.66rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 14px;border-radius:100px;z-index:2}
 .fleet-body{padding:20px 22px 24px}
 .fleet-type{font-size:.7rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--y);margin-bottom:5px}
 .fleet-name{font-family:'Barlow',sans-serif;font-size:1.18rem;font-weight:800;color:var(--dk);margin-bottom:10px}
 .fleet-specs{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
 .fleet-spec{font-size:.8rem;color:var(--muted);font-weight:600}
 .fleet-pr-row{display:flex;align-items:center;justify-content:space-between}
-.fleet-pr{font-family:'Barlow',sans-serif;font-size:1.45rem;font-weight:900;color:var(--dk)}
-.fleet-pr span{font-size:.8rem;font-weight:500;color:var(--muted)}
 
-/* ═══════════════════════════
-   WHY US
-════════════════════════════ */
+/* WHY US */
 #why{padding:96px 0;background:#fff}
 .why-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
-/* Visual side */
 .why-visual{position:relative}
-.why-visual-card{
-  border-radius:var(--rxl);overflow:hidden;
-  background:linear-gradient(145deg,var(--dk),var(--dk2));
-  padding:44px 40px;
-  position:relative;
-}
-.why-visual-card::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 80% 80% at 80% 20%,rgba(245,184,0,.1),transparent 65%);
-}
-.why-big-stat{
-  font-family:'Barlow',sans-serif;font-size:5.5rem;font-weight:900;
-  color:var(--y);line-height:1;margin-bottom:6px;position:relative;
-}
+.why-visual-card{border-radius:var(--rxl);overflow:hidden;background:linear-gradient(145deg,var(--dk),var(--dk2));padding:44px 40px;position:relative}
+.why-visual-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 80% 20%,rgba(245,184,0,.1),transparent 65%)}
+.why-big-stat{font-family:'Barlow',sans-serif;font-size:5.5rem;font-weight:900;color:var(--y);line-height:1;margin-bottom:6px;position:relative}
 .why-big-lbl{font-size:1rem;color:rgba(255,255,255,.55);margin-bottom:36px;position:relative}
 .why-mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;position:relative}
 .wms{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px}
 .wms-n{font-family:'Barlow',sans-serif;font-size:2rem;font-weight:900;color:#fff;line-height:1;margin-bottom:4px}
 .wms-l{font-size:.72rem;color:rgba(255,255,255,.45);font-weight:600;text-transform:uppercase;letter-spacing:1px}
+/* why-badge moved further down so it doesn't overlap (#issue 13) */
 .why-badge{
-  position:absolute;bottom:-20px;right:-20px;
+  position:absolute;bottom:-28px;right:-20px;
   background:#fff;border-radius:var(--rl);padding:16px 20px;
   box-shadow:var(--shadow-lg);
   display:flex;align-items:center;gap:12px;min-width:190px;
+  z-index:2;
 }
 .wb-ico{width:46px;height:46px;border-radius:50%;background:var(--y);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
 .wb-n{font-family:'Barlow',sans-serif;font-size:1.5rem;font-weight:900;color:var(--dk);line-height:1}
 .wb-l{font-size:.72rem;color:var(--muted);font-weight:600}
-/* Features */
 .why-feats{display:flex;flex-direction:column;margin-top:32px}
 .wf{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
 .wf:last-child{border-bottom:none}
-.wf-ico{width:50px;height:50px;border-radius:var(--r);background:#fff8e0;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;transition:background .3s}
+/* Icons clearly visible (#issue 16) */
+.wf-ico{
+  width:50px;height:50px;border-radius:var(--r);
+  background:#fff8e0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.35rem;flex-shrink:0;transition:background .3s;
+  border:1px solid rgba(245,184,0,.2);
+}
 .wf:hover .wf-ico{background:var(--y)}
 .wf-t{font-family:'Barlow',sans-serif;font-size:1rem;font-weight:800;color:var(--dk);margin-bottom:4px}
 .wf-d{font-size:.87rem;color:var(--muted);line-height:1.72}
 
-/* ═══════════════════════════
-   STATS BAND
-════════════════════════════ */
+/* STATS BAND */
 #stats-band{background:var(--y);padding:54px 0}
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr)}
 .stat-c{text-align:center;padding:8px 20px;border-right:1px solid rgba(0,0,0,.1)}
@@ -393,53 +302,48 @@ img{max-width:100%;display:block}
 .stat-n{font-family:'Barlow',sans-serif;font-size:clamp(2.2rem,3.8vw,3.3rem);font-weight:900;color:#000;line-height:1;margin-bottom:6px}
 .stat-l{font-size:.74rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(0,0,0,.54)}
 
-/* ═══════════════════════════
-   TESTIMONIALS
-════════════════════════════ */
+/* TESTIMONIALS — clean readable font (#issue 14) */
 #testi{padding:96px 0;background:var(--off)}
 .testi-head{text-align:center;margin-bottom:52px}
 .testi-head .sp{margin:0 auto}
 .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .tc{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:28px;position:relative;transition:transform .3s,box-shadow .3s,border-color .3s}
 .tc:hover{transform:translateY(-6px);box-shadow:0 20px 44px rgba(0,0,0,.09);border-color:var(--y)}
-.tc-q{position:absolute;top:18px;right:20px;font-size:3.5rem;color:rgba(245,184,0,.1);line-height:1;font-family:Georgia,serif}
+.tc-q{position:absolute;top:18px;right:20px;font-size:3.5rem;color:rgba(245,184,0,.12);line-height:1;font-family:'Barlow',sans-serif}
 .tc-stars{display:flex;gap:3px;margin-bottom:14px}
 .star{color:var(--y);font-size:.9rem}
-.tc-txt{font-size:.91rem;color:var(--txt);line-height:1.8;margin-bottom:20px;font-style:italic}
+/* Fix testimonial font (#issue 14) */
+.tc-txt{
+  font-family:'Inter',sans-serif;
+  font-size:.93rem;
+  font-style:normal;
+  color:var(--txt);
+  line-height:1.8;
+  margin-bottom:20px;
+  font-weight:400;
+}
 .tc-author{display:flex;align-items:center;gap:12px;padding-top:16px;border-top:1px solid var(--border)}
 .tc-av{width:44px;height:44px;border-radius:50%;background:var(--y);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#000;flex-shrink:0}
-.tc-name{font-weight:800;font-size:.9rem;color:var(--dk);margin-bottom:2px}
+.tc-name{font-weight:700;font-size:.9rem;color:var(--dk);margin-bottom:2px}
 .tc-loc{font-size:.74rem;color:var(--muted)}
 
-/* ═══════════════════════════
-   CTA BAND
-════════════════════════════ */
+/* CTA BAND */
 #cta{padding:84px 0;background:var(--dk);position:relative;overflow:hidden}
-#cta::before{
-  content:'';position:absolute;inset:0;
-  background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);
-  background-size:28px 28px;
-}
+#cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px}
 .cta-inner{display:grid;grid-template-columns:1fr auto;align-items:center;gap:44px;position:relative}
 .cta-h{font-family:'Barlow',sans-serif;font-size:clamp(1.9rem,3.5vw,2.9rem);font-weight:900;color:#fff;line-height:1.1;margin-bottom:10px}
 .cta-p{font-size:.96rem;color:rgba(255,255,255,.52);max-width:460px}
 .cta-btns{display:flex;gap:12px;flex-wrap:wrap;flex-shrink:0}
-.cta-app{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:13px 20px;color:#fff;transition:all .3s}
+.cta-app{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);padding:13px 20px;color:#fff;transition:all .3s;cursor:pointer}
 .cta-app:hover{background:var(--y);border-color:var(--y);color:#000}
-.cta-app-ico{font-size:1.8rem}
+.cta-app-ico{font-size:1.8rem;display:flex;align-items:center}
 .cta-app-sub{font-size:.62rem;opacity:.55;font-weight:600}
 .cta-app-name{font-size:.95rem;font-weight:800}
 
-/* ═══════════════════════════
-   DRIVER
-════════════════════════════ */
+/* DRIVER */
 #driver{padding:84px 0;background:var(--y)}
 .driver-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-.driver-visual{
-  background:var(--dk);border-radius:var(--rxl);padding:36px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:340px;position:relative;overflow:hidden;
-}
+.driver-visual{background:var(--dk);border-radius:var(--rxl);padding:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:340px;position:relative;overflow:hidden}
 .driver-visual::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 30%,rgba(245,184,0,.08),transparent 65%)}
 .driver-big-ico{font-size:5rem;margin-bottom:18px;position:relative;z-index:1}
 .driver-perks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:26px 0 32px}
@@ -448,32 +352,106 @@ img{max-width:100%;display:block}
 .dp-t{font-size:.85rem;font-weight:700;color:#000}
 
 /* ═══════════════════════════
-   FOOTER
+   FOOTER — fixed overlap (#issue 17)
 ════════════════════════════ */
-footer{background:var(--dk2);padding:68px 0 0}
-.foot-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:44px;margin-bottom:52px}
+footer{
+  background:var(--dk2);
+  padding:68px 0 0;
+  position:relative;
+  overflow:hidden;
+}
+/* Animation container at bottom with fixed height */
+.footer-animation{
+  position:relative;
+  height:120px;
+  background:linear-gradient(to bottom,transparent,rgba(0,0,0,.4));
+  overflow:hidden;
+  margin-top:0;
+}
+.city-skyline{
+  position:absolute;
+  bottom:30px;
+  width:200%;
+  height:200px;
+  background:url('data:image/svg+xml;utf8,<svg viewBox="0 0 1000 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,200 L0,100 L50,100 L50,60 L100,60 L100,130 L140,130 L140,70 L200,70 L200,110 L240,110 L240,40 L300,40 L300,90 L350,90 L350,30 L420,30 L420,130 L480,130 L480,60 L530,60 L530,100 L590,100 L590,20 L660,20 L660,140 L720,140 L720,70 L790,70 L790,100 L850,100 L850,30 L920,30 L920,120 L980,120 L980,80 L1000,80 L1000,200 Z" fill="%23222"/><rect x="80" y="130" width="60" height="70" fill="%23d97706"/><rect x="250" y="90" width="70" height="110" fill="%23eab308"/><rect x="650" y="70" width="80" height="130" fill="%23eab308"/></svg>') repeat-x bottom left;
+  background-size:50% 100%;
+  animation:moveSkyline 60s linear infinite;
+  opacity:.8;
+  z-index:1;
+  pointer-events:none;
+}
+.city-road{
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:30px;
+  background:#111;
+  border-top:2px solid #333;
+  z-index:2;
+}
+.city-road::after{
+  content:'';
+  position:absolute;
+  top:13px;
+  width:200%;
+  height:3px;
+  background:repeating-linear-gradient(90deg,#FFD700 0,#FFD700 20px,transparent 20px,transparent 40px);
+  animation:moveRoad 1.5s linear infinite;
+}
+@keyframes moveSkyline{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes moveRoad{0%{transform:translateX(0)}100%{transform:translateX(-40px)}}
+.taxi-wrapper{position:absolute;bottom:30px;width:100px;height:40px;z-index:3}
+.taxi-1{animation:driveTaxi 12s linear infinite}
+.taxi-2{animation:driveTaxi 16s linear infinite;animation-delay:5s}
+@keyframes driveTaxi{0%{left:-150px}100%{left:100vw}}
+
+/* Footer content above animation */
+.foot-top{
+  position:relative;z-index:5;
+  display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+  gap:44px;margin-bottom:52px;
+}
 .fb-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .fb-logo-ico{width:38px;height:38px;background:var(--y);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
 .fb-logo-txt{font-family:'Barlow',sans-serif;font-size:1.2rem;font-weight:900;color:#fff;letter-spacing:-.4px}
 .fb-logo-txt span{color:var(--y)}
-.fb-desc{font-size:.85rem;color:#ffffff;line-height:1.74;margin-bottom:22px;font-weight:500}
-.fb-soc{display:flex;gap:8px}
-.fsoc{width:34px;height:34px;border-radius:7px;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:rgba(255,255,255,.35);transition:all .22s}
-.fsoc:hover{border-color:var(--y);color:var(--y)}
+.fb-desc{font-size:.85rem;color:rgba(255,255,255,.7);line-height:1.74;margin-bottom:22px;font-weight:400}
+/* Social icons — properly styled SVGs (#issue 7 & 18) */
+.fb-soc{display:flex;gap:10px;flex-wrap:wrap}
+.fsoc{
+  width:38px;height:38px;border-radius:9px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.75);
+  transition:all .22s;
+}
+.fsoc svg{width:17px;height:17px;fill:currentColor}
+.fsoc:hover{border-color:var(--y);color:var(--y);background:rgba(245,184,0,.12)}
 .fc-ttl{font-size:.68rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--y);margin-bottom:16px}
 .flinks{display:flex;flex-direction:column;gap:10px}
-.flinks a{color:#ffffff;font-size:.85rem;transition:color .22s;font-weight:500}
+.flinks a{color:rgba(255,255,255,.7);font-size:.85rem;transition:color .22s;font-weight:400}
 .flinks a:hover{color:var(--y)}
 .fci{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
-.fci-ico{width:28px;height:28px;border-radius:6px;background:rgba(245,184,0,.1);border:1px solid rgba(245,184,0,.16);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
-.fci-txt{font-size:.82rem;color:#ffffff;line-height:1.56;font-weight:500}
-.fci-txt b{color:#ffffff;display:block}
-.fbot{background:rgba(0,0,0,.3);border-top:1px solid rgba(255,255,255,.05);padding:18px 0}
+.fci-ico{width:30px;height:30px;border-radius:7px;background:rgba(245,184,0,.12);border:1px solid rgba(245,184,0,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fci-ico svg{width:14px;height:14px;fill:var(--y)}
+.fci-txt{font-size:.82rem;color:rgba(255,255,255,.7);line-height:1.56;font-weight:400}
+.fci-txt b{color:#fff;display:block;font-weight:600}
+.fbot{position:relative;z-index:5;background:rgba(0,0,0,.4);border-top:1px solid rgba(255,255,255,.06);padding:18px 0}
 .fbot-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.fcp{font-size:.78rem;color:rgba(255,255,255,.28)}
+.fcp{font-size:.78rem;color:rgba(255,255,255,.35)}
 .fbl{display:flex;gap:18px}
-.fbl a{font-size:.78rem;color:rgba(255,255,255,.28);transition:color .22s}
+.fbl a{font-size:.78rem;color:rgba(255,255,255,.35);transition:color .22s}
 .fbl a:hover{color:var(--y)}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes driveIn{0%{transform:translateX(100vw) scale(.8);opacity:0}60%{transform:translateX(-20px) scale(1.02);opacity:1}100%{transform:translateX(0) scale(1);opacity:1}}
+@keyframes carHoverFloat{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+@keyframes driveAcross{0%{transform:translateX(-10vw)}100%{transform:translateX(100vw)}}
+.car-drive-in{animation:driveIn 1.2s cubic-bezier(.2,.8,.2,1) forwards}
+.fade-drive{opacity:0}
+.fade-drive.in{animation:driveIn 1.2s cubic-bezier(.2,.8,.2,1) forwards}
+.car-float{animation:carHoverFloat 4s ease-in-out infinite}
 
 /* ═══ RESPONSIVE ═══ */
 @media(max-width:1024px){
@@ -490,9 +468,6 @@ footer{background:var(--dk2);padding:68px 0 0}
 @media(max-width:768px){
   .nav-links,.nav-phone{display:none}
   .hamburger{display:flex}
-  .book-form{grid-template-columns:1fr}
-  .bf-g{border-right:none;border-bottom:1px solid rgba(0,0,0,.1)}
-  .bf-btn{height:52px;justify-content:center}
   .svc-grid,.fleet-grid,.testi-grid{grid-template-columns:1fr}
   .driver-perks{grid-template-columns:1fr}
   .foot-top{grid-template-columns:1fr}
@@ -503,134 +478,6 @@ footer{background:var(--dk2);padding:68px 0 0}
   .cta-btns{flex-direction:column}
   .cta-app{justify-content:center}
 }
-
-@keyframes driveIn {
-  0% { transform: translateX(100vw) scale(0.8); opacity: 0; }
-  60% { transform: translateX(-20px) scale(1.02); opacity: 1; }
-  100% { transform: translateX(0) scale(1); opacity: 1; }
-}
-@keyframes carHoverFloat {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-  100% { transform: translateY(0); }
-}
-@keyframes driveAcross {
-  0% { transform: translateX(-10vw); }
-  100% { transform: translateX(100vw); }
-}
-.car-drive-in {
-  animation: driveIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-.fade-drive {
-  opacity: 0;
-}
-.fade-drive.in {
-  animation: driveIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-.car-float {
-  animation: carHoverFloat 4s ease-in-out infinite;
-}
-.fleet-card:hover .fleet-thumb-inner img {
-  transform: scale(1.08) translateY(-4px);
-}
-.fleet-thumb-inner img {
-  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.mini-car-track {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: rgba(255,215,0,0.1);
-  overflow: hidden;
-  z-index: 10;
-}
-.mini-car {
-  position: absolute;
-  bottom: 2px;
-  font-size: 1.5rem;
-  animation: driveAcross 15s linear infinite;
-}
-
-/* Footer Animation */
-footer {
-  position: relative;
-  background-color: #1a1a1a;
-  overflow: hidden;
-}
-.foot-top {
-  position: relative;
-  z-index: 5;
-  padding-bottom: 90px;
-  background: linear-gradient(to bottom, rgba(26,26,26,0.95) 0%, rgba(26,26,26,0.6) 60%, transparent 100%);
-  padding-top: 60px;
-}
-.fbot {
-  position: relative;
-  z-index: 5;
-  background-color: #0a0a0a;
-  height: 60px;
-  display: flex;
-  align-items: center;
-}
-.city-skyline {
-  position: absolute;
-  bottom: 60px;
-  width: 200%;
-  height: 300px;
-  background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1000 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,300 L0,150 L50,150 L50,100 L100,100 L100,180 L140,180 L140,120 L200,120 L200,160 L240,160 L240,80 L300,80 L300,140 L350,140 L350,70 L420,70 L420,180 L480,180 L480,100 L530,100 L530,150 L590,150 L590,60 L660,60 L660,190 L720,190 L720,110 L790,110 L790,150 L850,150 L850,70 L920,70 L920,170 L980,170 L980,120 L1000,120 L1000,300 Z" fill="%23222"/><path d="M20,300 L20,200 L70,200 L70,160 L120,160 L120,220 L170,220 L170,140 L230,140 L230,190 L270,190 L270,110 L330,110 L330,170 L380,170 L380,130 L450,130 L450,210 L500,210 L500,160 L550,160 L550,200 L620,200 L620,130 L690,130 L690,220 L750,220 L750,150 L810,150 L810,190 L880,190 L880,140 L950,140 L950,210 L1000,210 L1000,300 Z" fill="%23333"/><rect x="80" y="180" width="60" height="120" fill="%23d97706"/><rect x="95" y="200" width="10" height="15" fill="%23fde047"/><rect x="115" y="200" width="10" height="15" fill="%23fde047"/><rect x="95" y="230" width="10" height="15" fill="%23fde047"/><rect x="115" y="230" width="10" height="15" fill="%23fde047"/><rect x="250" y="130" width="70" height="170" fill="%23eab308"/><rect x="265" y="150" width="12" height="20" fill="%23fff"/><rect x="290" y="150" width="12" height="20" fill="%23fff"/><rect x="265" y="190" width="12" height="20" fill="%23fff"/><rect x="290" y="190" width="12" height="20" fill="%23fff"/><rect x="460" y="160" width="50" height="140" fill="%23d97706"/><rect x="650" y="110" width="80" height="190" fill="%23eab308"/><rect x="670" y="130" width="15" height="25" fill="%23fff"/><rect x="695" y="130" width="15" height="25" fill="%23fff"/><rect x="670" y="170" width="15" height="25" fill="%23fff"/><rect x="695" y="170" width="15" height="25" fill="%23fff"/><rect x="850" y="150" width="60" height="150" fill="%23d97706"/></svg>') repeat-x bottom left;
-  background-size: 50% 100%;
-  animation: moveSkyline 60s linear infinite;
-  opacity: 1;
-  z-index: 1;
-  pointer-events: none;
-}
-.city-road {
-  position: absolute;
-  bottom: 60px;
-  width: 100%;
-  height: 25px;
-  background: #111;
-  border-top: 2px solid #333;
-  z-index: 2;
-}
-.city-road::after {
-  content: '';
-  position: absolute;
-  top: 11px;
-  width: 200%;
-  height: 3px;
-  background: repeating-linear-gradient(90deg, #FFD700 0, #FFD700 20px, transparent 20px, transparent 40px);
-  animation: moveRoad 1.5s linear infinite;
-}
-@keyframes moveSkyline {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-@keyframes moveRoad {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-40px); }
-}
-.taxi-wrapper {
-  position: absolute;
-  bottom: 72px;
-  width: 100px;
-  height: 40px;
-  z-index: 3;
-}
-.taxi-1 {
-  animation: driveTaxi 12s linear infinite;
-}
-.taxi-2 {
-  animation: driveTaxi 16s linear infinite;
-  animation-delay: 5s;
-}
-@keyframes driveTaxi {
-  0% { left: -150px; }
-  100% { left: 100vw; }
-}
-
   </style>
 </head>
 <body>
@@ -642,13 +489,26 @@ footer {
       <div class="tb-left">
         <span class="tb-item">📍 <strong>200+ Cities</strong>&nbsp;Nationwide</span>
         <span class="tb-item">📞 <strong>+1 (800) 465-3694</strong></span>
-        <span class="tb-item">✉️ <strong>support@goldenride.com</strong></span>
+        <span class="tb-item">
+          <!-- Correct email icon SVG (#issue 6) -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,215,0,0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          <strong>support@goldenride.com</strong>
+        </span>
       </div>
+      <!-- Social icons with proper SVGs (#issue 7) -->
       <div class="tb-right">
-        <a href="#book-bar" class="tb-soc">𝕏</a>
-        <a href="#book-bar" class="tb-soc">f</a>
-        <a href="#book-bar" class="tb-soc">in</a>
-        <a href="#book-bar" class="tb-soc">▶</a>
+        <a href="https://x.com/goldenride" target="_blank" class="tb-soc" aria-label="X / Twitter">
+          <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.737-8.835L1.254 2.25H8.08l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://facebook.com/goldenride" target="_blank" class="tb-soc" aria-label="Facebook">
+          <svg viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </a>
+        <a href="https://linkedin.com/company/goldenride" target="_blank" class="tb-soc" aria-label="LinkedIn">
+          <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+        <a href="https://youtube.com/@goldenride" target="_blank" class="tb-soc" aria-label="YouTube">
+          <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        </a>
       </div>
     </div>
   </div>
@@ -659,9 +519,9 @@ footer {
   <div class="container">
     <div class="nav-inner">
       <div class="logo">
-        <img src="assets/logo.png" alt="Golden Ride Logo" style="height:46px; width:auto; border-radius:8px;"/>
+        <img src="assets/logo.png" alt="Golden Ride Logo" style="height:46px;width:auto;border-radius:8px;"/>
       </div>
-      <ul class="nav-links">
+      <ul class="nav-links" id="nav-links">
         <li class="active"><a href="#hero">Home</a></li>
         <li><a href="#services">Services</a></li>
         <li><a href="#fleet">Fleet</a></li>
@@ -677,7 +537,7 @@ footer {
             <div class="np-num">+1 (800) 465-3694</div>
           </div>
         </div>
-        <a href="#book-bar" class="btn-y">Book a Ride</a>
+        <a href="#" class="btn-y" onclick="openAppStore(event)">Book a Ride</a>
       </div>
       <button class="hamburger" id="hamburger-btn" aria-label="Menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -694,15 +554,13 @@ footer {
   <a href="#how" onclick="closeMobileNav()">How It Works</a>
   <a href="#testi" onclick="closeMobileNav()">Reviews</a>
   <a href="#driver" onclick="closeMobileNav()">Drive With Us</a>
-  <a href="#book-bar" class="btn-y" onclick="closeMobileNav()">📞 &nbsp;+1 (800) 465-3694</a>
-  <a href="#book-bar" class="btn-y" onclick="closeMobileNav()">🚖 &nbsp;Book a Ride</a>
+  <a href="#" class="btn-y" onclick="closeMobileNav();openAppStore(event)">📞 &nbsp;+1 (800) 465-3694</a>
+  <a href="#" class="btn-y" onclick="closeMobileNav();openAppStore(event)">🚖 &nbsp;Book a Ride</a>
 </div>
 
 <!-- ══ HERO ══ -->
 <section id="hero">
   <div class="hero-bg"></div>
-
-  <!-- Left -->
   <div class="container" style="position:relative;z-index:2;grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
     <div class="hero-left" style="padding-top:0">
       <div class="hero-pill">
@@ -714,7 +572,7 @@ footer {
       </h1>
       <p class="hero-p fade-l">Premium on-demand taxi service with verified professional drivers, transparent USD fares, and real-time GPS tracking. Book in under 60 seconds.</p>
       <div class="hero-btns fade-l">
-        <a href="#book-bar" class="btn-y">🚖&nbsp; Book Your Ride</a>
+        <a href="#" class="btn-y" onclick="openAppStore(event)">🚖&nbsp; Book Your Ride</a>
         <a href="#how" class="btn-y-ol">How It Works</a>
       </div>
       <div class="hero-trust">
@@ -733,15 +591,16 @@ footer {
       </div>
     </div>
 
-    <!-- Right showcase -->
+    <!-- Hero right showcase -->
     <div class="hero-right" style="padding:100px 0">
       <div class="car-showcase fade-r">
+        <!-- #1 Rated badge — no overlap with Driver Verified (#issue 8 & 13) -->
         <div class="car-badge-1">
           <span class="cb-ico">🏆</span>
           <div><div class="cb-n">#1</div><div class="cb-l">Rated App 2025</div></div>
         </div>
         <div class="car-main-img car-drive-in">
-          <img src="assets/premium_sedan_v4.jpg" alt="Golden Ride Taxi" class="car-float fade-drive" style="width:100%; height:100%; object-fit:contain; border-radius:20px; background:#ffffff;"/>
+          <img src="assets/premium_sedan_v4.jpg" alt="Golden Ride Premium Taxi" class="car-float fade-drive" style="width:100%;height:100%;object-fit:contain;border-radius:20px;background:#ffffff;"/>
           <div class="car-glow"></div>
         </div>
         <div class="car-meta">
@@ -749,7 +608,8 @@ footer {
           <div class="cm-item"><div class="cm-n">5M+</div><div class="cm-l">Rides</div></div>
           <div class="cm-item"><div class="cm-n">200+</div><div class="cm-l">Cities</div></div>
         </div>
-        <div class="car-badge-2">
+        <!-- Driver Verified moved further down to avoid overlap (#issue 8 & 13) -->
+        <div class="car-badge-2" style="margin-top:16px">
           <span style="font-size:1.3rem">✅</span>
           <div class="cb2-txt">Driver verified<br/>& on the way</div>
         </div>
@@ -759,29 +619,6 @@ footer {
   <div class="mini-car-track"><div class="mini-car">🚖</div></div>
 </section>
 
-<!-- ══ BOOKING BAR ══ -->
-<div id="book-bar">
-  <div class="book-form">
-    <div class="bf-g">
-      <label class="bf-lbl">Pickup Location</label>
-      <input class="bf-inp" id="inp-from" type="text" placeholder="Enter pickup address…"/>
-    </div>
-    <div class="bf-g">
-      <label class="bf-lbl">Drop-off Location</label>
-      <input class="bf-inp" id="inp-to" type="text" placeholder="Enter destination…"/>
-    </div>
-    <div class="bf-g">
-      <label class="bf-lbl">Vehicle Type</label>
-      <select class="bf-inp" id="sel-veh">
-        <option>Standard Sedan</option>
-        <option>Golden Premier</option>
-        <option>Golden XL (SUV)</option>
-      </select>
-    </div>
-    <button class="bf-btn" onclick="doBook()">🚖 &nbsp;Book Now</button>
-  </div>
-</div>
-
 <!-- ══ SERVICES ══ -->
 <section id="services">
   <div class="container">
@@ -789,12 +626,13 @@ footer {
     <h2 class="sh">Our Premium<br/>Ride Services</h2>
     <p class="sp">From daily commutes to special occasions — a Golden Ride service tailored for every journey.</p>
     <div class="svc-grid">
-      <div class="svc-card fade"><span class="svc-n">01</span><div class="svc-ico">🌆</div><div class="svc-title">City Rides</div><p class="svc-desc">Reliable everyday rides for your commute, errands, and night outs. Fixed USD pricing, clean cars, driver at your door in minutes.</p><a href="#book-bar" class="svc-more">Learn More →</a></div>
-      <div class="svc-card fade"><span class="svc-n">02</span><div class="svc-ico">✈️</div><div class="svc-title">Airport Transfers</div><p class="svc-desc">On-time guaranteed airport pickups and drop-offs. Real flight tracking ensures your driver waits — even if your flight is delayed.</p><a href="#book-bar" class="svc-more">Learn More →</a></div>
-      <div class="svc-card fade"><span class="svc-n">03</span><div class="svc-ico">👑</div><div class="svc-title">Golden Premier</div><p class="svc-desc">Luxury sedan experience for corporate travel and special occasions. Leather interiors, premium drivers, and complimentary amenities.</p><a href="#book-bar" class="svc-more">Learn More →</a></div>
-      <div class="svc-card fade"><span class="svc-n">04</span><div class="svc-ico">👨‍👩‍👧‍👦</div><div class="svc-title">Group & XL Rides</div><p class="svc-desc">Spacious SUVs and minivans for groups up to 6 passengers. Perfect for families, events, and corporate outings.</p><a href="#book-bar" class="svc-more">Learn More →</a></div>
-      <div class="svc-card fade"><span class="svc-n">05</span><div class="svc-ico">🕐</div><div class="svc-title">Hourly Hire</div><p class="svc-desc">Book a driver by the hour for meetings, shopping, or sightseeing. Full flexibility — go wherever you need, whenever you need.</p><a href="#book-bar" class="svc-more">Learn More →</a></div>
-      <div class="svc-card fade"><span class="svc-n">06</span><div class="svc-ico">🏢</div><div class="svc-title">Corporate Accounts</div><p class="svc-desc">Dedicated business accounts with monthly invoicing, priority dispatch, and a dedicated account manager for your team's travel needs.</p><a href="#book-bar" class="svc-more">Learn More →</a></div>
+      <!-- Serial numbers clearly visible (#issue 10) — removed hyphens (#issue 9) -->
+      <div class="svc-card fade"><span class="svc-n">01</span><div class="svc-ico">🌆</div><div class="svc-title">City Rides</div><p class="svc-desc">Reliable everyday rides for your commute, errands, and night outs. Fixed USD pricing, clean cars, driver at your door in minutes.</p><a href="#" class="svc-more" onclick="openAppStore(event)">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">02</span><div class="svc-ico">✈️</div><div class="svc-title">Airport Transfers</div><p class="svc-desc">On-time guaranteed airport pickups and drop-offs. Real flight tracking ensures your driver waits, even if your flight is delayed.</p><a href="#" class="svc-more" onclick="openAppStore(event)">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">03</span><div class="svc-ico">👑</div><div class="svc-title">Golden Premier</div><p class="svc-desc">Luxury sedan experience for corporate travel and special occasions. Leather interiors, premium drivers, and complimentary amenities.</p><a href="#" class="svc-more" onclick="openAppStore(event)">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">04</span><div class="svc-ico">👨‍👩‍👧‍👦</div><div class="svc-title">Group &amp; XL Rides</div><p class="svc-desc">Spacious SUVs and minivans for groups up to 6 passengers. Perfect for families, events, and corporate outings.</p><a href="#" class="svc-more" onclick="openAppStore(event)">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">05</span><div class="svc-ico">🕐</div><div class="svc-title">Hourly Hire</div><p class="svc-desc">Book a driver by the hour for meetings, shopping, or sightseeing. Full flexibility — go wherever you need, whenever you need.</p><a href="#" class="svc-more" onclick="openAppStore(event)">Learn More →</a></div>
+      <div class="svc-card fade"><span class="svc-n">06</span><div class="svc-ico">🏢</div><div class="svc-title">Corporate Accounts</div><p class="svc-desc">Dedicated business accounts with monthly invoicing, priority dispatch, and a dedicated account manager for your team.</p><a href="#" class="svc-more" onclick="openAppStore(event)">Learn More →</a></div>
     </div>
   </div>
 </section>
@@ -808,8 +646,8 @@ footer {
       <div class="how-steps">
         <div class="how-step fade-l"><div class="how-num">01</div><div><div class="how-stitle">Set Your Route</div><p class="how-sdesc">Enter your pickup and destination. Our engine shows the optimal route and your fixed USD fare — locked in before you confirm. No surprises, ever.</p></div></div>
         <div class="how-step fade-l"><div class="how-num">02</div><div><div class="how-stitle">Get Matched Instantly</div><p class="how-sdesc">Our AI dispatch connects you with the nearest verified driver in under 60 seconds. Watch them approach live on the map with a real-time ETA.</p></div></div>
-        <div class="how-step fade-l"><div class="how-num">03</div><div><div class="how-stitle">Ride & Pay Automatically</div><p class="how-sdesc">Relax in a clean, premium vehicle. Payment is automated on arrival — no cash, no fuss. Rate your driver and get your digital receipt instantly.</p></div></div>
-        <div class="how-step fade-l"><div class="how-num">04</div><div><div class="how-stitle">Track & Share Live</div><p class="how-sdesc">Share your live ride with family or colleagues. They see your driver's exact GPS position in real time — complete transparency start to finish.</p></div></div>
+        <div class="how-step fade-l"><div class="how-num">03</div><div><div class="how-stitle">Ride &amp; Pay Automatically</div><p class="how-sdesc">Relax in a clean, premium vehicle. Payment is automated on arrival — no cash, no fuss. Rate your driver and get your digital receipt instantly.</p></div></div>
+        <div class="how-step fade-l"><div class="how-num">04</div><div><div class="how-stitle">Track &amp; Share Live</div><p class="how-sdesc">Share your live ride with family or colleagues. They see your driver's exact GPS position in real time — complete transparency start to finish.</p></div></div>
       </div>
       <div class="fade-r">
         <div class="how-visual">
@@ -850,9 +688,11 @@ footer {
     <div class="fleet-grid">
 
       <div class="fleet-card fade" style="position:relative">
-        <div class="fleet-thumb" style="background:#ffffff">
-          <div class="fleet-thumb-inner car-float fade-drive" style="animation-delay: 0.1s;">
-            <img src="assets/standard_taxi_v4.jpg" alt="Standard Sedan" style="width:100%; height:100%; object-fit:contain;"/>
+        <div class="fleet-thumb" style="background:#f0f8ff">
+          <div class="fleet-thumb-inner car-float fade-drive" style="animation-delay:0.1s">
+            <!-- Clear car illustration using inline SVG as fallback (#issue 11) -->
+            <img src="assets/standard_taxi_v4.jpg" alt="Standard Sedan" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:contain;padding:16px"/>
+            <div style="display:none;font-size:5rem;align-items:center;justify-content:center;width:100%;height:100%">🚕</div>
           </div>
           <div class="fleet-car-label" style="background:rgba(184,134,11,.2);color:#FFD700;border:1px solid rgba(255,215,0,.3)">Standard</div>
         </div>
@@ -860,22 +700,22 @@ footer {
           <div class="fleet-type">Standard</div>
           <div class="fleet-name">Golden Standard</div>
           <div class="fleet-specs">
-            <span class="fleet-spec">👤 1–3 Passengers</span>
+            <span class="fleet-spec">👤 1 to 3 Passengers</span>
             <span class="fleet-spec">🧳 2 Bags</span>
             <span class="fleet-spec">❄️ A/C</span>
           </div>
           <div class="fleet-pr-row">
-            <!-- <div class="fleet-pr">$1.20 <span>/ mile</span></div> -->
-            <a href="#book-bar" class="btn-y" style="padding:9px 18px;font-size:.82rem">Book Now</a>
+            <a href="#" class="btn-y" style="padding:9px 18px;font-size:.82rem" onclick="openAppStore(event)">Book Now</a>
           </div>
         </div>
       </div>
 
       <div class="fleet-card fade" style="position:relative">
         <div class="fleet-pop-badge">Most Popular</div>
-        <div class="fleet-thumb" style="background:#ffffff">
-          <div class="fleet-thumb-inner car-float fade-drive" style="animation-delay: 0.3s;">
-            <img src="assets/premium_sedan_v4.jpg" alt="Golden Premier" style="width:100%; height:100%; object-fit:contain;"/>
+        <div class="fleet-thumb" style="background:#fffbf0">
+          <div class="fleet-thumb-inner car-float fade-drive" style="animation-delay:0.3s">
+            <img src="assets/premium_sedan_v4.jpg" alt="Golden Premier" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:contain;padding:16px"/>
+            <div style="display:none;font-size:5rem;align-items:center;justify-content:center;width:100%;height:100%">🚖</div>
           </div>
           <div class="fleet-car-label" style="background:rgba(245,184,0,.2);color:#F5B800;border:1px solid rgba(245,184,0,.35)">Premier</div>
         </div>
@@ -883,21 +723,21 @@ footer {
           <div class="fleet-type">Premier</div>
           <div class="fleet-name">Golden Premier</div>
           <div class="fleet-specs">
-            <span class="fleet-spec">👤 1–4 Passengers</span>
+            <span class="fleet-spec">👤 1 to 4 Passengers</span>
             <span class="fleet-spec">🧳 3 Bags</span>
             <span class="fleet-spec">🌟 Luxury</span>
           </div>
           <div class="fleet-pr-row">
-            <!-- <div class="fleet-pr">$2.40 <span>/ mile</span></div> -->
-            <a href="#book-bar" class="btn-y" style="padding:9px 18px;font-size:.82rem">Book Now</a>
+            <a href="#" class="btn-y" style="padding:9px 18px;font-size:.82rem" onclick="openAppStore(event)">Book Now</a>
           </div>
         </div>
       </div>
 
       <div class="fleet-card fade">
-        <div class="fleet-thumb" style="background:#ffffff">
-          <div class="fleet-thumb-inner car-float fade-drive" style="animation-delay: 0.5s;">
-            <img src="assets/suv_taxi_v4.jpg" alt="Golden XL" style="width:100%; height:100%; object-fit:contain;"/>
+        <div class="fleet-thumb" style="background:#f0f4ff">
+          <div class="fleet-thumb-inner car-float fade-drive" style="animation-delay:0.5s">
+            <img src="assets/suv_taxi_v4.jpg" alt="Golden XL SUV" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="width:100%;height:100%;object-fit:contain;padding:16px"/>
+            <div style="display:none;font-size:5rem;align-items:center;justify-content:center;width:100%;height:100%">🚐</div>
           </div>
           <div class="fleet-car-label" style="background:rgba(34,85,170,.3);color:#88aaff;border:1px solid rgba(34,85,170,.4)">XL / Group</div>
         </div>
@@ -905,13 +745,12 @@ footer {
           <div class="fleet-type">XL / Group</div>
           <div class="fleet-name">Golden XL</div>
           <div class="fleet-specs">
-            <span class="fleet-spec">👤 1–6 Passengers</span>
+            <span class="fleet-spec">👤 1 to 6 Passengers</span>
             <span class="fleet-spec">🧳 5 Bags</span>
             <span class="fleet-spec">❄️ A/C</span>
           </div>
           <div class="fleet-pr-row">
-            <!-- <div class="fleet-pr">$1.90 <span>/ mile</span></div> -->
-            <a href="#book-bar" class="btn-y" style="padding:9px 18px;font-size:.82rem">Book Now</a>
+            <a href="#" class="btn-y" style="padding:9px 18px;font-size:.82rem" onclick="openAppStore(event)">Book Now</a>
           </div>
         </div>
       </div>
@@ -945,6 +784,7 @@ footer {
         <h2 class="sh">The Smarter Way<br/>To Get Around</h2>
         <p class="sp">We built Golden Ride with one goal: the safest, most transparent, most comfortable ride possible — every single time.</p>
         <div class="why-feats">
+          <!-- Icons clearly visible with improved styling (#issue 16) -->
           <div class="wf"><div class="wf-ico">🛡️</div><div><div class="wf-t">Fully Verified Drivers</div><p class="wf-d">Every driver passes a comprehensive background check, driving record review, and in-person vehicle inspection before their first ride.</p></div></div>
           <div class="wf"><div class="wf-ico">💵</div><div><div class="wf-t">Fixed USD Pricing</div><p class="wf-d">Your fare is calculated and locked before you confirm. Zero surge pricing, zero hidden fees — pay exactly what you're quoted.</p></div></div>
           <div class="wf"><div class="wf-ico">📍</div><div><div class="wf-t">Real-Time Live Tracking</div><p class="wf-d">Track your driver door to door on an interactive map. Share your live ride with anyone for added peace of mind.</p></div></div>
@@ -976,39 +816,36 @@ footer {
       <p class="sp" style="text-align:center">Real experiences from real Golden Ride passengers around the country.</p>
     </div>
     <div class="testi-grid">
-      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"The car arrived in 3 minutes and was spotless. My driver was incredibly professional. This is genuinely the best taxi app I've ever used."</p><div class="tc-author"><div class="tc-av">A</div><div><div class="tc-name">Alex Mitchell</div><div class="tc-loc">📍 New York City, NY</div></div></div></div>
-      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"Fixed pricing is a game-changer. No surge charges, no surprises. I book Golden Ride for every airport transfer and it's been flawless every time."</p><div class="tc-author"><div class="tc-av">S</div><div><div class="tc-name">Sarah Kowalski</div><div class="tc-loc">📍 Chicago, IL</div></div></div></div>
-      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"I booked a Golden Premier for a client dinner — blown away. The driver had water ready, the car was immaculate, and we arrived right on time."</p><div class="tc-author"><div class="tc-av">M</div><div><div class="tc-name">Maya Patel</div><div class="tc-loc">📍 San Francisco, CA</div></div></div></div>
-      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"The live tracking is incredible. My wife can always see where I am on late-night rides. Clean cars, great drivers — Golden Ride is in a class of its own."</p><div class="tc-author"><div class="tc-av">J</div><div><div class="tc-name">James Thornton</div><div class="tc-loc">📍 Houston, TX</div></div></div></div>
-      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"Switched from every other app last year and haven't looked back. Reliable, affordable, and drivers are always kind. Golden Ride gets it right every time."</p><div class="tc-author"><div class="tc-av">R</div><div><div class="tc-name">Ryan Torres</div><div class="tc-loc">📍 Miami, FL</div></div></div></div>
-      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">"Used the XL for my sister's wedding with 6 people — perfectly on time and coordinated. The in-app tracking was brilliant. Will absolutely use again!"</p><div class="tc-author"><div class="tc-av">L</div><div><div class="tc-name">Lauren Kim</div><div class="tc-loc">📍 Seattle, WA</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">The car arrived in 3 minutes and was spotless. My driver was incredibly professional. This is genuinely the best taxi app I've ever used.</p><div class="tc-author"><div class="tc-av">A</div><div><div class="tc-name">Alex Mitchell</div><div class="tc-loc">📍 New York City, NY</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">Fixed pricing is a game changer. No surge charges, no surprises. I book Golden Ride for every airport transfer and it has been flawless every time.</p><div class="tc-author"><div class="tc-av">S</div><div><div class="tc-name">Sarah Kowalski</div><div class="tc-loc">📍 Chicago, IL</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">I booked a Golden Premier for a client dinner and was blown away. The driver had water ready, the car was immaculate, and we arrived right on time.</p><div class="tc-author"><div class="tc-av">M</div><div><div class="tc-name">Maya Patel</div><div class="tc-loc">📍 San Francisco, CA</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">The live tracking is incredible. My wife can always see where I am on late-night rides. Clean cars, great drivers. Golden Ride is in a class of its own.</p><div class="tc-author"><div class="tc-av">J</div><div><div class="tc-name">James Thornton</div><div class="tc-loc">📍 Houston, TX</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">Switched from every other app last year and haven't looked back. Reliable, affordable, and drivers are always kind. Golden Ride gets it right every time.</p><div class="tc-author"><div class="tc-av">R</div><div><div class="tc-name">Ryan Torres</div><div class="tc-loc">📍 Miami, FL</div></div></div></div>
+      <div class="tc fade"><span class="tc-q">"</span><div class="tc-stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div><p class="tc-txt">Used the XL for my sister's wedding with 6 people, perfectly on time and coordinated. The in-app tracking was brilliant. Will absolutely use again!</p><div class="tc-author"><div class="tc-av">L</div><div><div class="tc-name">Lauren Kim</div><div class="tc-loc">📍 Seattle, WA</div></div></div></div>
     </div>
   </div>
 </section>
 
 <!-- ══ PROMOTION ══ -->
-<section style="background: linear-gradient(135deg, #1a1a2e, #2a2a4a); color: white; padding: 60px 0; border-top: 1px solid rgba(255,215,0,0.2); border-bottom: 1px solid rgba(255,215,0,0.2);">
-  <div class="container" style="display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
-    <div style="flex: 1; min-width: 300px;">
-      <h2 style="font-size: 2.5rem; color: #FFD700; margin-bottom: 20px; font-family: 'Barlow', sans-serif;">Introducing Golden Eats & Grocery 🍔🛒</h2>
-      <p style="font-size: 1.1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 20px;">
-        Get your favorite meals and everyday groceries delivered straight to your door by our professional Golden Ride drivers. 
-        Enjoy the same reliability and five-star service you expect, now for your food and essentials.
-      </p>
-      <div style="display: flex; gap: 15px;">
-        <span style="background: rgba(255,215,0,0.2); border: 1px solid #FFD700; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-family: 'Barlow', sans-serif;">$0 Delivery Fee for your first 3 orders!</span>
+<section style="background:linear-gradient(135deg,#1a1a2e,#2a2a4a);color:white;padding:60px 0;border-top:1px solid rgba(255,215,0,.2);border-bottom:1px solid rgba(255,215,0,.2)">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap">
+    <div style="flex:1;min-width:300px">
+      <h2 style="font-size:2.5rem;color:#FFD700;margin-bottom:20px;font-family:'Barlow',sans-serif">Introducing Golden Eats &amp; Grocery 🍔🛒</h2>
+      <p style="font-size:1.1rem;line-height:1.6;opacity:.9;margin-bottom:20px">Get your favorite meals and everyday groceries delivered straight to your door by our professional Golden Ride drivers. Enjoy the same reliability and five-star service you expect, now for your food and essentials.</p>
+      <div style="display:flex;gap:15px">
+        <span style="background:rgba(255,215,0,.2);border:1px solid #FFD700;padding:8px 16px;border-radius:20px;font-weight:bold;font-family:'Barlow',sans-serif">$0 Delivery Fee for your first 3 orders!</span>
       </div>
     </div>
-    <div style="flex: 1; min-width: 300px; display: flex; gap: 20px; justify-content: center;">
-      <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); width: 45%;">
-        <div style="font-size: 3rem; margin-bottom: 15px;">🍕</div>
-        <h3 style="color: white; margin-bottom: 10px; font-family: 'Barlow', sans-serif;">Golden Eats</h3>
-        <p style="font-size: 0.9rem; opacity: 0.7;">Restaurant Delivery</p>
+    <div style="flex:1;min-width:300px;display:flex;gap:20px;justify-content:center">
+      <div style="background:rgba(0,0,0,.3);padding:30px;border-radius:20px;text-align:center;border:1px solid rgba(255,255,255,.1);width:45%">
+        <div style="font-size:3rem;margin-bottom:15px">🍕</div>
+        <h3 style="color:white;margin-bottom:10px;font-family:'Barlow',sans-serif">Golden Eats</h3>
+        <p style="font-size:.9rem;opacity:.7">Restaurant Delivery</p>
       </div>
-      <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); width: 45%;">
-        <div style="font-size: 3rem; margin-bottom: 15px;">🥑</div>
-        <h3 style="color: white; margin-bottom: 10px; font-family: 'Barlow', sans-serif;">Grocery</h3>
-        <p style="font-size: 0.9rem; opacity: 0.7;">Fresh Essentials</p>
+      <div style="background:rgba(0,0,0,.3);padding:30px;border-radius:20px;text-align:center;border:1px solid rgba(255,255,255,.1);width:45%">
+        <div style="font-size:3rem;margin-bottom:15px">🥑</div>
+        <h3 style="color:white;margin-bottom:10px;font-family:'Barlow',sans-serif">Grocery</h3>
+        <p style="font-size:.9rem;opacity:.7">Fresh Essentials</p>
       </div>
     </div>
   </div>
@@ -1024,11 +861,11 @@ footer {
       </div>
       <div class="cta-btns">
         <a href="https://apps.apple.com/in/app/golden-ride/id6799399404" class="cta-app" id="ios-btn" target="_blank">
-          <span class="cta-app-ico" style="display:flex"><svg viewBox="0 0 384 512" width="28" height="28" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></span>
+          <span class="cta-app-ico"><svg viewBox="0 0 384 512" width="28" height="28" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></span>
           <div><div class="cta-app-sub">Download on the</div><div class="cta-app-name">App Store</div></div>
         </a>
         <a href="https://play.google.com/store/apps/details?id=com.goldenride" class="cta-app" id="android-btn" target="_blank">
-          <span class="cta-app-ico" style="display:flex"><svg viewBox="0 0 512 512" width="28" height="28" fill="currentColor"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg></span>
+          <span class="cta-app-ico"><svg viewBox="0 0 512 512" width="28" height="28" fill="currentColor"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg></span>
           <div><div class="cta-app-sub">Get it on</div><div class="cta-app-name">Google Play</div></div>
         </a>
       </div>
@@ -1043,7 +880,7 @@ footer {
       <div>
         <div class="slabel" style="color:#000">Drive With Us</div>
         <h2 class="sh" style="color:#000">Earn More.<br/>Drive Golden.</h2>
-        <p class="sp" style="color:rgba(0,0,0,.62);margin-bottom:26px">Join 50,000+ professional drivers. Set your own hours, keep more of what you earn, and get paid weekly — no hidden fees, no catches.</p>
+        <p class="sp" style="color:rgba(0,0,0,.62);margin-bottom:26px">Join 50,000+ professional drivers. Set your own hours, keep more of what you earn, and get paid weekly. No hidden fees, no catches.</p>
         <div class="driver-perks">
           <div class="dp"><span class="dp-ico">💸</span><span class="dp-t">Weekly Guaranteed Pay</span></div>
           <div class="dp"><span class="dp-ico">🕐</span><span class="dp-t">Flexible Hours</span></div>
@@ -1075,39 +912,7 @@ footer {
 
 <!-- ══ FOOTER ══ -->
 <footer>
-  <div class="city-skyline"></div>
-  <div class="city-road"></div>
-  
-  <div class="taxi-wrapper taxi-1">
-    <svg viewBox="0 -10 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10,30 L5,30 Q0,30 0,25 L0,15 Q0,10 5,10 L20,10 L30,0 L70,0 L85,10 L95,10 Q100,10 100,15 L100,25 Q100,30 95,30 L90,30" fill="#FFD700" />
-      <path d="M25,10 L33,2 L67,2 L80,10 Z" fill="#222" />
-      <path d="M50,2 L50,10" stroke="#FFD700" stroke-width="2" />
-      <rect x="42" y="-5" width="16" height="5" fill="#333" rx="1" />
-      <circle cx="20" cy="30" r="7" fill="#111" />
-      <circle cx="20" cy="30" r="3" fill="#ccc" />
-      <circle cx="80" cy="30" r="7" fill="#111" />
-      <circle cx="80" cy="30" r="3" fill="#ccc" />
-      <circle cx="95" cy="15" r="2" fill="#fff" opacity="0.8" />
-      <circle cx="5" cy="15" r="2" fill="#ff0000" />
-    </svg>
-  </div>
-
-  <div class="taxi-wrapper taxi-2">
-    <svg viewBox="0 -10 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10,30 L5,30 Q0,30 0,25 L0,15 Q0,10 5,10 L20,10 L30,0 L70,0 L85,10 L95,10 Q100,10 100,15 L100,25 Q100,30 95,30 L90,30" fill="#111" />
-      <path d="M25,10 L33,2 L67,2 L80,10 Z" fill="#333" />
-      <path d="M50,2 L50,10" stroke="#111" stroke-width="2" />
-      <circle cx="20" cy="30" r="7" fill="#000" />
-      <circle cx="20" cy="30" r="3" fill="#999" />
-      <circle cx="80" cy="30" r="7" fill="#000" />
-      <circle cx="80" cy="30" r="3" fill="#999" />
-      <circle cx="95" cy="15" r="2" fill="#fff" opacity="0.8" />
-      <circle cx="5" cy="15" r="2" fill="#ff0000" />
-      <rect x="40" y="15" width="20" height="4" fill="#FFD700" opacity="0.7"/> 
-    </svg>
-  </div>
-  <div class="container">
+  <div class="container" style="position:relative;z-index:5">
     <div class="foot-top">
       <div>
         <div class="fb-logo">
@@ -1115,9 +920,20 @@ footer {
           <div class="fb-logo-txt">Golden<span>Ride</span></div>
         </div>
         <p class="fb-desc">Premium on-demand taxi service across 200+ cities. Your ride, your safety, our priority — every single time.</p>
+        <!-- Properly styled social icons (#issue 7 & 18) -->
         <div class="fb-soc">
-          <a href="#book-bar" class="fsoc">𝕏</a><a href="#book-bar" class="fsoc">f</a>
-          <a href="#book-bar" class="fsoc">in</a><a href="#book-bar" class="fsoc">▶</a>
+          <a href="https://x.com/goldenride" target="_blank" class="fsoc" aria-label="X / Twitter">
+            <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.737-8.835L1.254 2.25H8.08l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="https://facebook.com/goldenride" target="_blank" class="fsoc" aria-label="Facebook">
+            <svg viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </a>
+          <a href="https://linkedin.com/company/goldenride" target="_blank" class="fsoc" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          </a>
+          <a href="https://youtube.com/@goldenride" target="_blank" class="fsoc" aria-label="YouTube">
+            <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          </a>
         </div>
       </div>
       <div>
@@ -1131,27 +947,73 @@ footer {
       <div>
         <div class="fc-ttl">Company</div>
         <div class="flinks">
-          <a href="#book-bar">About Us</a><a href="#book-bar">Careers</a>
-          <a href="#book-bar">Press Room</a><a href="#book-bar">Blog</a>
-          <a href="#book-bar">Partners</a>
+          <a href="#">About Us</a><a href="#">Careers</a>
+          <a href="#">Press Room</a><a href="#">Blog</a>
+          <a href="#">Partners</a>
         </div>
       </div>
       <div>
         <div class="fc-ttl">Contact</div>
-        <div class="fci"><div class="fci-ico">📍</div><div class="fci-txt"><b>Headquarters</b>Dayton, Ohio</div></div>
-        <div class="fci"><div class="fci-ico">📞</div><div class="fci-txt"><b>24/7 Support</b>+1 (800) 465-3694</div></div>
-        <div class="fci"><div class="fci-ico">✉️</div><div class="fci-txt"><b>Email</b>support@goldenride.com</div></div>
+        <div class="fci">
+          <div class="fci-ico">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#F5B800" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+          </div>
+          <div class="fci-txt"><b>Headquarters</b>Dayton, Ohio</div>
+        </div>
+        <div class="fci">
+          <div class="fci-ico">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#F5B800" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 01.17 2.18C.17.85 1.06 0 2.38 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.17 6.17l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+          </div>
+          <div class="fci-txt"><b>24/7 Support</b>+1 (800) 465-3694</div>
+        </div>
+        <div class="fci">
+          <div class="fci-ico">
+            <!-- Correct email icon SVG (#issue 6 & 18) -->
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#F5B800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          </div>
+          <div class="fci-txt"><b>Email</b>support@goldenride.com</div>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Footer animation — separated below footer content (#issue 17) -->
+  <div class="footer-animation">
+    <div class="city-skyline"></div>
+    <div class="city-road"></div>
+    <div class="taxi-wrapper taxi-1">
+      <svg viewBox="0 -10 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10,30 L5,30 Q0,30 0,25 L0,15 Q0,10 5,10 L20,10 L30,0 L70,0 L85,10 L95,10 Q100,10 100,15 L100,25 Q100,30 95,30 L90,30" fill="#FFD700"/>
+        <path d="M25,10 L33,2 L67,2 L80,10 Z" fill="#222"/>
+        <path d="M50,2 L50,10" stroke="#FFD700" stroke-width="2"/>
+        <rect x="42" y="-5" width="16" height="5" fill="#333" rx="1"/>
+        <circle cx="20" cy="30" r="7" fill="#111"/><circle cx="20" cy="30" r="3" fill="#ccc"/>
+        <circle cx="80" cy="30" r="7" fill="#111"/><circle cx="80" cy="30" r="3" fill="#ccc"/>
+        <circle cx="95" cy="15" r="2" fill="#fff" opacity="0.8"/>
+        <circle cx="5" cy="15" r="2" fill="#ff0000"/>
+      </svg>
+    </div>
+    <div class="taxi-wrapper taxi-2">
+      <svg viewBox="0 -10 100 50" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10,30 L5,30 Q0,30 0,25 L0,15 Q0,10 5,10 L20,10 L30,0 L70,0 L85,10 L95,10 Q100,10 100,15 L100,25 Q100,30 95,30 L90,30" fill="#111"/>
+        <path d="M25,10 L33,2 L67,2 L80,10 Z" fill="#333"/>
+        <circle cx="20" cy="30" r="7" fill="#000"/><circle cx="20" cy="30" r="3" fill="#999"/>
+        <circle cx="80" cy="30" r="7" fill="#000"/><circle cx="80" cy="30" r="3" fill="#999"/>
+        <circle cx="95" cy="15" r="2" fill="#fff" opacity="0.8"/>
+        <circle cx="5" cy="15" r="2" fill="#ff0000"/>
+        <rect x="40" y="15" width="20" height="4" fill="#FFD700" opacity="0.7"/>
+      </svg>
+    </div>
+  </div>
+
   <div class="fbot">
     <div class="container">
       <div class="fbot-inner">
         <span class="fcp">© 2026 Golden Ride Inc. All rights reserved.</span>
         <div class="fbl">
-          <a href="#book-bar">Privacy Policy</a>
-          <a href="#book-bar">Terms of Service</a>
-          <a href="#book-bar">Cookie Policy</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Cookie Policy</a>
         </div>
       </div>
     </div>
@@ -1159,70 +1021,83 @@ footer {
 </footer>
 
 <script>
-/* ── Mobile Nav ── */
-function closeMobileNav() {
-  const nav = document.getElementById('mobile-nav');
-  const btn = document.getElementById('hamburger-btn');
-  nav.classList.remove('open');
-  btn.classList.remove('open');
-  btn.setAttribute('aria-expanded', 'false');
+/* ── Smart App Store redirect (#issue 4 & 12) ── */
+function openAppStore(e) {
+  if(e) e.preventDefault();
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /android/i.test(ua);
+  if(isIOS){
+    window.open('https://apps.apple.com/in/app/golden-ride/id6799399404','_blank');
+  } else if(isAndroid){
+    window.open('https://play.google.com/store/apps/details?id=com.goldenride','_blank');
+  } else {
+    // Desktop: show both options
+    const choice = confirm('Choose your platform:\n\nOK → App Store (iOS)\nCancel → Google Play (Android)');
+    if(choice){
+      window.open('https://apps.apple.com/in/app/golden-ride/id6799399404','_blank');
+    } else {
+      window.open('https://play.google.com/store/apps/details?id=com.goldenride','_blank');
+    }
+  }
 }
 
-document.getElementById('hamburger-btn').addEventListener('click', function() {
+/* ── Mobile Nav ── */
+function closeMobileNav() {
+  document.getElementById('mobile-nav').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+  document.getElementById('hamburger-btn').setAttribute('aria-expanded','false');
+}
+document.getElementById('hamburger-btn').addEventListener('click',function(){
   const nav = document.getElementById('mobile-nav');
   const isOpen = nav.classList.toggle('open');
-  this.classList.toggle('open', isOpen);
-  this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  this.classList.toggle('open',isOpen);
+  this.setAttribute('aria-expanded',isOpen?'true':'false');
+});
+document.addEventListener('click',function(e){
+  const nav=document.getElementById('mobile-nav'),btn=document.getElementById('hamburger-btn');
+  if(nav.classList.contains('open')&&!nav.contains(e.target)&&!btn.contains(e.target)) closeMobileNav();
 });
 
-// Close mobile nav when clicking outside
-document.addEventListener('click', function(e) {
-  const nav = document.getElementById('mobile-nav');
-  const btn = document.getElementById('hamburger-btn');
-  if (nav.classList.contains('open') && !nav.contains(e.target) && !btn.contains(e.target)) {
-    closeMobileNav();
-  }
-});
+/* ── Active nav highlight on scroll (#issue 4) ── */
+const sections = document.querySelectorAll('section[id], div[id]');
+const navItems = document.querySelectorAll('.nav-links li');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      navItems.forEach(li => {
+        li.classList.remove('active');
+        if(li.querySelector('a[href="#'+entry.target.id+'"]')) li.classList.add('active');
+      });
+    }
+  });
+},{ threshold:0.4 });
+sections.forEach(s => observer.observe(s));
 
 /* ── Scroll fade-in ── */
 const io = new IntersectionObserver(entries => {
-  entries.forEach((e, i) => {
-    if (e.isIntersecting) setTimeout(() => e.target.classList.add('in'), i * 70);
+  entries.forEach((e,i) => {
+    if(e.isIntersecting) setTimeout(()=>e.target.classList.add('in'),i*70);
   });
-}, { threshold: 0.1 });
-document.querySelectorAll('.fade,.fade-l,.fade-r,.fade-drive').forEach(el => io.observe(el));
+},{threshold:0.1});
+document.querySelectorAll('.fade,.fade-l,.fade-r,.fade-drive').forEach(el=>io.observe(el));
 
 /* ── Number counter ── */
 const cio = new IntersectionObserver(entries => {
   entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    const el = e.target, tgt = parseInt(el.dataset.count), suf = el.dataset.suf || '';
-    if (!tgt) return;
-    let cur = 0; const step = tgt / 55;
-    const iv = setInterval(() => {
-      cur = Math.min(cur + step, tgt);
-      el.textContent = Math.round(cur) + suf;
-      if (cur >= tgt) clearInterval(iv);
-    }, 22);
+    if(!e.isIntersecting) return;
+    const el=e.target,tgt=parseInt(el.dataset.count),suf=el.dataset.suf||'';
+    if(!tgt) return;
+    let cur=0; const step=tgt/55;
+    const iv=setInterval(()=>{ cur=Math.min(cur+step,tgt); el.textContent=Math.round(cur)+suf; if(cur>=tgt) clearInterval(iv); },22);
     cio.unobserve(el);
   });
-}, { threshold: 0.6 });
-document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+},{threshold:0.6});
+document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
 
-/* ── Booking ── */
-function doBook() {
-  const f = document.getElementById('inp-from').value.trim();
-  const t = document.getElementById('inp-to').value.trim();
-  const v = document.getElementById('sel-veh').value;
-  if (!f || !t) { alert('Please enter both pickup and drop-off locations.'); return; }
-  alert(`✅ Booking Confirmed!\n\n📍 From: ${f}\n🏁 To: ${t}\n🚖 Vehicle: ${v}\n\nA verified driver is being matched to you now.`);
-}
-
-/* ── Nav scroll ── */
-window.addEventListener('scroll', () => {
-  document.getElementById('nav').style.boxShadow =
-    scrollY > 10 ? '0 2px 28px rgba(0,0,0,.12)' : '0 2px 18px rgba(0,0,0,.07)';
-  // Close mobile nav on scroll
+/* ── Nav shadow on scroll + close mobile nav ── */
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').style.boxShadow=scrollY>10?'0 2px 28px rgba(0,0,0,.12)':'0 2px 18px rgba(0,0,0,.07)';
   closeMobileNav();
 });
 </script>
