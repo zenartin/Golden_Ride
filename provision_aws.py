@@ -96,6 +96,7 @@ if sg_id:
     credentials = session.get_credentials()
     access_key = credentials.access_key
     secret_key = credentials.secret_key
+    stripe_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
     user_data = f"""#!/bin/bash
 yum update -y
@@ -119,6 +120,7 @@ AWS_S3_BUCKET_NAME={uploads_bucket}
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID={access_key}
 AWS_SECRET_ACCESS_KEY={secret_key}
+STRIPE_SECRET_KEY={stripe_key}
 EOF
 
 docker-compose up -d --build

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models.ride import Ride
 from app.models.user import User, WalletTransaction
+from app.models.driver import Driver
 from app.schemas.auth import LoginRequest, OtpRequest, OtpVerifyRequest, UserRegisterRequest, UserToken, ProfileUpdateRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.ride import (
     RideBookingRequest,
@@ -317,9 +318,9 @@ async def book_ride(
 
 @router.get("/rides/active", response_model=Optional[RideResponse])
 def get_active_ride(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
+    ride = (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload("documents"))
+        .options(joinedload(Ride.driver).joinedload(Driver.documents))
         .filter(
             Ride.user_id == current_user.id,
             Ride.status.in_(["pending", "accepted", "arrived", "started"]),
@@ -327,13 +328,22 @@ def get_active_ride(current_user: User = Depends(get_current_user), db: Session 
         .order_by(Ride.created_at.desc())
         .first()
     )
+    if ride and ride.verification_pin_hash:
+        from app.utils.pin import generate_ride_pin
+        from app.schemas.ride import RideResponse as SchemaRideResponse
+        
+        response = SchemaRideResponse.model_validate(ride)
+        response.verification_pin = generate_ride_pin(str(ride.id))
+        return response
+        
+    return ride
 
 
 @router.get("/rides/history", response_model=List[RideResponse])
 def get_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload("documents"))
+        .options(joinedload(Ride.driver).joinedload(Driver.documents))
         .filter(Ride.user_id == current_user.id, Ride.status.in_(["completed", "cancelled", "declined"]))
         .order_by(Ride.created_at.desc())
         .all()
@@ -344,12 +354,21 @@ def get_history(current_user: User = Depends(get_current_user), db: Session = De
 def get_ride(ride_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ride = (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload("documents"))
+        .options(joinedload(Ride.driver).joinedload(Driver.documents))
         .filter(Ride.id == ride_id, Ride.user_id == current_user.id)
         .first()
     )
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+        
+    if ride.verification_pin_hash:
+        from app.utils.pin import generate_ride_pin
+        from app.schemas.ride import RideResponse as SchemaRideResponse
+        
+        response = SchemaRideResponse.model_validate(ride)
+        response.verification_pin = generate_ride_pin(str(ride.id))
+        return response
+        
     return ride
 
 
