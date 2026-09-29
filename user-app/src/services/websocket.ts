@@ -15,8 +15,18 @@ export function connectUserWebSocket(userId: number, token: string) {
 
   isExplicitDisconnect = false;
 
-  const host = BASE_URL.replace("/api", "").replace("http://", "ws://").replace("https://", "wss://");
-  const wsUrl = `${host}/ws/user/${userId}?token=${token}`;
+  // Build WebSocket URL robustly — strip trailing /api, switch https->wss
+  let baseHost = BASE_URL
+    .replace(/\/api\/?$/, "")
+    .replace(/^https:\/\//, "wss://")
+    .replace(/^http:\/\//, "ws://");
+
+  // Safety fallback if URL mangling produced an invalid host
+  if (baseHost.includes("://.") || !baseHost.startsWith("ws")) {
+    baseHost = "wss://api.golden-ride.com";
+  }
+
+  const wsUrl = `${baseHost}/ws/user/${userId}?token=${token}`;
 
   console.log("Connecting user WebSocket to:", wsUrl);
 

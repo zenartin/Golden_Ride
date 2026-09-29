@@ -21,10 +21,20 @@ export default function MainShellScreen({ navigation, route }: Props) {
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
 
   React.useEffect(() => {
+    let isMounted = true;
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      setHasLocationPermission(status === "granted");
+      // Add a timeout to prevent the app from hanging if the permission prompt is blocked
+      const permissionPromise = Location.requestForegroundPermissionsAsync();
+      const timeoutPromise = new Promise<any>((resolve) => 
+        setTimeout(() => resolve({ status: "timeout" }), 3000)
+      );
+      
+      const { status } = await Promise.race([permissionPromise, timeoutPromise]);
+      if (isMounted) {
+        setHasLocationPermission(status === "granted");
+      }
     })();
+    return () => { isMounted = false; };
   }, []);
 
   useFocusEffect(

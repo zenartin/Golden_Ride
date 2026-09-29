@@ -425,7 +425,8 @@ const styles = StyleSheet.create({
   },
   carMarker: {
     backgroundColor: Colors.primary,
-    padding: 6,
+    width: 30,
+    height: 30,
     borderRadius: 15,
     borderWidth: 1.5,
     borderColor: "#fff",

@@ -5,17 +5,23 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://98.93.224.64:8001/api"
+        "EXPO_PUBLIC_API_URL": "https://api.golden-ride.com/api"
       }
     },
     "production": {
       "channel": "production",
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://98.93.224.64:8001/api"
+        "EXPO_PUBLIC_API_URL": "https://api.golden-ride.com/api"
       }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

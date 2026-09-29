@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 // Production URL from EAS build env, falls back to localtunnel
-export const BASE_URL = "http://98.93.224.64:8001/api";
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.golden-ride.com/api";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
