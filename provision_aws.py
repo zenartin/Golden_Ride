@@ -112,7 +112,7 @@ cd /opt/golden_ride
 git clone https://github.com/zenartin/Golden_Ride.git .
 
 cat << 'EOF' > driver-app/backend/.env
-DATABASE_URL=postgresql://postgres:12345@postgres:5432/golden_ride
+DATABASE_URL=postgresql+psycopg2://postgres:12345@postgres:5432/golden_ride
 SECRET_KEY=production_secret_key_golden_ride_!@#
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
