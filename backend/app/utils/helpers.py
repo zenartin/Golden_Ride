@@ -64,5 +64,48 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return calculate_distance_haversine(lat1, lon1, lat2, lon2)
 
 
+def is_ride_eligible_for_destination_mode(
+    driver_lat: float,
+    driver_lng: float,
+    dest_lat: float,
+    dest_lng: float,
+    pickup_lat: float,
+    pickup_lng: float,
+    dropoff_lat: float,
+    dropoff_lng: float,
+    max_detour_km: float = 5.0
+) -> bool:
+    """
+    Evaluates if a ride request brings the driver closer to their specified destination mode target.
+    """
+    if any(v is None for v in [driver_lat, driver_lng, dest_lat, dest_lng, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng]):
+        return False
+
+    dist_driver_to_dest = calculate_distance(driver_lat, driver_lng, dest_lat, dest_lng)
+    dist_pickup_to_dest = calculate_distance(pickup_lat, pickup_lng, dest_lat, dest_lng)
+    dist_dropoff_to_dest = calculate_distance(dropoff_lat, dropoff_lng, dest_lat, dest_lng)
+    dist_pickup_to_dropoff = calculate_distance(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+    dist_driver_to_pickup = calculate_distance(driver_lat, driver_lng, pickup_lat, pickup_lng)
+
+    # 1. Dropoff must bring driver closer to destination than driver's starting point (with 1.0 km tolerance)
+    if dist_dropoff_to_dest > (dist_driver_to_dest + 1.0):
+        return False
+
+    # 2. Ride must move towards destination (dropoff closer to dest than pickup)
+    if dist_dropoff_to_dest >= dist_pickup_to_dest:
+        return False
+
+    # 3. Detour check (total ride path vs direct distance to dest)
+    base_distance = dist_driver_to_dest
+    ride_path_distance = dist_driver_to_pickup + dist_pickup_to_dropoff + dist_dropoff_to_dest
+    detour = ride_path_distance - base_distance
+
+    if detour > max_detour_km:
+        return False
+
+    return True
+
+
 def generate_uuid() -> str:
     return str(uuid.uuid4())
+
