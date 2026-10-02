@@ -249,6 +249,34 @@ async def toggle_online(
 
     return {"status": "success", "is_online": current_driver.is_online}
 
+from app.schemas.driver import DestinationModeRequest
+
+@router.post("/destination-mode", response_model=DriverOut)
+async def toggle_destination_mode(
+    payload: DestinationModeRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    db: Session = Depends(get_db)
+):
+    current_driver.destination_mode_active = payload.active
+    if payload.active:
+        current_driver.destination_lat = payload.lat
+        current_driver.destination_lng = payload.lng
+        current_driver.destination_address = payload.address
+    else:
+        current_driver.destination_lat = None
+        current_driver.destination_lng = None
+        current_driver.destination_address = None
+
+    db.add(current_driver)
+    db.commit()
+    db.refresh(current_driver)
+
+    if current_driver.is_online:
+        from app.services.dispatch_service import DispatchService
+        await DispatchService.dispatch_pending_rides_to_driver(db, current_driver)
+
+    return current_driver
+
 @router.get("/earnings", response_model=EarningsResponse)
 def get_earnings(
     current_driver: Driver = Depends(get_current_driver),

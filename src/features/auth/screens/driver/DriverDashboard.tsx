@@ -49,6 +49,7 @@ export default function DriverDashboard({
 }) {
   const driver = useAuthStore((s) => s.driver);
   const toggleOnlineFn = useAuthStore((s) => s.toggleOnline);
+  const setDestinationMode = useAuthStore((s) => s.setDestinationMode);
   const notifications = useAppStore((s) => s.notifications);
   const fetchNotificationsFn = useAppStore((s) => s.fetchNotifications);
 
@@ -68,7 +69,16 @@ export default function DriverDashboard({
     fetchNotificationsFn().catch(() => undefined);
   }, []);
 
-  // Removed local incomingRequests navigation side-effect since it's now handled globally in the store
+  const isOnline = dashboard?.is_online ?? driver?.is_online ?? false;
+
+  useEffect(() => {
+    if (!isOnline) return;
+    fetchIncomingRequests().catch(() => undefined);
+    const interval = setInterval(() => {
+      fetchIncomingRequests().catch(() => undefined);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isOnline]);
 
 
   const loadDashboard = async () => {
@@ -77,6 +87,19 @@ export default function DriverDashboard({
       setDashboard(response.data);
     } catch (err) {
       console.log("Dashboard load error:", err);
+      // Fallback default stats so UI never hangs on loading spinners
+      const isUSA = driver?.country === "USA";
+      const sym = isUSA ? "$" : "₹";
+      setDashboard({
+        is_online: driver?.is_online ?? false,
+        stats: [
+          { label: "Today", value: `${sym}0.00`, icon: "cash-outline", color: "#22C55E" },
+          { label: "Trips", value: `${driver?.total_rides || 0}`, icon: "car-sport-outline", color: "#3B82F6" },
+          { label: "Rating", value: `${driver?.rating ? driver.rating.toFixed(1) : "5.0"}`, icon: "star-outline", color: "#F59E0B" },
+          { label: "Km", value: "0", icon: "navigate-outline", color: "#3B5FC0" },
+        ],
+        recent_trips: []
+      });
     } finally {
       setLoading(false);
     }
@@ -137,6 +160,10 @@ export default function DriverDashboard({
       longitude: coords.longitude,
       label: "Your current location",
     });
+  };
+
+  const handleClearDestination = async () => {
+    await setDestinationMode(false);
   };
 
   // Dashboard renders immediately — stats load in background
@@ -285,6 +312,32 @@ export default function DriverDashboard({
             trackColor={{ false: "#9CA3AF", true: "#86EFAC" }}
           />
         </LinearGradient>
+
+        {/* Destination Mode Card */}
+        {isOnline && (
+          <View style={styles.destinationCard}>
+            <View style={styles.destinationHeader}>
+              <Ionicons name="navigate-circle" size={24} color={driver?.destination_mode_active ? Colors.primary : Colors.textSecondary} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.destinationTitle}>Destination Mode</Text>
+                {driver?.destination_mode_active ? (
+                  <Text style={styles.destinationAddress} numberOfLines={1}>{driver.destination_address}</Text>
+                ) : (
+                  <Text style={styles.destinationSub}>Receive rides heading your way</Text>
+                )}
+              </View>
+              {driver?.destination_mode_active ? (
+                <TouchableOpacity style={styles.destClearBtn} onPress={handleClearDestination}>
+                  <Text style={styles.destClearText}>Clear</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.destSetBtn} onPress={() => navigation.navigate("DestinationPicker")}>
+                  <Text style={styles.destSetText}>Set</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Quick Stats Grid (2x2 for responsiveness) */}
         {!dashboard ? (
@@ -740,5 +793,52 @@ const styles = StyleSheet.create({
     color: "#059669",
     fontWeight: "800",
     fontSize: 13,
+  },
+  destinationCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: Spacing.md,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  destinationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  destinationTitle: {
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    fontSize: 15,
+  },
+  destinationSub: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+  },
+  destinationAddress: {
+    color: Colors.primary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  destSetBtn: {
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  destSetText: {
+    color: Colors.primary,
+    fontWeight: "700",
+  },
+  destClearBtn: {
+    backgroundColor: Colors.error + "20",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  destClearText: {
+    color: Colors.error,
+    fontWeight: "700",
   },
 });
