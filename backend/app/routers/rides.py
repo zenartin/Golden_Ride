@@ -8,7 +8,7 @@ from app.models.driver import Driver
 from app.models.ride import Ride
 from app.schemas.ride import RideResponse, RideUpdateStatus, LocationUpdate, VerifyPinRequest
 from app.utils.security import get_current_driver
-from app.utils.helpers import is_ride_eligible_for_destination_mode
+from app.utils.helpers import is_ride_eligible_for_destination_mode, is_vehicle_class_compatible
 from app.services.ride_service import RideService
 from app.repositories.ride_assignment_repository import RideAssignmentRepository
 
@@ -25,22 +25,17 @@ def get_incoming_requests(
 
     # Get driver's vehicle type to filter rides
     from app.models.driver import DriverDocument
-    from sqlalchemy import func
     
     driver_doc = db.query(DriverDocument).filter(DriverDocument.driver_id == current_driver.id).first()
-    if not driver_doc or not driver_doc.vehicle_type:
-        driver_vehicle_type = "sedan"
-    else:
-        driver_vehicle_type = driver_doc.vehicle_type.lower()
-    allowed_classes = [driver_vehicle_type]
+    driver_vehicle_type = driver_doc.vehicle_type if (driver_doc and driver_doc.vehicle_type) else "sedan"
 
-    rides = db.query(Ride).filter(
-        Ride.status == "pending",
-        func.lower(Ride.ride_class).in_(allowed_classes)
-    ).all()
+    rides = db.query(Ride).filter(Ride.status == "pending").all()
     
     filtered_rides = []
     for ride in rides:
+        if not is_vehicle_class_compatible(driver_vehicle_type, ride.ride_class):
+            continue
+
         assignment = RideAssignmentRepository.get_by_ride_and_driver(db, ride.id, current_driver.id)
         if assignment and assignment.status == "rejected":
             continue
@@ -55,7 +50,7 @@ def get_incoming_requests(
                 pickup_lng=ride.pickup_longitude,
                 dropoff_lat=ride.dropoff_latitude,
                 dropoff_lng=ride.dropoff_longitude,
-                max_detour_km=5.0
+                max_detour_km=15.0
             ):
                 continue
 

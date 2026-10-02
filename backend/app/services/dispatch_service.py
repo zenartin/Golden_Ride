@@ -9,7 +9,7 @@ from app.notifications.fcm import FCMService
 from app.repositories.device_token_repository import DeviceTokenRepository
 from app.repositories.notification_repository import NotificationRepository
 from app.repositories.ride_assignment_repository import RideAssignmentRepository
-from app.utils.helpers import calculate_distance, is_ride_eligible_for_destination_mode
+from app.utils.helpers import calculate_distance, is_ride_eligible_for_destination_mode, is_vehicle_class_compatible
 
 logger = logging.getLogger("app")
 
@@ -51,21 +51,22 @@ class DispatchService:
             "ride": ride_payload
         }
 
-        target_classes = [ride.ride_class.lower()]
-
-        from sqlalchemy import func
         drivers = (
             db.query(Driver)
-            .join(DriverDocument)
-            .filter(
-                Driver.is_online == True,
-                func.lower(DriverDocument.vehicle_type) == ride.ride_class.lower()
-            )
-        ).all()
-        logger.info(f"Found {len(drivers)} online drivers with vehicle class {ride.ride_class}")
+            .filter(Driver.is_online == True)
+            .all()
+        )
+        logger.info(f"Found {len(drivers)} total online drivers")
 
         eligible_drivers = []
         for driver in drivers:
+            doc = db.query(DriverDocument).filter(DriverDocument.driver_id == driver.id).first()
+            driver_vtype = doc.vehicle_type if doc and doc.vehicle_type else "sedan"
+            
+            if not is_vehicle_class_compatible(driver_vtype, ride.ride_class):
+                logger.info(f"Skipping driver {driver.id}: vehicle type {driver_vtype} not compatible with ride class {ride.ride_class}")
+                continue
+
             if driver.destination_mode_active and driver.destination_lat and driver.destination_lng:
                 is_eligible = is_ride_eligible_for_destination_mode(
                     driver_lat=driver.latitude,
@@ -76,7 +77,7 @@ class DispatchService:
                     pickup_lng=ride.pickup_longitude,
                     dropoff_lat=ride.dropoff_latitude,
                     dropoff_lng=ride.dropoff_longitude,
-                    max_detour_km=5.0
+                    max_detour_km=15.0
                 )
                 if not is_eligible:
                     logger.info(f"Skipping driver {driver.id}: Ride {ride.id} is not eligible for driver's destination mode")

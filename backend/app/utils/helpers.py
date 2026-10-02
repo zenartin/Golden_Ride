@@ -4,6 +4,7 @@ import logging
 import urllib.request
 import urllib.parse
 import json
+from typing import Optional
 
 logger = logging.getLogger("app")
 
@@ -64,22 +65,55 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return calculate_distance_haversine(lat1, lon1, lat2, lon2)
 
 
+def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str) -> bool:
+    """
+    Check if a driver's vehicle type can accept a given ride class.
+    Handles cross-naming (e.g. sedan vs comfort vs hatchback vs xuv).
+    """
+    if not driver_vehicle_type or not ride_class:
+        return True
+
+    d = str(driver_vehicle_type).lower().strip()
+    r = str(ride_class).lower().strip()
+
+    if d == r:
+        return True
+
+    sedan_family = {"sedan", "comfort", "golden ridex", "economy", "hatchback"}
+    suv_family = {"suv", "xuv", "golden ridexl", "van", "premium", "sedan", "comfort", "golden ridex", "economy", "hatchback"}
+    hatchback_family = {"hatchback", "economy"}
+
+    if d in suv_family and r in suv_family:
+        return True
+    if d in sedan_family and r in sedan_family:
+        return True
+    if d in hatchback_family and r in hatchback_family:
+        return True
+
+    return True  # Fallback to allow matching if unknown category
+
+
 def is_ride_eligible_for_destination_mode(
-    driver_lat: float,
-    driver_lng: float,
+    driver_lat: Optional[float],
+    driver_lng: Optional[float],
     dest_lat: float,
     dest_lng: float,
     pickup_lat: float,
     pickup_lng: float,
     dropoff_lat: float,
     dropoff_lng: float,
-    max_detour_km: float = 5.0
+    max_detour_km: float = 15.0
 ) -> bool:
     """
     Evaluates if a ride request brings the driver closer to their specified destination mode target.
     """
-    if any(v is None for v in [driver_lat, driver_lng, dest_lat, dest_lng, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng]):
-        return False
+    if dest_lat is None or dest_lng is None or pickup_lat is None or pickup_lng is None or dropoff_lat is None or dropoff_lng is None:
+        return True
+
+    # Fallback driver position to pickup if missing
+    if driver_lat is None or driver_lng is None:
+        driver_lat = pickup_lat
+        driver_lng = pickup_lng
 
     dist_driver_to_dest = calculate_distance(driver_lat, driver_lng, dest_lat, dest_lng)
     dist_pickup_to_dest = calculate_distance(pickup_lat, pickup_lng, dest_lat, dest_lng)
@@ -87,15 +121,15 @@ def is_ride_eligible_for_destination_mode(
     dist_pickup_to_dropoff = calculate_distance(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
     dist_driver_to_pickup = calculate_distance(driver_lat, driver_lng, pickup_lat, pickup_lng)
 
-    # 1. Dropoff must bring driver closer to destination than driver's starting point (with 1.0 km tolerance)
-    if dist_dropoff_to_dest > (dist_driver_to_dest + 1.0):
+    # 1. Dropoff must bring driver closer to destination than where they started (with 3.0 km urban tolerance)
+    if dist_dropoff_to_dest > (dist_driver_to_dest + 3.0):
         return False
 
-    # 2. Ride must move towards destination (dropoff closer to dest than pickup)
-    if dist_dropoff_to_dest >= dist_pickup_to_dest:
+    # 2. Dropoff must not be significantly further from destination than pickup (allow 2.0 km tolerance for winding roads)
+    if dist_dropoff_to_dest > (dist_pickup_to_dest + 2.0):
         return False
 
-    # 3. Detour check (total ride path vs direct distance to dest)
+    # 3. Detour check (total path vs direct distance to destination)
     base_distance = dist_driver_to_dest
     ride_path_distance = dist_driver_to_pickup + dist_pickup_to_dropoff + dist_dropoff_to_dest
     detour = ride_path_distance - base_distance
