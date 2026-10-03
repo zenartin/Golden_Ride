@@ -32,7 +32,7 @@ import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { MainStackParamList } from "../../navigation/MainNavigator";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
+import polyline from "@mapbox/polyline";
 type Props = NativeStackScreenProps<MainStackParamList, "Shell"> & {
   openTab: (tab: "Home" | "Trips" | "Wallet" | "Profile") => void;
 };
@@ -54,6 +54,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   const [searching, setSearching] = useState(false);
   const [booking, setBooking] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
 
   const mapRef = useRef<MapView>(null);
 
@@ -75,15 +76,52 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   // Fit map to show both markers when both coords are available
   useEffect(() => {
     if (pickupCoords && dropoffCoords && mapRef.current) {
-      mapRef.current.fitToCoordinates(
-        [
-          { latitude: pickupCoords.lat, longitude: pickupCoords.lon },
-          { latitude: dropoffCoords.lat, longitude: dropoffCoords.lon },
-        ],
-        { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
-      );
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.fitToCoordinates(
+            [
+              { latitude: pickupCoords.lat, longitude: pickupCoords.lon },
+              { latitude: dropoffCoords.lat, longitude: dropoffCoords.lon },
+            ],
+            { edgePadding: { top: 80, right: 80, bottom: 80, left: 80 }, animated: true }
+          );
+        }
+      }, 600); // Give bottom sheet time to settle and make it look smoother
     }
   }, [pickupCoords, dropoffCoords]);
+
+  // Fetch real road route from OSRM
+  useEffect(() => {
+    if (pickupCoords && dropoffCoords) {
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(`http://router.project-osrm.org/route/v1/driving/${pickupCoords.lon},${pickupCoords.lat};${dropoffCoords.lon},${dropoffCoords.lat}?overview=full`);
+          const data = await res.json();
+          if (data.routes && data.routes.length > 0) {
+            const points = polyline.decode(data.routes[0].geometry);
+            const coords = points.map((point: any) => ({
+              latitude: point[0],
+              longitude: point[1],
+            }));
+            setRouteCoords(coords);
+          }
+        } catch (e) {
+          console.log("Failed to fetch route", e);
+          setRouteCoords([]);
+        }
+      };
+      fetchRoute();
+    } else {
+      setRouteCoords([]);
+    }
+  }, [pickupCoords, dropoffCoords]);
+
+  const swapLocations = () => {
+    const tempP = pickup;
+    const tempPCoords = pickupCoords;
+    setPickup(dropoff, dropoffCoords || undefined);
+    setDropoff(tempP, tempPCoords || undefined);
+  };
 
   // Handle hardware back button to clear ride options instead of exiting
   useFocusEffect(
@@ -254,18 +292,11 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           latitudeDelta: 0.08,
           longitudeDelta: 0.08,
         }
-      : user?.country === "USA"
-      ? {
+      : {
           latitude: 39.8283,
           longitude: -98.5795,
           latitudeDelta: 30,
           longitudeDelta: 30,
-        }
-      : {
-          latitude: 20.5937,
-          longitude: 78.9629,
-          latitudeDelta: 20,
-          longitudeDelta: 20,
         };
 
   return (
@@ -296,13 +327,17 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
         )}
         {pickupCoords && dropoffCoords && (
           <Polyline
-            coordinates={[
-              { latitude: pickupCoords.lat, longitude: pickupCoords.lon },
-              { latitude: dropoffCoords.lat, longitude: dropoffCoords.lon },
-            ]}
+            coordinates={
+              routeCoords.length > 0
+                ? routeCoords
+                : [
+                    { latitude: pickupCoords.lat, longitude: pickupCoords.lon },
+                    { latitude: dropoffCoords.lat, longitude: dropoffCoords.lon },
+                  ]
+            }
             strokeColor={Colors.primary}
-            strokeWidth={3}
-            lineDashPattern={[6, 4]}
+            strokeWidth={4}
+            lineDashPattern={routeCoords.length > 0 ? undefined : [6, 4]}
           />
         )}
       </MapView>
@@ -320,8 +355,8 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           onPress={() => {
             if (mapRef.current && user) {
               // Current Location mock/real integration
-              const myLat = user.country === "USA" ? 39.8283 : 20.5937;
-              const myLon = user.country === "USA" ? -98.5795 : 78.9629;
+              const myLat = 39.8283;
+              const myLon = -98.5795;
               mapRef.current.animateToRegion({ latitude: myLat, longitude: myLon, latitudeDelta: 0.01, longitudeDelta: 0.01 });
               setPickup("My Current Location", { lat: myLat, lon: myLon });
             }
@@ -410,7 +445,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   {booking ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={[styles.bookBtnText, { fontSize: 18, fontWeight: "900", letterSpacing: 0.5 }]}>
+                    <Text style={[styles.bookBtnText, { fontSize: 18, fontWeight: "900", letterSpacing: 0.5, textAlign: "center", paddingHorizontal: 10 }]} adjustsFontSizeToFit numberOfLines={1}>
                       {selectedRideClass ? `Confirm ${selectedRideClass.charAt(0).toUpperCase() + selectedRideClass.slice(1)}` : "Select a Ride"}
                     </Text>
                   )}
@@ -441,6 +476,13 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
                 </Pressable>
+
+                {/* Swap Button Overlay */}
+                <View style={styles.swapBtnContainer}>
+                  <Pressable style={styles.swapBtn} onPress={swapLocations}>
+                    <Ionicons name="swap-vertical" size={18} color={Colors.primary} />
+                  </Pressable>
+                </View>
 
                 {/* Dropoff */}
                 <Pressable
@@ -775,8 +817,32 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     paddingHorizontal: 14,
     paddingVertical: 13,
+    overflow: "hidden",
   },
   inputBoxFilled: { borderColor: Colors.primary + "66" },
+  swapBtnContainer: {
+    position: "absolute",
+    right: 20,
+    top: "50%",
+    marginTop: -16, // Center vertically between the two inputs
+    zIndex: 10,
+    elevation: 10,
+  },
+  swapBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: Colors.border + "88",
+  },
   inputPlaceholder: { color: Colors.textSecondary, fontSize: Typography.small, flex: 1 },
   inputText: { color: Colors.textPrimary, fontSize: Typography.small, fontWeight: "600", flex: 1 },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },

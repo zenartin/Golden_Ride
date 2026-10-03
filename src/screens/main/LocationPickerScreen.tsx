@@ -46,8 +46,7 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
   const [results, setResults] = useState<GeocodedPlace[]>([]);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<GeocodedPlace | null>(null);
-  const user = useAuthStore((s) => s.user);
-  const [mapRegion, setMapRegion] = useState(user?.country === "USA" ? INITIAL_REGION_USA : INITIAL_REGION_INDIA);
+  const [mapRegion, setMapRegion] = useState(INITIAL_REGION_USA);
   const [locating, setLocating] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);

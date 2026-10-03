@@ -12,6 +12,7 @@
       "buildNumber": "6"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyDbdW16zZqPVpdurydxr3VOXwHn3j85Dz4"

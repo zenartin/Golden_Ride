@@ -53,8 +53,8 @@ export default function PaymentScreen({ route, navigation }: any) {
               id: String(tripId || "1"),
               pickup: "Pickup Location",
               dropoff: "Destination",
-              rideClass: "sedan",
-              rideTitle: "Sedan",
+              rideClass: "Golden RideX",
+              rideTitle: "Golden RideX",
               driver: "Driver",
               car: "Vehicle",
               plate: "—",
@@ -86,7 +86,7 @@ export default function PaymentScreen({ route, navigation }: any) {
   }
 
   const totalFare = trip.price;
-  const currencySymbol = user?.country === "India" ? "₹" : "$";
+  const currencySymbol = "$";
 
   // ── Stripe Payment ──────────────────────────────────────────────────────────
   const handleStripePayment = async () => {

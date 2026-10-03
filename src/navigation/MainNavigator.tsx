@@ -13,6 +13,10 @@ import SavedLocationsScreen from "../screens/settings/SavedLocationsScreen";
 import PaymentMethodsScreen from "../screens/settings/PaymentMethodsScreen";
 import PaymentScreen from "../screens/main/PaymentScreen";
 import RatingScreen from "../screens/main/RatingScreen";
+import { SafetyHubScreen } from "../screens/safety/SafetyHubScreen";
+import { EmergencyContactsScreen } from "../screens/safety/EmergencyContactsScreen";
+import { FamilyDashboardScreen } from "../features/family/screens/FamilyDashboardScreen";
+import { InviteMembersScreen } from "../features/family/screens/InviteMembersScreen";
 
 export type MainStackParamList = {
   Shell: { pickedLocation?: { mode: "pickup" | "dropoff"; place: GeocodedPlace } } | undefined;
@@ -27,6 +31,10 @@ export type MainStackParamList = {
   Payment: { tripId: string };
   Rating: { tripId: string };
   ApiConsole: undefined;
+  SafetyHub: undefined;
+  EmergencyContacts: undefined;
+  FamilyDashboard: undefined;
+  InviteFamilyMember: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -48,6 +56,10 @@ export default function MainNavigator() {
       <Stack.Screen name="SavedLocations" component={SavedLocationsScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="Payment" component={PaymentScreen} options={{ animation: "slide_from_bottom" }} />
+      <Stack.Screen name="SafetyHub" component={SafetyHubScreen as any} />
+      <Stack.Screen name="EmergencyContacts" component={EmergencyContactsScreen as any} />
+      <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen as any} />
+      <Stack.Screen name="InviteFamilyMember" component={InviteMembersScreen as any} />
       <Stack.Screen name="Rating" component={RatingScreen} options={{ animation: "slide_from_bottom" }} />
     </Stack.Navigator>
   );

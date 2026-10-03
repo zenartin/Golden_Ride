@@ -27,11 +27,15 @@ class RideResponse(BaseModel):
     payment_method: str
     pickup_eta: str
     status: str  # pending, accepted, arrived, started, completed, declined, cancelled
+    verification_pin: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+class VerifyPinRequest(BaseModel):
+    pin: str
 
 
 class RideUpdateStatus(BaseModel):

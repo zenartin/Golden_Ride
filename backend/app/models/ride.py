@@ -31,6 +31,12 @@ class Ride(Base):
     pickup_eta = Column(String, default="3 min away")
 
     status = Column(String, default="pending")  # pending, accepted, arrived, started, completed, declined, cancelled
+    
+    # PIN Verification Fields
+    verification_pin_hash = Column(String(64), nullable=True)
+    verification_pin_expires_at = Column(DateTime, nullable=True)
+    verification_attempts = Column(Integer, default=0, nullable=False)
+    verification_verified_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     # SQLite doesn't support onupdate natively — we update manually in routers

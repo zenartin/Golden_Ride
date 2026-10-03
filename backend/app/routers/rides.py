@@ -6,8 +6,9 @@ from datetime import datetime
 from app.database import get_db
 from app.models.driver import Driver
 from app.models.ride import Ride
-from app.schemas.ride import RideResponse, RideUpdateStatus, LocationUpdate
+from app.schemas.ride import RideResponse, RideUpdateStatus, LocationUpdate, VerifyPinRequest
 from app.utils.security import get_current_driver
+from app.utils.pin import generate_ride_pin, hash_ride_pin, verify_ride_pin
 
 router = APIRouter(prefix="/rides", tags=["rides"])
 
@@ -74,6 +75,15 @@ def accept_ride(
     # Assign ride to driver and transition status
     ride.driver_id = current_driver.id
     ride.status = "accepted"
+    
+    # Generate and set PIN
+    from datetime import timedelta
+    pin = generate_ride_pin(str(ride.id))
+    ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
+    ride.verification_pin_expires_at = datetime.utcnow() + timedelta(minutes=15)
+    ride.verification_attempts = 0
+    ride.verification_verified_at = None
+
     db.commit()
     db.refresh(ride)
     return ride
@@ -127,6 +137,52 @@ def update_status(
         current_driver.balance += driver_earnings
         db.add(current_driver)
 
+    db.commit()
+    db.refresh(ride)
+    return ride
+
+@router.post("/{ride_id}/verify-pin", response_model=RideResponse)
+def verify_pin(
+    ride_id: int,
+    payload: VerifyPinRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    db: Session = Depends(get_db)
+):
+    ride = db.query(Ride).filter(Ride.id == ride_id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+        
+    if ride.driver_id != current_driver.id:
+        raise HTTPException(status_code=403, detail="You are not assigned to this ride")
+        
+    if ride.status not in ["accepted", "arrived"]:
+        raise HTTPException(status_code=409, detail="Ride is not ready to start")
+        
+    if ride.verification_verified_at is not None:
+        raise HTTPException(status_code=409, detail="Ride has already been verified")
+        
+    if ride.verification_pin_expires_at is None:
+        raise HTTPException(status_code=400, detail="PIN is unavailable")
+        
+    now = datetime.utcnow()
+    
+    if ride.verification_pin_expires_at <= now:
+        raise HTTPException(status_code=400, detail="PIN has expired. Please ask passenger to refresh their app.")
+        
+    if ride.verification_attempts >= 5:
+        raise HTTPException(status_code=429, detail="Maximum PIN attempts exceeded")
+        
+    if not verify_ride_pin(str(ride.id), payload.pin, ride.verification_pin_hash or ""):
+        ride.verification_attempts += 1
+        db.commit()
+        raise HTTPException(status_code=400, detail="Incorrect PIN")
+        
+    ride.verification_verified_at = now
+    ride.verification_pin_hash = None
+    ride.verification_pin_expires_at = None
+    ride.status = "started"
+    ride.updated_at = now
+    
     db.commit()
     db.refresh(ride)
     return ride

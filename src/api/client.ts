@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// Production URL from EAS build env, falls back to localtunnel
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.golden-ride.com/api";
+// Production AWS EC2 Backend
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://54.197.9.181/api";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -13,10 +13,8 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
-  const customUrl = await AsyncStorage.getItem("CUSTOM_API_URL");
-  if (customUrl) {
-    config.baseURL = customUrl;
-  }
+  // Ensure we clear any legacy cached CUSTOM_API_URL override
+  await AsyncStorage.removeItem("CUSTOM_API_URL");
   const token = await AsyncStorage.getItem("userToken");
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -37,9 +35,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response;
   try {
-    const customUrl = await AsyncStorage.getItem("CUSTOM_API_URL");
-    const activeBaseUrl = customUrl || BASE_URL;
-    response = await fetch(`${activeBaseUrl}${path}`, {
+    await AsyncStorage.removeItem("CUSTOM_API_URL");
+    response = await fetch(`${BASE_URL}${path}`, {
       method: options.method || "GET",
       headers: {
         "Content-Type": "application/json",

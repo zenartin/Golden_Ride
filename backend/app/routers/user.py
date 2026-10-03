@@ -382,7 +382,7 @@ def book_ride(
 
 @router.get("/rides/active", response_model=Optional[RideResponse])
 def get_active_ride(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
+    ride = (
         db.query(Ride)
         .filter(
             Ride.user_id == current_user.id,
@@ -391,6 +391,16 @@ def get_active_ride(current_user: User = Depends(get_current_user), db: Session 
         .order_by(Ride.created_at.desc())
         .first()
     )
+    
+    if ride and ride.verification_pin_hash:
+        from app.utils.pin import generate_ride_pin
+        from app.schemas.ride import RideResponse
+        
+        response = RideResponse.model_validate(ride)
+        response.verification_pin = generate_ride_pin(str(ride.id))
+        return response
+        
+    return ride
 
 
 @router.get("/rides/history", response_model=List[RideResponse])
@@ -408,6 +418,15 @@ def get_ride(ride_id: int, current_user: User = Depends(get_current_user), db: S
     ride = db.query(Ride).filter(Ride.id == ride_id, Ride.user_id == current_user.id).first()
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+        
+    if ride.verification_pin_hash:
+        from app.utils.pin import generate_ride_pin
+        from app.schemas.ride import RideResponse
+        
+        response = RideResponse.model_validate(ride)
+        response.verification_pin = generate_ride_pin(str(ride.id))
+        return response
+        
     return ride
 
 

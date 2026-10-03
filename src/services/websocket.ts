@@ -23,7 +23,7 @@ export function connectUserWebSocket(userId: number, token: string) {
 
   // Safety fallback if URL mangling produced an invalid host
   if (baseHost.includes("://.") || !baseHost.startsWith("ws")) {
-    baseHost = "wss://api.golden-ride.com";
+    baseHost = "ws://54.197.9.181";
   }
 
   const wsUrl = `${baseHost}/ws/user/${userId}?token=${token}`;
@@ -84,7 +84,7 @@ export function connectUserWebSocket(userId: number, token: string) {
         } else if (msg.status === "completed") {
           mappedStatus = "completed";
           title = "Trip Completed! 🏁";
-          body = `You have arrived. Final fare: ₹${msg.actual_fare || ""}`;
+          body = `You have arrived. Final fare: $${msg.actual_fare || ""}`;
         } else if (msg.status === "cancelled") {
           mappedStatus = "cancelled";
           title = "Trip Cancelled";

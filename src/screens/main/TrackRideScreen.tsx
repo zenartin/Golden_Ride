@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking, Image } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking, Image, Share } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -10,6 +10,7 @@ import { useRideStore } from "../../store/rideStore";
 import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { openDirectionsInMaps } from "../../utils/openMaps";
+import { apiClient as api, BASE_URL } from "../../api/client";
 
 type Props = NativeStackScreenProps<MainStackParamList, "TrackRide">;
 
@@ -118,6 +119,37 @@ export default function TrackRideScreen({ navigation }: Props) {
     ]);
   };
 
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+
+  const handleShareRide = async () => {
+    if (!activeTrip) return;
+    try {
+      if (shareToken) {
+        await api.post(`/share/rides/${activeTrip.id}/stop`);
+        setShareToken(null);
+        Alert.alert("Stopped Sharing", "Your live location is no longer being shared.");
+      } else {
+        setIsSharing(true);
+        const res = await api.post(`/share/rides/${activeTrip.id}`);
+        setShareToken(res.data.token);
+        
+        const baseUrlWithoutApi = BASE_URL.replace("/api", "");
+        const trackUrl = `${baseUrlWithoutApi}/track/${res.data.token}`;
+        
+        await Share.share({
+          message: `Follow my Golden Ride live: ${trackUrl}`,
+          title: "Follow My Ride",
+        });
+        setIsSharing(false);
+      }
+    } catch (err: any) {
+      setIsSharing(false);
+      Alert.alert("Sharing Failed", "Could not generate sharing link. Please try again.");
+      console.log("Share error:", err);
+    }
+  };
+
   if (!activeTrip) {
     return (
       <View style={styles.emptyWrap}>
@@ -136,10 +168,10 @@ export default function TrackRideScreen({ navigation }: Props) {
 
   // Map Region defaults
   const pickupRegion = {
-    latitude: activeTrip.pickupLatitude ?? (user?.country === "USA" ? 39.8283 : 20.5937),
-    longitude: activeTrip.pickupLongitude ?? (user?.country === "USA" ? -98.5795 : 78.9629),
-    latitudeDelta: activeTrip.pickupLatitude ? 0.08 : (user?.country === "USA" ? 30 : 20),
-    longitudeDelta: activeTrip.pickupLatitude ? 0.08 : (user?.country === "USA" ? 30 : 20),
+    latitude: activeTrip.pickupLatitude ?? 39.8283,
+    longitude: activeTrip.pickupLongitude ?? -98.5795,
+    latitudeDelta: activeTrip.pickupLatitude ? 0.08 : 30,
+    longitudeDelta: activeTrip.pickupLatitude ? 0.08 : 30,
   };
 
   return (
@@ -195,6 +227,15 @@ export default function TrackRideScreen({ navigation }: Props) {
             />
           )}
         </MapView>
+
+        {/* SOS Emergency Button Overlay */}
+        <Pressable 
+          style={styles.sosOverlayBtn}
+          onPress={() => Linking.openURL('tel:112')}
+        >
+          <Ionicons name="shield-checkmark" size={20} color="#FFF" />
+          <Text style={styles.sosOverlayText}>SOS</Text>
+        </Pressable>
       </View>
 
       {/* Main Details wrapped in ScrollView for small screens (Redmi, etc.) to prevent overflow */}
@@ -267,11 +308,27 @@ export default function TrackRideScreen({ navigation }: Props) {
 
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.fareText}>{user?.country === "India" ? "₹" : "$"}{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
+              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
             </View>
           </View>
         )}
 
+        {/* PIN Verification UI - Only show when waiting for driver */}
+        {(activeTrip.status === "confirmed" || activeTrip.status === "arriving") && activeTrip.verificationPin && (
+          <View style={[styles.card, { alignItems: "center", backgroundColor: "#F8FAFC", paddingVertical: Spacing.lg }]}>
+            <Text style={{ fontSize: Typography.body, fontWeight: "800", color: Colors.textPrimary }}>Your Ride PIN</Text>
+            <View style={{ flexDirection: "row", gap: 12, marginVertical: Spacing.md }}>
+              {activeTrip.verificationPin.split('').map((digit, i) => (
+                <View key={i} style={styles.pinDigitBox}>
+                  <Text style={styles.pinDigitText}>{digit}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={{ textAlign: "center", fontSize: Typography.small, color: Colors.textSecondary, paddingHorizontal: Spacing.md }}>
+              Share this PIN with your driver only when you are ready to begin your ride.
+            </Text>
+          </View>
+        )}
 
         {/* Fare summary */}
         {activeTrip.status === "searching" && (
@@ -283,7 +340,7 @@ export default function TrackRideScreen({ navigation }: Props) {
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.fareText}>{user?.country === "USA" ? "$" : "₹"}{activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
+              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="card-outline" size={16} color={Colors.textSecondary} />
@@ -324,10 +381,17 @@ export default function TrackRideScreen({ navigation }: Props) {
         )}
 
         {activeTrip.status !== "cancelled" && activeTrip.status !== "completed" && activeTrip.status !== "searching" && (
-          <AppButton
-            title="Chat with driver"
-            onPress={() => navigation.navigate("Chat", { rideId: activeTrip.id })}
-          />
+          <View style={{ gap: Spacing.sm }}>
+            <AppButton
+              title="Chat with driver"
+              onPress={() => navigation.navigate("Chat", { rideId: activeTrip.id })}
+            />
+            <AppButton
+              title={isSharing ? "Stop Sharing Live Ride" : "Share Live Ride"}
+              onPress={handleShareRide}
+              variant="secondary"
+            />
+          </View>
         )}
       </ScrollView>
     </View>
@@ -432,5 +496,42 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  pinDigitBox: {
+    width: 48,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinDigitText: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: Colors.textPrimary,
+  },
+  sosOverlayBtn: {
+    position: "absolute",
+    top: Spacing.md,
+    right: Spacing.md,
+    backgroundColor: "#EF4444",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  sosOverlayText: {
+    color: "#FFF",
+    fontWeight: "800",
+    fontSize: 13,
   },
 });

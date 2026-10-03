@@ -14,7 +14,6 @@ export default function RegisterScreen({ navigation }: any) {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [country, setCountry] = useState("USA");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
@@ -39,7 +38,7 @@ export default function RegisterScreen({ navigation }: any) {
       return;
     }
     setLoading(true);
-    const ok = await register({ name, email, phone, password, country });
+    const ok = await register({ name, email, phone, password });
     setLoading(false);
     if (!ok) {
       Alert.alert("Register failed", error || "Please fill every field.");
@@ -61,24 +60,6 @@ export default function RegisterScreen({ navigation }: any) {
           <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" />
           <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
           <AppInput label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" secureTextEntry />
-          
-          <View style={styles.countryPicker}>
-            <Text style={styles.countryLabel}>Operating Country:</Text>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <AppButton 
-                title="USA" 
-                onPress={() => setCountry("USA")} 
-                variant={country === "USA" ? "primary" : "secondary"} 
-                style={{ flex: 1 }} 
-              />
-              <AppButton 
-                title="India" 
-                onPress={() => setCountry("India")} 
-                variant={country === "India" ? "primary" : "secondary"} 
-                style={{ flex: 1 }} 
-              />
-            </View>
-          </View>
 
           <AppButton title="Register" onPress={submit} loading={loading} />
           <AppButton title="Back to login" onPress={() => navigation.navigate("Login")} variant="secondary" />
@@ -101,6 +82,4 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   cardTitle: { color: Colors.textPrimary, fontSize: Typography.subHeading, fontWeight: "900" },
-  countryPicker: { marginBottom: 10, marginTop: 4 },
-  countryLabel: { color: Colors.textPrimary, fontSize: Typography.small, fontWeight: "bold", marginBottom: 8 },
 });

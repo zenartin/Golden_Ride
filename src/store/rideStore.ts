@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiRequest } from "../api/client";
 import { API_ENDPOINTS } from "../api/endpoints";
 
-type RideClass = "hatchback" | "sedan" | "xuv";
+type RideClass = "Golden Ride Economy" | "Golden Ride Comfort" | "Golden Ride Premium" | string;
 export type RideStatus = "searching" | "confirmed" | "arriving" | "on_trip" | "completed" | "cancelled";
 
 export interface RideOption {
@@ -41,6 +41,7 @@ export interface Trip {
   driverLongitude?: number;
   driverUpiId?: string;
   driverAvatar?: string;
+  verificationPin?: string;
 }
 
 export interface ChatMessage {
@@ -93,10 +94,13 @@ interface RideState {
   setActiveTripStatus: (status: RideStatus, driverData?: any) => void;
 }
 
-const rideMeta: Record<RideClass, { title: string; subtitle: string; seats: number; multiplier: number; icon: string }> = {
-  hatchback: { title: "Hatchback", subtitle: "Budget compact AC hatchback", seats: 4, multiplier: 1.0, icon: "car-outline" },
-  sedan:     { title: "Sedan",     subtitle: "Comfortable AC car for daily rides", seats: 4, multiplier: 1.4,   icon: "car-sport-outline" },
-  xuv:       { title: "XUV",       subtitle: "Spacious SUV for groups & luggage",  seats: 6, multiplier: 1.85,  icon: "car-outline" },
+const rideMeta: Record<string, { title: string; subtitle: string; seats: number; multiplier: number; icon: string }> = {
+  "Golden Ride Sedan": { title: "Golden Ride Sedan", subtitle: "Comfortable AC sedan", seats: 4, multiplier: 1.0, icon: "car-outline" },
+  "Golden Ride SUV": { title: "Golden Ride SUV", subtitle: "Spacious AC SUV", seats: 6, multiplier: 1.5, icon: "car-sport-outline" },
+  "Golden Ride Van": { title: "Golden Ride Van", subtitle: "Large group & luggage", seats: 8, multiplier: 2.0, icon: "car-outline" },
+  "Golden RideX": { title: "Golden RideX", subtitle: "Everyday rides", seats: 4, multiplier: 1.2, icon: "car-sport-outline" },
+  "Golden RideXL": { title: "Golden RideXL", subtitle: "Premium luxury SUV", seats: 6, multiplier: 2.5, icon: "car-outline" },
+  "Golden Ride Pet": { title: "Golden Ride Pet", subtitle: "Ride with your pet", seats: 4, multiplier: 1.3, icon: "car-sport-outline" },
 };
 
 import { useAuthStore } from "./authStore";
@@ -118,19 +122,10 @@ const estimateDistance = (pickup: string, dropoff: string, pickupCoords?: any, d
 };
 
 const createOptions = (pickup: string, dropoff: string, pickupCoords?: any, dropoffCoords?: any): RideOption[] => {
-  const distanceKm = estimateDistance(pickup, dropoff, pickupCoords, dropoffCoords);
-  const etaBase = Math.max(4, Math.round(distanceKm / 2));
+  const distanceMiles = estimateDistance(pickup, dropoff, pickupCoords, dropoffCoords) * 0.621371;
+  const etaBase = Math.max(4, Math.round(distanceMiles * 2.5));
   
-  // Use country to determine pricing logic
-  const country = useAuthStore.getState().user?.country;
-  const isIndia = country !== "USA" && (pickupCoords?.lon >= -50 || country === "India");
-
-  let basePrice = 0;
-  if (isIndia) {
-    basePrice = Math.max(50.0, distanceKm * 50.0);
-  } else {
-    basePrice = Math.max(0.7, distanceKm * 0.7);
-  }
+  const basePrice = Math.max(0.7, distanceMiles * 1.5);
 
   return (Object.keys(rideMeta) as RideClass[]).map((rideClass, index) => {
     const meta = rideMeta[rideClass];
@@ -141,8 +136,8 @@ const createOptions = (pickup: string, dropoff: string, pickupCoords?: any, drop
       subtitle: meta.subtitle,
       seats: meta.seats,
       eta: `${etaBase + index * 3} min`,
-      price: isIndia ? Math.round(finalPrice) : Number(finalPrice.toFixed(2)),
-      distance: `${distanceKm.toFixed(1)} km`,
+      price: Number(finalPrice.toFixed(2)),
+      distance: `${distanceMiles.toFixed(1)} mi`,
     };
   });
 };
@@ -167,10 +162,10 @@ type ApiRide = {
   pickup_longitude?: number | null;
   dropoff_latitude?: number | null;
   dropoff_longitude?: number | null;
-  driver_latitude?: number | null;
   driver_longitude?: number | null;
   driver_upi_id?: string | null;
   driver_avatar?: string | null;
+  verification_pin?: string | null;
 };
 
 const mapApiStatus = (status: ApiRide["status"]): RideStatus => {
@@ -183,7 +178,7 @@ const mapApiStatus = (status: ApiRide["status"]): RideStatus => {
 };
 
 const mapApiRide = (ride: ApiRide): Trip => {
-  const meta = rideMeta[ride.ride_class] ?? rideMeta.sedan;
+  const meta = rideMeta[ride.ride_class] ?? rideMeta["Golden RideX"];
   
   // Clean up driver vehicle type label
   const vehicleType = ride.driver_vehicle_type ? `[${ride.driver_vehicle_type}]` : "";
@@ -215,6 +210,7 @@ const mapApiRide = (ride: ApiRide): Trip => {
     driverLatitude: ride.driver_latitude ?? undefined,
     driverLongitude: ride.driver_longitude ?? undefined,
     driverAvatar: ride.driver_avatar || undefined,
+    verificationPin: ride.verification_pin || undefined,
   };
 };
 
@@ -228,7 +224,7 @@ export const useRideStore = create<RideState>()(
       pickupCoords: null,
       dropoffCoords: null,
       rideOptions: [],
-      selectedRideClass: "sedan",
+      selectedRideClass: "Golden RideX",
       activeTrip: null,
       history: [],
       walletBalance: 0,
@@ -254,12 +250,12 @@ export const useRideStore = create<RideState>()(
             timeout: 1500, // Short timeout so it falls back to local math instantly if backend is slow/unreachable
           });
           const rideOptions = response.options;
-          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "sedan", appliedCoupon: null, couponDiscount: 0 });
+          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "Golden RideX", appliedCoupon: null, couponDiscount: 0 });
           return rideOptions;
         } catch (err: any) {
           // Fallback: calculate fare locally if server is unreachable
           const rideOptions = createOptions(pickup, dropoff, pickupCoords, dropoffCoords);
-          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? "sedan", appliedCoupon: null, couponDiscount: 0 });
+          set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? "Golden RideX", appliedCoupon: null, couponDiscount: 0 });
           return rideOptions;
         }
       },
@@ -470,6 +466,14 @@ export const useRideStore = create<RideState>()(
     {
       name: "golden-ride-user-rides",
       storage: createJSONStorage(() => AsyncStorage),
+      version: 3, // Bump to clear cache for 6 ride tiers
+      migrate: (persistedState: any, version: number) => {
+        if (version < 3) {
+          persistedState.rideOptions = [];
+          persistedState.selectedRideClass = "Golden RideX";
+        }
+        return persistedState;
+      },
     }
   )
 );

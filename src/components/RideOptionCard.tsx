@@ -16,40 +16,52 @@ const VEHICLE_CONFIG: Record<
     bgColor: string;
   }
 > = {
-  hatchback: {
-    icon: null, // filled below
-    badge: "Budget Pick",
-    badgeColor: "#16A34A",
-    accentColor: "#16A34A",
-    bgColor: "#F0FDF4",
-  },
-  sedan: {
+  "Golden Ride Sedan": {
     icon: null,
     badge: "Most Popular",
     badgeColor: "#D97706",
     accentColor: Colors.primary,
     bgColor: "#FFFBEB",
   },
-  xuv: {
+  "Golden Ride SUV": {
     icon: null,
     badge: "Premium Space",
     badgeColor: "#7C3AED",
     accentColor: "#7C3AED",
     bgColor: "#F5F3FF",
   },
+  "Golden Ride Van": {
+    icon: null,
+    badge: "Large Group",
+    badgeColor: "#2563EB",
+    accentColor: "#2563EB",
+    bgColor: "#EFF6FF",
+  },
+  "Golden RideX": {
+    icon: null,
+    badge: "Budget Pick",
+    badgeColor: "#16A34A",
+    accentColor: "#16A34A",
+    bgColor: "#F0FDF4",
+  },
+  "Golden RideXL": {
+    icon: null,
+    badge: "Extra Large",
+    badgeColor: "#C026D3",
+    accentColor: "#C026D3",
+    bgColor: "#FDF4FF",
+  },
+  "Golden Ride Pet": {
+    icon: null,
+    badge: "Pet Friendly",
+    badgeColor: "#0D9488",
+    accentColor: "#0D9488",
+    bgColor: "#F0FDFA",
+  },
 };
 
 function VehicleIcon({ id, selected, size = 30 }: { id: string; selected: boolean; size?: number }) {
-  if (id === "hatchback") {
-    return (
-      <MaterialCommunityIcons
-        name="car-hatchback"
-        size={size}
-        color={selected ? "#fff" : "#16A34A"}
-      />
-    );
-  }
-  if (id === "sedan") {
+  if (id === "Golden Ride Sedan") {
     return (
       <MaterialCommunityIcons
         name="car-back"
@@ -58,12 +70,39 @@ function VehicleIcon({ id, selected, size = 30 }: { id: string; selected: boolea
       />
     );
   }
-  if (id === "xuv") {
+  if (id === "Golden Ride SUV" || id === "Golden RideXL") {
     return (
       <MaterialCommunityIcons
         name="car-estate"
         size={size}
-        color={selected ? "#fff" : "#7C3AED"}
+        color={selected ? "#fff" : (id === "Golden RideXL" ? "#C026D3" : "#7C3AED")}
+      />
+    );
+  }
+  if (id === "Golden Ride Van") {
+    return (
+      <MaterialCommunityIcons
+        name="van-passenger"
+        size={size}
+        color={selected ? "#fff" : "#2563EB"}
+      />
+    );
+  }
+  if (id === "Golden RideX") {
+    return (
+      <MaterialCommunityIcons
+        name="car-hatchback"
+        size={size}
+        color={selected ? "#fff" : "#16A34A"}
+      />
+    );
+  }
+  if (id === "Golden Ride Pet") {
+    return (
+      <MaterialCommunityIcons
+        name="paw"
+        size={size}
+        color={selected ? "#fff" : "#0D9488"}
       />
     );
   }
@@ -81,7 +120,7 @@ export default function RideOptionCard({
   onPress: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
-  const symbol = user?.country === "India" ? "₹" : "$";
+  const symbol = "$";
   
   const config = VEHICLE_CONFIG[option.id] ?? {
     badge: undefined,
@@ -113,7 +152,7 @@ export default function RideOptionCard({
         {/* Name + subtitle */}
         <View style={styles.nameBlock}>
           <View style={styles.nameRow}>
-            <Text style={[styles.title, selected && { color: config.accentColor }]} numberOfLines={1}>
+            <Text style={[styles.title, selected && { color: config.accentColor }, { flexShrink: 1 }]}>
               {option.title}
             </Text>
             {config.badge && (
@@ -122,7 +161,7 @@ export default function RideOptionCard({
               </View>
             )}
           </View>
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={[styles.subtitle, { flexShrink: 1 }]}>
             {option.subtitle}
           </Text>
         </View>
@@ -159,9 +198,7 @@ export default function RideOptionCard({
           <View style={styles.metaChip}>
             <Ionicons name="location-outline" size={13} color={Colors.textSecondary} />
             <Text style={styles.metaText}>
-              {user?.country === "USA"
-                ? `${(parseFloat(option.distance) * 0.621371).toFixed(1)} mi`
-                : option.distance}
+              {`${(parseFloat(option.distance.replace(' km','').replace('km','').trim()) * 0.621371).toFixed(1)} mi`}
             </Text>
           </View>
         )}

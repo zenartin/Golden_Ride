@@ -38,7 +38,7 @@ export default function ApiConsoleScreen({ navigation }: Props) {
   const [tokenPreview, setTokenPreview] = useState("Current app token will be used for protected APIs.");
   const [pickup, setPickup] = useState("Indiranagar");
   const [dropoff, setDropoff] = useState("MG Road, Bengaluru");
-  const [rideClass, setRideClass] = useState<any>("comfort");
+  const [rideClass, setRideClass] = useState<any>("Golden RideX");
   const [rideId, setRideId] = useState("");
   const [topUpAmount, setTopUpAmount] = useState("500");
   const [options, setOptions] = useState<RideOption[]>([]);
@@ -81,7 +81,7 @@ export default function ApiConsoleScreen({ navigation }: Props) {
         }),
       (data) => {
         setOptions(data.options);
-        setRideClass(data.options[1]?.id ?? data.options[0]?.id ?? "comfort");
+        setRideClass(data.options[1]?.id ?? data.options[0]?.id ?? "Golden RideX");
       }
     );
 
