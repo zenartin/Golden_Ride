@@ -17,6 +17,7 @@
       "buildNumber": "5"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyDbdW16zZqPVpdurydxr3VOXwHn3j85Dz4"
@@ -46,7 +47,15 @@
           "locationWhenInUsePermission": "Allow Golden Ride Driver to access your location while you use the app."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/trip_request.wav"
+          ]
+        }
+      ]
     ],
     "runtimeVersion": "1.0.1",
     "extra": {

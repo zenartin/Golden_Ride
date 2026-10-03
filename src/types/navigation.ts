@@ -32,4 +32,5 @@ export type DriverStackParamList = {
   Settings: undefined;
   Support: undefined;
   EditProfile: undefined;
+  DestinationPicker: undefined;
 };

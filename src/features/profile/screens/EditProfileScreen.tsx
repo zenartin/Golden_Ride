@@ -31,7 +31,17 @@ export default function EditProfileScreen({ navigation }: any) {
   const [vehicle, setVehicle] = useState(driver?.documents?.vehicle_model || "");
   const [vehicleType, setVehicleType] = useState(driver?.documents?.vehicle_type || "");
   const [plate, setPlate] = useState(driver?.documents?.vehicle_plate_number || "");
+  const [acceptedClasses, setAcceptedClasses] = useState<string[]>(
+    (driver?.accepted_ride_classes || "").split(",").map(c => c.trim()).filter(Boolean)
+  );
+  const [radiusFilter, setRadiusFilter] = useState<number>(driver?.radius_filter || 0);
   const [saving, setSaving] = useState(false);
+
+  const toggleAcceptedClass = (cls: string) => {
+    setAcceptedClasses((prev) => 
+      prev.includes(cls) ? prev.filter(c => c !== cls) : [...prev, cls]
+    );
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -68,6 +78,8 @@ export default function EditProfileScreen({ navigation }: any) {
       vehicle_model: vehicle,
       vehicle_type: vehicleType,
       vehicle_plate_number: plate,
+      accepted_ride_classes: acceptedClasses.join(","),
+      radius_filter: radiusFilter,
     });
     setSaving(false);
     if (success) {
@@ -194,7 +206,7 @@ export default function EditProfileScreen({ navigation }: any) {
           <View style={styles.formCard}>
             <Text style={styles.inputLabel}>Vehicle Class</Text>
             <View style={styles.pickerRow}>
-              {["hatchback", "sedan", "xuv"].map((opt) => (
+              {["Golden Ride Sedan", "Golden Ride SUV", "Golden Ride Van", "Golden RideX", "Golden RideXL", "Golden Ride Pet"].map((opt) => (
                 <TouchableOpacity
                   key={opt}
                   style={[styles.pickerBtn, vehicleType === opt && styles.pickerBtnActive]}
@@ -205,6 +217,44 @@ export default function EditProfileScreen({ navigation }: any) {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Accepted Ride Classes (Filter)</Text>
+            <View style={styles.pickerRow}>
+              {["Golden Ride Sedan", "Golden Ride SUV", "Golden Ride Van", "Golden RideX", "Golden RideXL", "Golden Ride Pet"].map((opt) => {
+                const isSelected = acceptedClasses.includes(opt);
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[styles.pickerBtn, isSelected && styles.pickerBtnActive]}
+                    onPress={() => toggleAcceptedClass(opt)}
+                  >
+                    <Text style={[styles.pickerText, isSelected && styles.pickerTextActive]}>
+                      {opt.replace("Golden Ride", "").trim() || "Golden Ride"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={[styles.inputLabel, { marginTop: Spacing.md }]}>Ride Request Radius</Text>
+            <View style={styles.pickerRow}>
+              {[
+                { label: "All requests", value: 0 },
+                { label: "5 km", value: 5 },
+                { label: "10 km", value: 10 }
+              ].map((opt) => {
+                const isSelected = radiusFilter === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.label}
+                    style={[styles.pickerBtn, isSelected && styles.pickerBtnActive]}
+                    onPress={() => setRadiusFilter(opt.value)}
+                  >
+                    <Text style={[styles.pickerText, isSelected && styles.pickerTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             <AppInput
               label="Vehicle Model"
@@ -325,10 +375,10 @@ const styles = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
   inputLabel: { fontSize: 13, color: Colors.textSecondary, marginBottom: 8, fontWeight: "600", paddingHorizontal: 4, marginTop: 4 },
-  pickerRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  pickerBtn: { flex: 1, paddingVertical: 12, alignItems: "center", borderRadius: 10, borderWidth: 1, borderColor: Colors.divider, backgroundColor: Colors.background },
+  pickerRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
+  pickerBtn: { width: '48%', paddingVertical: 12, alignItems: "center", justifyContent: "center", borderRadius: 10, borderWidth: 1, borderColor: Colors.divider, backgroundColor: Colors.background },
   pickerBtnActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary },
-  pickerText: { fontSize: 13, color: Colors.textSecondary, fontWeight: "500", textTransform: "capitalize" },
+  pickerText: { fontSize: 13, color: Colors.textSecondary, fontWeight: "500", textTransform: "capitalize", textAlign: "center" },
   pickerTextActive: { color: Colors.primaryDark, fontWeight: "700" },
   card: {
     backgroundColor: Colors.surface, borderRadius: 18,

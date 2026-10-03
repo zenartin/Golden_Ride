@@ -41,6 +41,7 @@ export default function CompleteProfileScreen({ navigation }: any) {
   const [form, setForm] = useState({
     date_of_birth: driver?.date_of_birth || "",
     residential_address: driver?.residential_address || "",
+    radius_filter: driver?.radius_filter === 5 ? "5 km" : driver?.radius_filter === 10 ? "10 km" : "All requests",
     
     license_number: driver?.documents?.license_number || "",
     license_state: driver?.documents?.license_state || "",
@@ -119,61 +120,23 @@ export default function CompleteProfileScreen({ navigation }: any) {
   };
 
   const handleSave = async () => {
-    // Validation
-    const requiredFields = [
-      { key: 'date_of_birth', name: 'Date of Birth' },
-      { key: 'residential_address', name: 'Residential Address' },
-      { key: 'license_number', name: 'License Number' },
-      { key: 'license_state', name: 'State of Issue' },
-      { key: 'license_expiry', name: 'License Expiration Date' },
-      { key: 'vehicle_type', name: 'Vehicle Class' },
-      { key: 'vehicle_model', name: 'Vehicle Make & Model' },
-      { key: 'vehicle_year', name: 'Vehicle Year' },
-      { key: 'vehicle_color', name: 'Vehicle Color' },
-      { key: 'vehicle_plate_number', name: 'License Plate Number' },
-      { key: 'emergency_contact_name', name: 'Emergency Contact Name' },
-      { key: 'emergency_contact_phone', name: 'Emergency Contact Phone' },
-      { key: 'preferred_language', name: 'Preferred Language' },
-      { key: 'insurance_policy', name: 'Insurance Policy Number' },
-      { key: 'insurance_expiry', name: 'Insurance Expiration Date' },
-    ];
-    
-    for (const field of requiredFields) {
-      const val = (form as any)[field.key];
-      if (!val || (typeof val === 'string' && !val.trim())) {
-        Alert.alert("Missing Information", `Please provide your ${field.name}.`);
-        return;
-      }
-    }
-    
-    const hasUpi = Boolean(form.upi_id?.trim());
-    const hasCard = Boolean(form.card_number?.trim() && form.card_expiry?.trim() && form.card_cvv?.trim());
-    const hasBank = Boolean(form.bank_name?.trim() && form.account_number?.trim() && form.routing_number?.trim());
-    
-    if (!hasUpi && !hasCard && !hasBank) {
-      Alert.alert("Missing Payout Method", "Please provide at least one complete payout method (Bank Account, Card, or UPI).");
-      return;
-    }
-
-    if (!licenseFrontUri || !licenseBackUri) {
-      Alert.alert("Missing Document", "Please upload both front and back photos of your driver's license.");
-      return;
-    }
-    if (!vehicleUri) {
-      Alert.alert("Missing Document", "Please upload a photo of your vehicle.");
-      return;
-    }
-    if (!insuranceUri) {
-      Alert.alert("Missing Document", "Please upload a photo of your insurance document.");
+    if (!form.vehicle_model?.trim() && !form.license_number?.trim() && !form.date_of_birth?.trim()) {
+      Alert.alert("Missing Information", "Please enter at least your Vehicle Model, License Number, or Date of Birth.");
       return;
     }
 
     setIsLoading(true);
-    const payload = {
+    const payload: any = {
       ...form,
       vehicle_year: form.vehicle_year ? parseInt(form.vehicle_year, 10) : undefined,
     };
+    if (form.radius_filter) {
+      if (form.radius_filter === "5 km") payload.radius_filter = 5;
+      else if (form.radius_filter === "10 km") payload.radius_filter = 10;
+      else payload.radius_filter = 0;
+    }
     
+    // Upload files if selected
     if (licenseFrontUri && !licenseFrontUri.startsWith("http")) {
       await uploadDocument(licenseFrontUri, "license");
     }
@@ -192,11 +155,12 @@ export default function CompleteProfileScreen({ navigation }: any) {
 
     if (success) {
       await fetchProfile();
-      Alert.alert("Success", "Profile updated successfully!", [
+      Alert.alert("Success", "Profile & vehicle information saved successfully!", [
         { text: "OK", onPress: () => navigation.goBack() }
       ]);
     } else {
-      Alert.alert("Error", "Failed to update profile. Please try again.");
+      const serverErr = useAuthStore.getState().error;
+      Alert.alert("Error", serverErr || "Failed to save profile. Please check your internet connection and try again.");
     }
   };
 
@@ -216,7 +180,9 @@ export default function CompleteProfileScreen({ navigation }: any) {
     },
     {
       id: 2, title: "3. Vehicle Information", fields: [
-        { key: "vehicle_type", label: "Vehicle Class", type: "picker", options: ["hatchback", "sedan", "xuv"] },
+        { key: "vehicle_type", label: "Primary Vehicle Class", type: "picker", options: ["Golden Ride Sedan", "Golden Ride SUV", "Golden Ride Van", "Golden RideX", "Golden RideXL", "Golden Ride Pet"] },
+        { key: "accepted_ride_classes", label: "Accepted Ride Models (You can select multiple)", type: "multi-picker", options: ["Golden Ride Sedan", "Golden Ride SUV", "Golden Ride Van", "Golden RideX", "Golden RideXL", "Golden Ride Pet"] },
+        { key: "radius_filter", label: "Ride Request Radius Filter", type: "picker", options: ["All requests", "5 km", "10 km"] },
         { key: "vehicle_model", label: "Make & Model", placeholder: "e.g. Toyota Camry" },
         { key: "vehicle_year", label: "Year", placeholder: "e.g. 2022" },
         { key: "vehicle_color", label: "Color", placeholder: "e.g. Silver" },
@@ -309,21 +275,47 @@ export default function CompleteProfileScreen({ navigation }: any) {
                           </Text>
                         </TouchableOpacity>
                       ) : (field as any).type === "picker" ? (
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                           {(field as any).options.map((opt: string) => (
                             <TouchableOpacity 
                               key={opt}
                               style={[
                                 styles.input, 
-                                { flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: (form as any)[field.key] === opt ? Colors.primaryLight : Colors.background, borderColor: (form as any)[field.key] === opt ? Colors.primary : Colors.divider }
+                                { width: '48%', alignItems: 'center', justifyContent: "center", paddingVertical: 12, backgroundColor: (form as any)[field.key] === opt ? Colors.primaryLight : Colors.background, borderColor: (form as any)[field.key] === opt ? Colors.primary : Colors.divider }
                               ]}
                               onPress={() => handleChange(field.key, opt)}
                             >
-                              <Text style={{ textTransform: 'capitalize', fontSize: 13, color: (form as any)[field.key] === opt ? Colors.primaryDark : Colors.textSecondary, fontWeight: (form as any)[field.key] === opt ? '700' : '500' }}>
-                                {opt}
+                              <Text style={{ fontSize: 13, color: (form as any)[field.key] === opt ? Colors.primaryDark : Colors.textSecondary, fontWeight: (form as any)[field.key] === opt ? '700' : '500', textAlign: "center" }}>
+                                {opt.replace("Golden Ride", "").trim() || "Golden Ride"}
                               </Text>
                             </TouchableOpacity>
                           ))}
+                        </View>
+                      ) : (field as any).type === "multi-picker" ? (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                          {(field as any).options.map((opt: string) => {
+                            const selectedArr = ((form as any)[field.key] || "").split(",").map((s:string) => s.trim()).filter(Boolean);
+                            const isSelected = selectedArr.includes(opt);
+                            return (
+                              <TouchableOpacity 
+                                key={opt}
+                                style={[
+                                  styles.input, 
+                                  { width: '48%', alignItems: 'center', justifyContent: "center", paddingVertical: 12, backgroundColor: isSelected ? Colors.primaryLight : Colors.background, borderColor: isSelected ? Colors.primary : Colors.divider }
+                                ]}
+                                onPress={() => {
+                                  let newArr = [...selectedArr];
+                                  if (isSelected) newArr = newArr.filter(c => c !== opt);
+                                  else newArr.push(opt);
+                                  handleChange(field.key, newArr.join(","));
+                                }}
+                              >
+                                <Text style={{ fontSize: 13, color: isSelected ? Colors.primaryDark : Colors.textSecondary, fontWeight: isSelected ? '700' : '500', textAlign: "center" }}>
+                                  {opt.replace("Golden Ride", "").trim() || "Golden Ride"}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          })}
                         </View>
                       ) : (
                         <TextInput

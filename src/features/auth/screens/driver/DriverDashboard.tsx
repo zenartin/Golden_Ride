@@ -13,6 +13,8 @@ import {
   Linking,
   Image,
   AppState,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,11 +55,20 @@ export default function DriverDashboard({
   const notifications = useAppStore((s) => s.notifications);
   const fetchNotificationsFn = useAppStore((s) => s.fetchNotifications);
 
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [pendingAcceptedClasses, setPendingAcceptedClasses] = useState<string[]>([]);
+  const [pendingRadiusFilter, setPendingRadiusFilter] = useState<number>(0);
+  const [savingFilter, setSavingFilter] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [earningsFilter, setEarningsFilter] = useState<"daily" | "weekly">("daily");
+  const [showEarningsDropdown, setShowEarningsDropdown] = useState(false);
 
   const incomingRequests = useRideStore((s) => s.incomingRequests);
   const activeRide = useRideStore((s) => s.activeRide);
@@ -65,11 +76,17 @@ export default function DriverDashboard({
 
   useEffect(() => {
     loadDashboard();
+  }, [earningsFilter]);
+
+  useEffect(() => {
     loadCurrentLocation();
     fetchNotificationsFn().catch(() => undefined);
   }, []);
 
   const isOnline = dashboard?.is_online ?? driver?.is_online ?? false;
+  const acceptedClassesStr = driver?.accepted_ride_classes || "";
+  const acceptedClasses = acceptedClassesStr.split(",").map((c: string) => c.trim()).filter(Boolean);
+  const radiusFilter = driver?.radius_filter || 0;
 
   useEffect(() => {
     if (!isOnline) return;
@@ -83,20 +100,18 @@ export default function DriverDashboard({
 
   const loadDashboard = async () => {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.DRIVER_DASHBOARD);
+      const response = await apiClient.get(`${API_ENDPOINTS.DRIVER_DASHBOARD}?filter=${earningsFilter}`);
       setDashboard(response.data);
     } catch (err) {
       console.log("Dashboard load error:", err);
       // Fallback default stats so UI never hangs on loading spinners
-      const isUSA = driver?.country === "USA";
-      const sym = isUSA ? "$" : "₹";
       setDashboard({
         is_online: driver?.is_online ?? false,
         stats: [
-          { label: "Today", value: `${sym}0.00`, icon: "cash-outline", color: "#22C55E" },
+          { label: "Today", value: `$0.00`, icon: "cash-outline", color: "#22C55E" },
           { label: "Trips", value: `${driver?.total_rides || 0}`, icon: "car-sport-outline", color: "#3B82F6" },
           { label: "Rating", value: `${driver?.rating ? driver.rating.toFixed(1) : "5.0"}`, icon: "star-outline", color: "#F59E0B" },
-          { label: "Km", value: "0", icon: "navigate-outline", color: "#3B5FC0" },
+          { label: "Miles", value: "0", icon: "navigate-outline", color: "#3B5FC0" },
         ],
         recent_trips: []
       });
@@ -109,7 +124,7 @@ export default function DriverDashboard({
     setRefreshing(true);
     try {
       await Promise.all([
-        apiClient.get(API_ENDPOINTS.DRIVER_DASHBOARD).then((res) => setDashboard(res.data)),
+        apiClient.get(`${API_ENDPOINTS.DRIVER_DASHBOARD}?filter=${earningsFilter}`).then((res) => setDashboard(res.data)),
         getCurrentDeviceLocation().then((coords) => setCurrentLocation(coords)),
         fetchNotificationsFn()
       ]);
@@ -126,8 +141,6 @@ export default function DriverDashboard({
     setCurrentLocation(coords);
     setLocationLoading(false);
   };
-
-  const isOnline = dashboard?.is_online ?? driver?.is_online ?? false;
 
   const handleToggleOnline = async () => {
     if (!isOnline && !driver?.profile_completed) {
@@ -313,31 +326,46 @@ export default function DriverDashboard({
           />
         </LinearGradient>
 
-        {/* Destination Mode Card */}
-        {isOnline && (
-          <View style={styles.destinationCard}>
-            <View style={styles.destinationHeader}>
-              <Ionicons name="navigate-circle" size={24} color={driver?.destination_mode_active ? Colors.primary : Colors.textSecondary} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.destinationTitle}>Destination Mode</Text>
-                {driver?.destination_mode_active ? (
-                  <Text style={styles.destinationAddress} numberOfLines={1}>{driver.destination_address}</Text>
-                ) : (
-                  <Text style={styles.destinationSub}>Receive rides heading your way</Text>
-                )}
+        {/* Active Filters UI */}
+        <View style={styles.rideModelsContainer}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Spacing.sm }}>
+            <Text style={styles.rideModelsTitle}>Active Filters</Text>
+            <TouchableOpacity onPress={() => {
+              setPendingAcceptedClasses(acceptedClasses);
+              setPendingRadiusFilter(radiusFilter);
+              setFilterModalVisible(true);
+            }} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Text style={{ fontSize: 12, color: Colors.primary, fontWeight: "600" }}>Edit Filter</Text>
+              <Ionicons name="pencil-outline" size={12} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rideModelsScroll}>
+            {acceptedClasses.length > 0 ? acceptedClasses.map((cls) => (
+              <View key={cls} style={[styles.pill, styles.pillSelected]}>
+                <Text style={[styles.pillText, styles.pillTextSelected]}>
+                  {cls.replace("Golden Ride", "").trim() || "Golden Ride"}
+                </Text>
               </View>
-              {driver?.destination_mode_active ? (
-                <TouchableOpacity style={styles.destClearBtn} onPress={handleClearDestination}>
-                  <Text style={styles.destClearText}>Clear</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.destSetBtn} onPress={() => navigation.navigate("DestinationPicker")}>
-                  <Text style={styles.destSetText}>Set</Text>
-                </TouchableOpacity>
-              )}
+            )) : (
+              <Text style={{ color: Colors.textSecondary, fontSize: 13 }}>No models selected.</Text>
+            )}
+          </ScrollView>
+
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: Spacing.md, gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name="scan-circle-outline" size={14} color={Colors.textSecondary} />
+              <Text style={{ fontSize: 13, color: Colors.textSecondary }}>
+                Radius: <Text style={{ color: Colors.primary, fontWeight: "600" }}>{radiusFilter > 0 ? `${radiusFilter} km` : "All"}</Text>
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name="navigate-outline" size={14} color={Colors.textSecondary} />
+              <Text style={{ fontSize: 13, color: Colors.textSecondary }}>
+                Destination: <Text style={{ color: Colors.primary, fontWeight: "600" }}>{driver?.destination_mode_active ? "ON" : "OFF"}</Text>
+              </Text>
             </View>
           </View>
-        )}
+        </View>
 
         {/* Quick Stats Grid (2x2 for responsiveness) */}
         {!dashboard ? (
@@ -464,32 +492,70 @@ export default function DriverDashboard({
           </View>
         </TouchableOpacity>
 
-        {/* Today's Earnings from API */}
+        {/* Earnings from API */}
         <View style={styles.earningsCard}>
-          <View style={styles.earningsTop}>
-            <Text style={styles.earningsTitle}>Today's Earnings</Text>
-            <TouchableOpacity onPress={() => onSelectTab?.("Earnings")}>
-              <Text style={styles.earningsLink}>View All →</Text>
-            </TouchableOpacity>
+          <View style={[styles.earningsTop, { alignItems: 'center', marginBottom: 12 }]}>
+            <Text style={[styles.earningsTitle, { marginBottom: 0 }]}>Earnings</Text>
+            
+            <View>
+              <TouchableOpacity 
+                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.background, borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: Colors.border }}
+                onPress={() => setShowEarningsDropdown(true)}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "600", color: Colors.textPrimary, marginRight: 4 }}>
+                  {earningsFilter === "daily" ? "Daily" : "Weekly"}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
+              </TouchableOpacity>
+              
+              <Modal visible={showEarningsDropdown} transparent animationType="fade">
+                <TouchableWithoutFeedback onPress={() => setShowEarningsDropdown(false)}>
+                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableWithoutFeedback>
+                      <View style={{ backgroundColor: '#fff', borderRadius: 12, width: 220, overflow: 'hidden' }}>
+                        <TouchableOpacity 
+                          style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: earningsFilter === "daily" ? Colors.primary + "15" : "#fff" }}
+                          onPress={() => { setEarningsFilter("daily"); setShowEarningsDropdown(false); }}
+                        >
+                          <Text style={{ fontSize: 16, fontWeight: "600", color: earningsFilter === "daily" ? Colors.primary : Colors.textPrimary, textAlign: 'center' }}>Daily Earnings</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={{ padding: 16, backgroundColor: earningsFilter === "weekly" ? Colors.primary + "15" : "#fff" }}
+                          onPress={() => { setEarningsFilter("weekly"); setShowEarningsDropdown(false); }}
+                        >
+                          <Text style={{ fontSize: 16, fontWeight: "600", color: earningsFilter === "weekly" ? Colors.primary : Colors.textPrimary, textAlign: 'center' }}>Weekly Earnings</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </View>
+                </TouchableWithoutFeedback>
+              </Modal>
+            </View>
           </View>
           
           {(() => {
-            const todayStr = stats.find((s) => s.label === "Today")?.value ?? "0";
-            const amount = parseFloat(todayStr.replace(/[^0-9.]/g, "")) || 0;
-            const isINR = todayStr.includes("₹");
-            const dailyGoal = isINR ? 1500 : 50;
-            const progress = Math.min(100, Math.max(0, (amount / dailyGoal) * 100));
+            const statObj = stats.find((s) => s.label === "Today" || s.label === "This Week");
+            const earningsStr = statObj?.value ?? "0";
+            const amount = parseFloat(earningsStr.replace(/[^0-9.]/g, "")) || 0;
+            const goal = earningsFilter === "daily" ? 50 : 350;
+            const progress = Math.min(100, Math.max(0, (amount / goal) * 100));
             
             return (
               <>
-                <Text style={styles.earningsAmount}>{todayStr}</Text>
+                <Text style={styles.earningsAmount}>{earningsStr}</Text>
                 <View style={styles.progressBg}>
                   <View style={[styles.progressBar, { width: `${progress}%` }]} />
                 </View>
-                <Text style={styles.progressHint}>Daily goal progress ({Math.round(progress)}%)</Text>
+                <Text style={styles.progressHint}>
+                  {earningsFilter === "daily" ? "Daily" : "Weekly"} goal progress ({Math.round(progress)}%)
+                </Text>
               </>
             );
           })()}
+
+          <TouchableOpacity onPress={() => onSelectTab?.("Earnings")} style={{ marginTop: 16, alignItems: 'center', paddingVertical: 8, backgroundColor: Colors.background, borderRadius: 8, borderWidth: 1, borderColor: Colors.border }}>
+            <Text style={styles.earningsLink}>View Full Details →</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Recent Trips */}
@@ -544,6 +610,110 @@ export default function DriverDashboard({
         </View>
 
       </ScrollView>
+
+      {/* Filter Modal */}
+      <Modal visible={filterModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Filters</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: Spacing.lg }}>
+              <Text style={styles.filterSectionTitle}>Destination Mode</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.surface, padding: Spacing.md, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.xl }}>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary }}>
+                    {driver?.destination_mode_active ? "Active" : "Inactive"}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Colors.textSecondary, marginTop: 4 }} numberOfLines={1}>
+                    {driver?.destination_mode_active ? driver.destination_address : "Receive trips towards a location"}
+                  </Text>
+                </View>
+                {driver?.destination_mode_active ? (
+                  <TouchableOpacity style={styles.destClearBtn} onPress={handleClearDestination}>
+                    <Text style={[styles.destSetText, { color: Colors.error }]}>Clear</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.destSetBtn} onPress={() => { setFilterModalVisible(false); navigation.navigate("DestinationPicker"); }}>
+                    <Text style={styles.destSetText}>Set</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Text style={styles.filterSectionTitle}>Accepted Ride Models</Text>
+              <View style={styles.pickerRow}>
+                {["Golden Ride Sedan", "Golden Ride SUV", "Golden Ride Van", "Golden RideX", "Golden RideXL", "Golden Ride Pet"].map((opt) => {
+                  const isSelected = pendingAcceptedClasses.includes(opt);
+                  return (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.pickerBtn, isSelected && styles.pickerBtnActive]}
+                      onPress={() => {
+                        setPendingAcceptedClasses(prev => 
+                          prev.includes(opt) ? prev.filter(c => c !== opt) : [...prev, opt]
+                        );
+                      }}
+                    >
+                      <Text style={[styles.pickerText, isSelected && styles.pickerTextActive]}>
+                        {opt.replace("Golden Ride", "").trim() || "Golden Ride"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.filterSectionTitle, { marginTop: Spacing.xl }]}>Ride Request Radius</Text>
+              <View style={styles.pickerRow}>
+                {[
+                  { label: "All requests", value: 0 },
+                  { label: "5 km", value: 5 },
+                  { label: "10 km", value: 10 }
+                ].map((opt) => {
+                  const isSelected = pendingRadiusFilter === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.label}
+                      style={[styles.pickerBtn, isSelected && styles.pickerBtnActive]}
+                      onPress={() => setPendingRadiusFilter(opt.value)}
+                    >
+                      <Text style={[styles.pickerText, isSelected && styles.pickerTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            <View style={{ padding: Spacing.lg, borderTopWidth: 1, borderTopColor: Colors.divider }}>
+              <TouchableOpacity
+                style={styles.saveFilterBtn}
+                disabled={savingFilter}
+                onPress={async () => {
+                  setSavingFilter(true);
+                  await updateProfile({
+                    accepted_ride_classes: pendingAcceptedClasses.join(","),
+                    radius_filter: pendingRadiusFilter,
+                  });
+                  setSavingFilter(false);
+                  setFilterModalVisible(false);
+                }}
+              >
+                {savingFilter ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.saveFilterBtnText}>Save Filters</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -707,6 +877,47 @@ const styles = StyleSheet.create({
   progressBg: { height: 8, borderRadius: 4, backgroundColor: Colors.border, marginBottom: 6 },
   progressBar: { height: 8, borderRadius: 4, backgroundColor: Colors.primary },
   progressHint: { fontSize: Typography.small, color: Colors.textSecondary },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalContainer: { backgroundColor: Colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.divider },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: Colors.textPrimary },
+  filterSectionTitle: { fontSize: 14, fontWeight: "600", color: Colors.textSecondary, marginBottom: Spacing.sm },
+  pickerRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  pickerBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.surface },
+  pickerBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  pickerText: { fontSize: 13, color: Colors.textPrimary, fontWeight: "500" },
+  pickerTextActive: { color: Colors.white, fontWeight: "700" },
+  saveFilterBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  saveFilterBtnText: { color: Colors.white, fontSize: 15, fontWeight: "700" },
+  rideModelsContainer: {
+    backgroundColor: Colors.surface, borderRadius: 20, padding: Spacing.md,
+    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  },
+  rideModelsTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  rideModelsScroll: {
+    gap: Spacing.sm,
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  pillSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  pillTextSelected: {
+    color: Colors.white,
+  },
   section: {
     backgroundColor: Colors.surface, borderRadius: 24, padding: Spacing.lg,
     shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,

@@ -25,9 +25,12 @@ from app.utils.storage import save_upload_file
 router = APIRouter(prefix="/user", tags=["user"])
 
 RIDE_META = {
-    "hatchback": {"title": "Hatchback", "subtitle": "Budget compact AC hatchback", "seats": 4, "multiplier": 1.0},
-    "sedan":     {"title": "Sedan",     "subtitle": "Comfortable AC car for daily rides", "seats": 4, "multiplier": 1.0},
-    "xuv":       {"title": "XUV",       "subtitle": "Spacious SUV for groups & luggage",  "seats": 6, "multiplier": 1.0},
+    "Golden Ride Sedan": {"title": "Golden Ride Sedan", "subtitle": "Comfortable AC sedan", "seats": 4, "multiplier": 1.0},
+    "Golden Ride SUV": {"title": "Golden Ride SUV", "subtitle": "Spacious AC SUV", "seats": 6, "multiplier": 1.5},
+    "Golden Ride Van": {"title": "Golden Ride Van", "subtitle": "Large group & luggage", "seats": 8, "multiplier": 2.0},
+    "Golden RideX": {"title": "Golden RideX", "subtitle": "Everyday rides", "seats": 4, "multiplier": 1.2},
+    "Golden RideXL": {"title": "Golden RideXL", "subtitle": "Premium luxury SUV", "seats": 6, "multiplier": 2.5},
+    "Golden Ride Pet": {"title": "Golden Ride Pet", "subtitle": "Ride with your pet", "seats": 4, "multiplier": 1.3},
 }
 
 
@@ -41,7 +44,6 @@ def _token_response(user: User) -> dict:
         "name": user.name,
         "phone": user.phone,
         "email": user.email,
-        "country": user.country,
         "wallet_balance": user.wallet_balance,
     }
 
@@ -69,6 +71,61 @@ def _build_options_from_route(distance_km: float, duration_min: float, currency:
     return options
 
 
+def _serialize_ride(ride) -> dict:
+    """Safely serialize a Ride ORM object to a dict for RideResponse.
+    Uses getattr with defaults so missing DB columns don't crash serialization.
+    All @property fields (driver_name, rider_phone, etc.) are accessed here
+    while the session is still open and relationships are loaded.
+    """
+    verification_pin = None
+    pin_hash = getattr(ride, "verification_pin_hash", None)
+    if pin_hash:
+        try:
+            from app.utils.pin import generate_ride_pin
+            verification_pin = generate_ride_pin(str(ride.id))
+        except Exception:
+            pass
+
+    return {
+        "id": ride.id,
+        "driver_id": getattr(ride, "driver_id", None),
+        "user_id": getattr(ride, "user_id", None),
+        "rider_name": getattr(ride, "rider_name", ""),
+        "rider_phone": getattr(ride, "rider_phone", None),
+        "rider_rating": getattr(ride, "rider_rating", 4.8),
+        "rider_trips": getattr(ride, "rider_trips", 0),
+        "ride_class": getattr(ride, "ride_class", "sedan"),
+        "from_location": getattr(ride, "from_location", ""),
+        "to_location": getattr(ride, "to_location", ""),
+        "pickup_latitude": getattr(ride, "pickup_latitude", None),
+        "pickup_longitude": getattr(ride, "pickup_longitude", None),
+        "dropoff_latitude": getattr(ride, "dropoff_latitude", None),
+        "dropoff_longitude": getattr(ride, "dropoff_longitude", None),
+        "distance": getattr(ride, "distance", "0 km"),
+        "duration": getattr(ride, "duration", "0 min"),
+        "fare": getattr(ride, "fare", "0"),
+        "fare_amount": getattr(ride, "fare_amount", 0.0),
+        "payment_method": getattr(ride, "payment_method", "Cash"),
+        "pickup_eta": getattr(ride, "pickup_eta", "N/A"),
+        "status": getattr(ride, "status", "pending"),
+        "coupon_code": getattr(ride, "coupon_code", None),
+        "discount_amount": getattr(ride, "discount_amount", None),
+        "scheduled_time": getattr(ride, "scheduled_time", None),
+        "verification_pin": verification_pin,
+        "created_at": getattr(ride, "created_at", None),
+        "updated_at": getattr(ride, "updated_at", None),
+        "driver_name": getattr(ride, "driver_name", None),
+        "driver_phone": getattr(ride, "driver_phone", None),
+        "driver_vehicle_number": getattr(ride, "driver_vehicle_number", None),
+        "driver_vehicle_model": getattr(ride, "driver_vehicle_model", None),
+        "driver_vehicle_type": getattr(ride, "driver_vehicle_type", None),
+        "driver_latitude": getattr(ride, "driver_latitude", None),
+        "driver_longitude": getattr(ride, "driver_longitude", None),
+        "driver_avatar": getattr(ride, "driver_avatar", None),
+    }
+
+
+
 @router.post("/auth/register", response_model=UserToken, status_code=status.HTTP_201_CREATED)
 def register(payload: UserRegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
@@ -81,7 +138,6 @@ def register(payload: UserRegisterRequest, db: Session = Depends(get_db)):
         email=payload.email,
         phone=payload.phone,
         password_hash=get_password_hash(payload.password),
-        country=payload.country,
     )
     db.add(user)
     db.commit()
@@ -320,7 +376,10 @@ async def book_ride(
 def get_active_ride(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ride = (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload(Driver.documents))
+        .options(
+            joinedload(Ride.driver).joinedload(Driver.documents),
+            joinedload(Ride.user),
+        )
         .filter(
             Ride.user_id == current_user.id,
             Ride.status.in_(["pending", "accepted", "arrived", "started"]),
@@ -328,54 +387,41 @@ def get_active_ride(current_user: User = Depends(get_current_user), db: Session 
         .order_by(Ride.created_at.desc())
         .first()
     )
-    if ride and ride.verification_pin_hash:
-        from app.utils.pin import generate_ride_pin
-        from app.schemas.ride import RideResponse as SchemaRideResponse
-        
-        try:
-            response = SchemaRideResponse.model_validate(ride, from_attributes=True)
-            response.verification_pin = generate_ride_pin(str(ride.id))
-            return response
-        except Exception:
-            pass
-        
-    return ride
+    if not ride:
+        return None
+    return _serialize_ride(ride)
+
 
 
 @router.get("/rides/history", response_model=List[RideResponse])
 def get_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return (
+    rides = (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload(Driver.documents))
+        .options(
+            joinedload(Ride.driver).joinedload(Driver.documents),
+            joinedload(Ride.user),
+        )
         .filter(Ride.user_id == current_user.id, Ride.status.in_(["completed", "cancelled", "declined"]))
         .order_by(Ride.created_at.desc())
         .all()
     )
+    return [_serialize_ride(r) for r in rides]
 
 
 @router.get("/rides/{ride_id}", response_model=RideResponse)
 def get_ride(ride_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ride = (
         db.query(Ride)
-        .options(joinedload(Ride.driver).joinedload(Driver.documents))
+        .options(
+            joinedload(Ride.driver).joinedload(Driver.documents),
+            joinedload(Ride.user),
+        )
         .filter(Ride.id == ride_id, Ride.user_id == current_user.id)
         .first()
     )
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
-        
-    if ride.verification_pin_hash:
-        from app.utils.pin import generate_ride_pin
-        from app.schemas.ride import RideResponse as SchemaRideResponse
-        
-        try:
-            response = SchemaRideResponse.model_validate(ride, from_attributes=True)
-            response.verification_pin = generate_ride_pin(str(ride.id))
-            return response
-        except Exception:
-            pass
-        
-    return ride
+    return _serialize_ride(ride)
 
 
 @router.post("/rides/{ride_id}/cancel", response_model=RideResponse)

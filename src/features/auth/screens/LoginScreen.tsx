@@ -35,7 +35,8 @@ export default function LoginScreen({ navigation }: any) {
     }
     const success = await login(email, password);
     if (!success) {
-      Alert.alert("Login Failed", error || "Please try again.");
+      const latestError = useAuthStore.getState().error;
+      Alert.alert("Login Failed", latestError || "Please check your credentials or internet connection.");
     }
   };
 

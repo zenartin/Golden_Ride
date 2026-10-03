@@ -11,7 +11,6 @@ export interface DriverProfile {
   is_online: boolean;
   is_approved: boolean;
   profile_completed: boolean;
-  country: string;
   date_of_birth?: string | null;
   residential_address?: string | null;
   avatar?: string;
@@ -19,6 +18,12 @@ export interface DriverProfile {
   balance: number;
   latitude?: number | null;
   longitude?: number | null;
+  destination_mode_active?: boolean;
+  destination_lat?: number | null;
+  destination_lng?: number | null;
+  destination_address?: string | null;
+  accepted_ride_classes?: string | null;
+  radius_filter?: number;
   documents?: {
     license_number?: string;
     license_state?: string;
@@ -72,6 +77,7 @@ interface AuthState {
   fetchProfile: () => Promise<void>;
   updateProfile: (payload: any) => Promise<boolean>;
   toggleOnline: () => Promise<void>;
+  setDestinationMode: (active: boolean, lat?: number, lng?: number, address?: string) => Promise<void>;
   updateDocuments: (formData: any) => Promise<boolean>;
   uploadDocumentFile: (type: string, fileData: any) => Promise<string | null>;
   removeAvatar: () => Promise<boolean>;
@@ -113,7 +119,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().fetchProfile();
       return true;
     } catch (err: any) {
-      set({ error: err.response?.data?.detail || "Invalid email or password" });
+      console.log("Login error detail:", err.message, err.response?.data);
+      const msg = err.response?.data?.detail || (err.message ? `Connection error: ${err.message}` : "Invalid email or password");
+      set({ error: msg });
       return false;
     } finally {
       set({ isLoading: false });
@@ -133,7 +141,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return true;
     } catch (err: any) {
       console.log("Registration error:", err.message, err.response?.data);
-      set({ error: err.response?.data?.detail || err.message || "Registration failed" });
+      const msg = err.response?.data?.detail || (err.message ? `Connection error: ${err.message}` : "Registration failed");
+      set({ error: msg });
       return false;
     } finally {
       set({ isLoading: false });
@@ -211,6 +220,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }));
     } catch (err) {
       console.log("Toggle online status error:", err);
+    }
+  },
+
+  setDestinationMode: async (active, lat, lng, address) => {
+    try {
+      // Optimistic Update so the UI reflects it immediately
+      set((state) => {
+        if (!state.driver) return state;
+        return {
+          driver: {
+            ...state.driver,
+            destination_mode_active: active,
+            destination_lat: lat ?? null,
+            destination_lng: lng ?? null,
+            destination_address: address ?? null,
+          }
+        };
+      });
+
+      const payload: any = { active };
+      if (lat !== undefined) payload.lat = lat;
+      if (lng !== undefined) payload.lng = lng;
+      if (address !== undefined) payload.address = address;
+
+      const response = await apiClient.post(API_ENDPOINTS.DRIVER_DESTINATION_MODE, payload);
+      // Update with real server response
+      set((state) => ({
+        driver: state.driver ? { ...state.driver, ...response.data } : null
+      }));
+    } catch (err) {
+      console.log("Set destination mode error (Backend not deployed?):", err);
+      // We keep the optimistic update so you can test the UI locally!
     }
   },
 

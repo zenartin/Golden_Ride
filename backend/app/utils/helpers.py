@@ -65,11 +65,16 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return calculate_distance_haversine(lat1, lon1, lat2, lon2)
 
 
-def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str) -> bool:
+def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str, accepted_ride_classes: Optional[str] = None) -> bool:
     """
     Check if a driver's vehicle type can accept a given ride class.
     Handles cross-naming (e.g. sedan vs comfort vs hatchback vs xuv).
     """
+    if accepted_ride_classes:
+        allowed = [x.strip().lower() for x in accepted_ride_classes.split(",") if x.strip()]
+        if allowed:
+            return str(ride_class).lower().strip() in allowed
+
     if not driver_vehicle_type or not ride_class:
         return True
 
@@ -79,15 +84,15 @@ def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str) -> bo
     if d == r:
         return True
 
-    sedan_family = {"sedan", "comfort", "golden ridex", "economy", "hatchback"}
-    suv_family = {"suv", "xuv", "golden ridexl", "van", "premium", "sedan", "comfort", "golden ridex", "economy", "hatchback"}
-    hatchback_family = {"hatchback", "economy"}
+    economy_family = {"hatchback", "economy", "golden ride economy"}
+    comfort_family = {"sedan", "comfort", "golden ride comfort"}
+    premium_family = {"suv", "xuv", "van", "premium", "golden ride premium"}
 
-    if d in suv_family and r in suv_family:
+    if d in premium_family and r in premium_family:
         return True
-    if d in sedan_family and r in sedan_family:
+    if d in comfort_family and r in comfort_family:
         return True
-    if d in hatchback_family and r in hatchback_family:
+    if d in economy_family and r in economy_family:
         return True
 
     return True  # Fallback to allow matching if unknown category
@@ -134,7 +139,10 @@ def is_ride_eligible_for_destination_mode(
     ride_path_distance = dist_driver_to_pickup + dist_pickup_to_dropoff + dist_dropoff_to_dest
     detour = ride_path_distance - base_distance
 
-    if detour > max_detour_km:
+    # Allow a dynamic max detour for long trips (e.g. 20% of base distance)
+    dynamic_max_detour = max(max_detour_km, base_distance * 0.2)
+    
+    if detour > dynamic_max_detour:
         return False
 
     return True

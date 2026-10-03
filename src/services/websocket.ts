@@ -3,6 +3,7 @@ import { useRideStore } from "../store/rideStore";
 import { useAuthStore } from "../store/authStore";
 import { navigate, goBack, navigationRef } from "../navigation/navigationRef";
 import { Alert } from "react-native";
+import { Audio } from "expo-av";
 
 let socket: WebSocket | null = null;
 let reconnectDelay = 1000;
@@ -10,6 +11,63 @@ const maxReconnectDelay = 30000;
 let heartbeatInterval: NodeJS.Timeout | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let isExplicitDisconnect = false;
+
+// Manage the ringtone globally
+let currentSound: Audio.Sound | null = null;
+let ringtoneTimeout: NodeJS.Timeout | null = null;
+let playRequestId = 0;
+
+async function playRingtone() {
+  stopRingtone();
+  playRequestId++;
+  const currentRequestId = playRequestId;
+  
+  try {
+    console.log("Setting up ringtone audio mode...");
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: true,
+    });
+
+    console.log("Playing trip request ringtone...");
+    const { sound } = await Audio.Sound.createAsync(
+      require('../../assets/sounds/trip_request_melodic.wav'),
+      { isLooping: true }
+    );
+    
+    // If stopRingtone was called while we were loading, abort playing!
+    if (currentRequestId !== playRequestId) {
+      await sound.unloadAsync();
+      return;
+    }
+
+    currentSound = sound;
+    await currentSound.playAsync();
+    
+    // Auto stop after 30 seconds
+    ringtoneTimeout = setTimeout(() => {
+      stopRingtone();
+    }, 30000);
+  } catch (err) {
+    console.log("Error playing WebSocket ringtone:", err);
+  }
+}
+
+export async function stopRingtone() {
+  playRequestId++; // Invalidate any loading sounds
+  if (ringtoneTimeout) {
+    clearTimeout(ringtoneTimeout);
+    ringtoneTimeout = null;
+  }
+  if (currentSound) {
+    try {
+      await currentSound.stopAsync();
+      await currentSound.unloadAsync();
+    } catch (e) {}
+    currentSound = null;
+  }
+}
 
 export function connectDriverWebSocket(driverId: number, token: string) {
   // Only skip if socket is actively connecting or already open
@@ -26,7 +84,7 @@ export function connectDriverWebSocket(driverId: number, token: string) {
   
   // Safety check: if host starts with "." something went wrong, fallback to known WSS host
   if (baseHost.includes("://.") || !baseHost.startsWith("ws")) {
-    baseHost = "wss://api.golden-ride.com";
+    baseHost = "ws://54.197.9.181";
   }
   
   const wsUrl = `${baseHost}/ws/driver/${driverId}?token=${token}`;
@@ -35,9 +93,14 @@ export function connectDriverWebSocket(driverId: number, token: string) {
 
   socket = new WebSocket(wsUrl);
 
+  let openTimer: NodeJS.Timeout | null = null;
+
   socket.onopen = () => {
     console.log("Driver WebSocket connection established");
-    reconnectDelay = 1000;
+    // Only reset reconnect delay if connection remains open stably for 5 seconds
+    openTimer = setTimeout(() => {
+      reconnectDelay = 1000;
+    }, 5000);
     
     // Fetch pending rides and active ride automatically when connected
     useRideStore.getState().fetchIncomingRequests();
@@ -59,11 +122,13 @@ export function connectDriverWebSocket(driverId: number, token: string) {
       const { addIncomingRequest, removeIncomingRequest, setActiveRide } = useRideStore.getState();
 
       if (msg.type === "new_ride") {
+        playRingtone();
         addIncomingRequest(msg.ride);
         // Popup modal request screen
         navigate("RideRequest", { rideId: msg.ride.id });
       } 
       else if (msg.type === "ride_accepted") {
+        stopRingtone();
         const { incomingRequests } = useRideStore.getState();
         const wasInIncoming = incomingRequests.some(r => r.id === msg.ride_id);
         removeIncomingRequest(msg.ride_id);
@@ -72,20 +137,22 @@ export function connectDriverWebSocket(driverId: number, token: string) {
         
         if (msg.driver_id !== currentDriverId && (wasInIncoming || currentRoute === "RideRequest")) {
           Alert.alert("Ride Accepted", "This ride was accepted by another driver.");
-          if (currentRoute === "RideRequest") {
+          if (currentRoute === "RideRequest" && navigationRef.canGoBack()) {
             goBack();
           }
         }
       } 
       else if (msg.type === "ride_expired") {
+        stopRingtone();
         removeIncomingRequest(msg.ride_id);
         const currentRoute = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : null;
         if (currentRoute === "RideRequest") {
           Alert.alert("Ride Expired", "The ride request has expired.");
-          goBack();
+          if (navigationRef.canGoBack()) goBack();
         }
       } 
       else if (msg.type === "ride_cancelled") {
+        stopRingtone();
         const { incomingRequests } = useRideStore.getState();
         const wasInIncoming = incomingRequests.some(r => r.id === msg.ride_id);
         removeIncomingRequest(msg.ride_id);
@@ -99,7 +166,7 @@ export function connectDriverWebSocket(driverId: number, token: string) {
           navigate("DriverDashboard");
         } else if (wasInIncoming || currentRoute === "RideRequest") {
           Alert.alert("Ride Cancelled", "The rider has cancelled this ride request.");
-          if (currentRoute === "RideRequest") {
+          if (currentRoute === "RideRequest" && navigationRef.canGoBack()) {
             goBack();
           }
         }
@@ -164,10 +231,12 @@ function cleanupSocket() {
 function scheduleReconnect(driverId: number, token: string) {
   if (reconnectTimer) return;
 
-  console.log(`Reconnecting WebSocket in ${reconnectDelay}ms`);
+  const delay = reconnectDelay;
+  reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
+  console.log(`Reconnecting WebSocket in ${delay}ms`);
+
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
-    reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
     connectDriverWebSocket(driverId, token);
-  }, reconnectDelay);
+  }, delay);
 }

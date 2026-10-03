@@ -1,23 +1,23 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// API base URL: set by EAS build env (EXPO_PUBLIC_DRIVER_API_URL), always points to production
-export const BASE_URL = process.env.EXPO_PUBLIC_DRIVER_API_URL || "https://api.golden-ride.com/api";
+// API base URL: AWS EC2 production backend
+export const BASE_URL = process.env.EXPO_PUBLIC_DRIVER_API_URL || "http://54.197.9.181/api";
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
+    "Bypass-Tunnel-Reminder": "true",
+    "ngrok-skip-browser-warning": "true",
   },
 });
 
 apiClient.interceptors.request.use(
   async (config) => {
-    const customUrl = await AsyncStorage.getItem("CUSTOM_API_URL");
-    if (customUrl) {
-      config.baseURL = customUrl;
-    }
+    // Ensure we always clear any legacy cached CUSTOM_API_URL override
+    await AsyncStorage.removeItem("CUSTOM_API_URL");
     const token = await AsyncStorage.getItem("authToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

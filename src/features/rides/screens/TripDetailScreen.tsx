@@ -153,8 +153,8 @@ export default function TripDetailScreen({ navigation, route }: any) {
           <Text style={styles.cardTitle}>Fare Breakdown</Text>
           {[
             { label: "Ride Fare", value: TRIP.fare },
-            { label: "Surge Bonus", value: "₹0" },
-            { label: "Tip", value: "₹0" },
+            { label: "Surge Bonus", value: "$0" },
+            { label: "Tip", value: "$0" },
           ].map((row, i) => (
             <View key={row.label} style={[styles.infoRow, i > 0 && styles.rowBorder]}>
               <Text style={styles.infoLabel}>{row.label}</Text>

@@ -8,6 +8,9 @@ import {
   ScrollView,
   Alert,
   Linking,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,13 +34,16 @@ const PHASE_CONFIG: Record<RidePhase, { label: string; subLabel: string; cta: st
 const PHASES: RidePhase[] = ["heading_pickup", "arrived", "in_progress", "completed"];
 
 export default function ActiveRideScreen({ navigation, route }: any) {
-  const { activeRide, fetchActiveRide, updateRideStatus } = useRideStore();
+  const { activeRide, fetchActiveRide, updateRideStatus, clearActiveRide } = useRideStore();
   const driver = useAuthStore((s: any) => s.driver);
   const insets = useSafeAreaInsets();
   const [phaseIndex, setPhaseIndex] = useState(0);
   const phase = PHASES[phaseIndex];
   const config = PHASE_CONFIG[phase];
   const rideId = route?.params?.rideId;
+  
+  const [pin, setPin] = useState("");
+  const pinInputRef = useRef<TextInput>(null);
   
   const mapRef = useRef<MapView>(null);
   const [routeCoords, setRouteCoords] = useState<{latitude: number; longitude: number}[]>([]);
@@ -172,23 +178,38 @@ export default function ActiveRideScreen({ navigation, route }: any) {
       await updateRideStatus(RIDE.id, "arrived");
       setPhaseIndex(1);
     } else if (phaseIndex === 1) {
-      await updateRideStatus(RIDE.id, "started");
-      setPhaseIndex(2);
+      if (pin.length !== 4) {
+        Alert.alert("Invalid PIN", "Please enter the 4-digit PIN provided by the passenger.");
+        return;
+      }
+      const store = useRideStore.getState();
+      const success = await store.verifyRidePin(RIDE.id, pin);
+      if (success) {
+        await updateRideStatus(RIDE.id, "started");
+        setPhaseIndex(2);
+      } else {
+        const errorMsg = store.error || "Incorrect PIN";
+        Alert.alert("Verification Failed", errorMsg);
+        setPin("");
+      }
     } else if (phaseIndex === 2) {
       await updateRideStatus(RIDE.id, "completed");
       setPhaseIndex(3);
     } else {
+      clearActiveRide();
       navigation.replace("DriverDashboard");
     }
   };
 
-  const handleSOS = () => Alert.alert("SOS", "Emergency services have been notified.");
+  const handleSOS = () => {
+    Linking.openURL('tel:112');
+  };
 
   const pickupRegion = {
-    latitude: RIDE.pickup_latitude ?? (driver?.country === "USA" ? 39.8283 : 20.5937),
-    longitude: RIDE.pickup_longitude ?? (driver?.country === "USA" ? -98.5795 : 78.9629),
-    latitudeDelta: RIDE.pickup_latitude ? 0.08 : (driver?.country === "USA" ? 30 : 20),
-    longitudeDelta: RIDE.pickup_latitude ? 0.08 : (driver?.country === "USA" ? 30 : 20),
+    latitude: RIDE.pickup_latitude ?? 39.8283,
+    longitude: RIDE.pickup_longitude ?? -98.5795,
+    latitudeDelta: RIDE.pickup_latitude ? 0.08 : 30,
+    longitudeDelta: RIDE.pickup_latitude ? 0.08 : 30,
   };
 
   return (
@@ -258,7 +279,10 @@ export default function ActiveRideScreen({ navigation, route }: any) {
       </View>
 
       {/* Bottom Sheet Details wrapped in ScrollView for Redmi screens to prevent overflow */}
-      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
+      >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
 
           {/* Phase Status */}
@@ -360,13 +384,46 @@ export default function ActiveRideScreen({ navigation, route }: any) {
             </View>
           </View>
 
+          {/* PIN Input during Arrived Phase */}
+          {phaseIndex === 1 && (
+            <View style={styles.pinContainer}>
+              <Text style={styles.pinLabel}>Enter Passenger PIN to Start Ride</Text>
+              <TouchableOpacity 
+                style={styles.pinBoxesContainer} 
+                activeOpacity={1} 
+                onPress={() => pinInputRef.current?.focus()}
+              >
+                {[0, 1, 2, 3].map((i) => (
+                  <View key={i} style={[styles.pinBox, pin.length === i && styles.pinBoxActive]}>
+                    <Text style={styles.pinText}>{pin[i] || ""}</Text>
+                  </View>
+                ))}
+              </TouchableOpacity>
+              <TextInput
+                ref={pinInputRef}
+                value={pin}
+                onChangeText={(text) => setPin(text.replace(/[^0-9]/g, "").slice(0, 4))}
+                keyboardType="number-pad"
+                style={styles.hiddenInput}
+                autoFocus
+              />
+            </View>
+          )}
+
           {/* CTA Action Button */}
-          <TouchableOpacity style={[styles.ctaBtn, { backgroundColor: config.color }]} onPress={handleCTA}>
-            <Text style={styles.ctaText}>{config.cta}</Text>
-            <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+          <TouchableOpacity 
+            style={[
+              styles.ctaBtn, 
+              { backgroundColor: phaseIndex === 1 && pin.length < 4 ? Colors.textMuted : config.color }
+            ]} 
+            onPress={handleCTA}
+            disabled={phaseIndex === 1 && pin.length < 4}
+          >
+            <Text style={styles.ctaText}>{phaseIndex === 1 ? "Verify & Start Ride" : config.cta}</Text>
+            <Ionicons name={phaseIndex === 1 ? "shield-checkmark" : "arrow-forward"} size={20} color={Colors.white} />
           </TouchableOpacity>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -456,5 +513,49 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  pinContainer: {
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    padding: Spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginTop: 8,
+  },
+  pinLabel: {
+    fontSize: Typography.small,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
+  pinBoxesContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  pinBox: {
+    width: 50,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinBoxActive: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+  },
+  pinText: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: Colors.textPrimary,
+  },
+  hiddenInput: {
+    position: "absolute",
+    opacity: 0,
+    width: 1,
+    height: 1,
   },
 });

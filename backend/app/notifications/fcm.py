@@ -33,69 +33,90 @@ class FCMService:
 
     @classmethod
     def send_push_notification(cls, token: str, title: str, body: str, data: Dict[str, str] = None) -> bool:
-        cls.initialize()
-        
-        if not cls._initialized:
-            logger.info(f"[MOCK PUSH] Sent to token {token}: Title='{title}', Body='{body}', Data={data}")
-            return True
-
-        try:
-            # Expo Notifications FCM format requires data payload with proper format
-            message = messaging.Message(
-                notification=messaging.Notification(
-                    title=title,
-                    body=body
-                ),
-                data=data or {},
-                token=token
-            )
-            response = messaging.send(message)
-            logger.info(f"FCM notification sent successfully: {response}")
-            return True
-        except Exception as e:
-            logger.error(f"Error sending FCM push notification: {e}")
-            # If token is invalid, we should return False so the repository can deactivate it
-            if "registration-token-not-registered" in str(e).lower() or "invalid-registration-token" in str(e).lower():
-                logger.info(f"FCM token {token} is invalid. Deactivating.")
-                return False
-            return True
+        return len(cls.send_multicast_notification([token], title, body, data)) == 0
 
     @classmethod
     def send_multicast_notification(cls, tokens: List[str], title: str, body: str, data: Dict[str, str] = None) -> List[str]:
         """
-        Sends push notification to multiple tokens. Returns a list of tokens that failed and should be deactivated.
+        Sends push notification to multiple tokens. Returns a list of tokens that failed.
         """
-        cls.initialize()
         failed_tokens = []
         if not tokens:
             return failed_tokens
 
-        if not cls._initialized:
-            logger.info(f"[MOCK MULTICAST PUSH] Sent to {len(tokens)} tokens: Title='{title}', Body='{body}', Data={data}")
-            return failed_tokens
+        import requests
+        
+        expo_tokens = [t for t in tokens if t.startswith("ExponentPushToken") or t.startswith("ExpoPushToken")]
+        fcm_tokens = [t for t in tokens if t not in expo_tokens]
 
-        try:
-            # We use send_multicast
-            message = messaging.MulticastMessage(
-                notification=messaging.Notification(
-                    title=title,
-                    body=body
-                ),
-                data=data or {},
-                tokens=tokens
-            )
-            response = messaging.send_each_for_multicast(message)
-            logger.info(f"Multicast sent: {response.success_count} success, {response.failure_count} failure")
+        if expo_tokens:
+            messages = []
+            for t in expo_tokens:
+                msg = {
+                    "to": t,
+                    "title": title,
+                    "body": body,
+                    "data": data or {},
+                    "sound": "default",
+                    "channelId": "trip_requests",
+                    "priority": "high",
+                }
+                # If it's a ride request, trigger custom sound
+                if data and data.get("type") == "new_ride":
+                    msg["sound"] = "trip_request.wav"
+                
+                messages.append(msg)
             
-            for index, resp in enumerate(response.responses):
-                if not resp.success:
-                    exc = resp.exception
-                    token = tokens[index]
-                    logger.warning(f"Failed to send to token {token}: {exc}")
-                    if "registration-token-not-registered" in str(exc).lower() or "invalid-registration-token" in str(exc).lower():
-                        failed_tokens.append(token)
-            
-        except Exception as e:
-            logger.error(f"Error sending multicast notification: {e}")
-            
+            try:
+                response = requests.post(
+                    "https://exp.host/--/api/v2/push/send",
+                    json=messages,
+                    headers={"Accept": "application/json", "Accept-Encoding": "gzip, deflate", "Content-Type": "application/json"}
+                )
+                if response.status_code == 200:
+                    resp_data = response.json().get("data", [])
+                    for i, r in enumerate(resp_data):
+                        if r.get("status") == "error":
+                            if r.get("details", {}).get("error") in ["DeviceNotRegistered", "InvalidCredentials"]:
+                                failed_tokens.append(expo_tokens[i])
+            except Exception as e:
+                logger.error(f"Error sending Expo push: {e}")
+
+        if fcm_tokens:
+            cls.initialize()
+            if cls._initialized:
+                try:
+                    # Native FCM payload for Android high priority + custom sound
+                    android_config = messaging.AndroidConfig(
+                        priority="high",
+                        notification=messaging.AndroidNotification(
+                            channel_id="trip_requests",
+                            sound="trip_request.wav" if data and data.get("type") == "new_ride" else "default"
+                        )
+                    )
+                    
+                    message = messaging.MulticastMessage(
+                        notification=messaging.Notification(
+                            title=title,
+                            body=body
+                        ),
+                        data=data or {},
+                        android=android_config,
+                        tokens=fcm_tokens
+                    )
+                    response = messaging.send_each_for_multicast(message)
+                    logger.info(f"Multicast sent: {response.success_count} success, {response.failure_count} failure")
+                    
+                    for index, resp in enumerate(response.responses):
+                        if not resp.success:
+                            exc = resp.exception
+                            token = fcm_tokens[index]
+                            logger.warning(f"Failed to send to token {token}: {exc}")
+                            if "registration-token-not-registered" in str(exc).lower() or "invalid-registration-token" in str(exc).lower():
+                                failed_tokens.append(token)
+                except Exception as e:
+                    logger.error(f"Error sending FCM multicast: {e}")
+            else:
+                logger.info(f"[MOCK PUSH] Would send to {len(fcm_tokens)} FCM tokens")
+
         return failed_tokens

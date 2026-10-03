@@ -12,10 +12,12 @@ export const API_ENDPOINTS = {
   DRIVER_REMOVE_AVATAR: "/driver/profile/remove-avatar",
   DRIVER_DASHBOARD: "/driver/dashboard",
   DRIVER_TOGGLE_ONLINE: "/driver/toggle-online",
+  DRIVER_DESTINATION_MODE: "/driver/destination-mode",
   DRIVER_EARNINGS: "/driver/earnings",
   DRIVER_WITHDRAW: "/driver/withdraw",
   DRIVER_SETTINGS: "/driver/settings",
   DRIVER_SUPPORT: "/driver/support",
+  DEVICE_TOKEN: "/driver/device-token",
 
   // Rides & Telemetry
   RIDES_REQUESTS: "/rides/requests",
@@ -23,6 +25,7 @@ export const API_ENDPOINTS = {
   RIDES_ACCEPT: (rideId: number | string) => `/rides/${rideId}/accept`,
   RIDES_DECLINE: (rideId: number | string) => `/rides/${rideId}/decline`,
   RIDES_STATUS: (rideId: number | string) => `/rides/${rideId}/status`,
+  RIDES_VERIFY_PIN: (rideId: number | string) => `/rides/${rideId}/verify-pin`,
   RIDES_HISTORY: "/rides/history",
   RIDES_DETAIL: (rideId: number | string) => `/rides/${rideId}`,
   RIDES_UPDATE_LOCATION: "/rides/update-location",

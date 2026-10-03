@@ -13,6 +13,9 @@ import SupportScreen from "../features/profile/screens/SupportScreen";
 import EditProfileScreen from "../features/profile/screens/EditProfileScreen";
 import ChatDetailScreen from "../features/home/screens/ChatDetailScreen";
 import CompleteProfileScreen from "../features/profile/screens/CompleteProfileScreen";
+import DestinationPickerScreen from "../screens/driver/DestinationPickerScreen";
+import { SafetyHubScreen } from "../features/safety/screens/SafetyHubScreen";
+import { EmergencyContactsScreen } from "../features/safety/screens/EmergencyContactsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -54,6 +57,9 @@ export default function MainNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+      <Stack.Screen name="DestinationPicker" component={DestinationPickerScreen} />
+      <Stack.Screen name="SafetyHub" component={SafetyHubScreen} />
+      <Stack.Screen name="EmergencyContacts" component={EmergencyContactsScreen} />
     </Stack.Navigator>
   );
 }

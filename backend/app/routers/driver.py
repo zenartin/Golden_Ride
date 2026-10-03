@@ -42,6 +42,8 @@ def update_profile(
     if payload.phone is not None: current_driver.phone = payload.phone
     if payload.date_of_birth is not None: current_driver.date_of_birth = payload.date_of_birth
     if payload.residential_address is not None: current_driver.residential_address = payload.residential_address
+    if payload.accepted_ride_classes is not None: current_driver.accepted_ride_classes = payload.accepted_ride_classes
+    if payload.radius_filter is not None: current_driver.radius_filter = payload.radius_filter
 
     docs = db.query(DriverDocument).filter(DriverDocument.driver_id == current_driver.id).first()
     if not docs:
@@ -173,6 +175,7 @@ def remove_avatar(
 
 @router.get("/dashboard", response_model=DashboardResponse)
 def get_dashboard(
+    filter: Optional[str] = "daily",
     current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
@@ -182,26 +185,36 @@ def get_dashboard(
     
     # Real stats from DB only
     today = datetime.utcnow().date()
-    today_trips = [t for t in completed_trips if t.completed_at and t.completed_at.date() == today]
-    if not today_trips:
-        today_trips = [t for t in completed_trips if (t.updated_at or t.created_at).date() == today]
     
-    today_earnings_val = sum(t.fare_amount for t in today_trips)
+    if filter == "weekly":
+        start_date = today - timedelta(days=7)
+        filtered_trips = [t for t in completed_trips if t.completed_at and start_date <= t.completed_at.date() <= today]
+        if not filtered_trips:
+            filtered_trips = [t for t in completed_trips if start_date <= (t.updated_at or t.created_at).date() <= today]
+        stat_label = "This Week"
+    else:
+        filtered_trips = [t for t in completed_trips if t.completed_at and t.completed_at.date() == today]
+        if not filtered_trips:
+            filtered_trips = [t for t in completed_trips if (t.updated_at or t.created_at).date() == today]
+        stat_label = "Today"
     
-    # Currency based on driver's registered country
-    currency_sym = "$" if current_driver.country == "USA" else "₹"
+    # 80% driver cut applied here!
+    earnings_val = sum((t.fare_amount * 0.80) for t in filtered_trips)
+    
+    # Currency
+    currency_sym = "$"
             
-    today_earnings_str = f"{currency_sym}{today_earnings_val:.2f}" if currency_sym == "$" else f"{currency_sym}{int(today_earnings_val)}"
+    earnings_str = f"{currency_sym}{earnings_val:.2f}"
     trips_count_str = str(len(completed_trips))
     rating_str = f"{current_driver.rating:.1f}"
-    total_km = sum(float(t.distance.replace(' km', '').replace('km', '').strip()) if t.distance else 0.0 for t in completed_trips)
+    total_km = sum(float(t.distance.replace(' km', '').replace('km', '').replace(' miles', '').replace(' mi', '').strip()) if t.distance else 0.0 for t in completed_trips)
     km_str = f"{int(total_km)}"
 
     stats = [
-        QuickStat(label="Today", value=today_earnings_str, icon="cash-outline", color="#22C55E"),
+        QuickStat(label=stat_label, value=earnings_str, icon="cash-outline", color="#22C55E"),
         QuickStat(label="Trips", value=trips_count_str, icon="car-sport-outline", color="#3B82F6"),
         QuickStat(label="Rating", value=rating_str, icon="star-outline", color="#F59E0B"),
-        QuickStat(label="Km", value=km_str, icon="navigate-outline", color="#3B5FC0"),
+        QuickStat(label="Miles", value=km_str, icon="navigate-outline", color="#3B5FC0"),
     ]
 
     # Map recent trips — only real trips from DB
@@ -285,12 +298,13 @@ def get_earnings(
     # Weekly statistics (Sunday to Saturday) - Mock standard values from UX screen, updated slightly by DB if present
     driver_trips = db.query(Ride).filter(Ride.driver_id == current_driver.id).all()
     completed_trips = [t for t in driver_trips if t.status == "completed"]
-    total_db_earnings = sum(t.fare_amount for t in completed_trips)
+    # Driver gets 80%
+    total_db_earnings = sum(t.fare_amount * 0.80 for t in completed_trips)
     
-    # Currency based on driver's registered country
-    currency_sym = "$" if current_driver.country == "USA" else "₹"
+    # Currency
+    currency_sym = "$"
             
-    weekly_total = f"{currency_sym}{total_db_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(total_db_earnings)}"
+    weekly_total = f"{currency_sym}{total_db_earnings:.2f}"
     available_balance = current_driver.balance or 0.0
     
     # Calculate daily statistics dynamically based on completed rides this week (past 7 days)
@@ -304,7 +318,7 @@ def get_earnings(
         if dt:
             day_name = dt.strftime("%a")
             if day_name in stats_dict:
-                stats_dict[day_name]["amount"] += (t.fare_amount or 0.0)
+                stats_dict[day_name]["amount"] += (t.fare_amount * 0.80 if t.fare_amount else 0.0)
                 stats_dict[day_name]["trips"] += 1
                 
     statistics = [
@@ -317,27 +331,29 @@ def get_earnings(
     if not today_trips:
         today_trips = [t for t in completed_trips if (t.updated_at or t.created_at).date() == today]
         
-    today_earnings = sum(t.fare_amount for t in today_trips)
+    today_gross = sum(t.fare_amount for t in today_trips)
     # Drivers get 80% of total
-    net_earnings = round(today_earnings * 0.80, 2)
-    platform_fee = round(today_earnings * 0.20, 2)
+    net_earnings = round(today_gross * 0.80, 2)
+    platform_fee = round(today_gross * 0.20, 2)
     # Tips (currently no tip field in DB, assuming 0 for now)
     tips = 0.0
 
     daily_breakdown = [
-        EarningBreakdownItem(label="Total Fares Collected", amount=f"{currency_sym}{today_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(today_earnings)}", icon="cash-outline", color="#22C55E"),
-        EarningBreakdownItem(label="Driver Earnings (80%)", amount=f"{currency_sym}{net_earnings:.2f}" if currency_sym == "$" else f"{currency_sym}{int(net_earnings)}", icon="car-outline", color="#3B5FC0"),
-        EarningBreakdownItem(label="Platform Fee (20%)", amount=f"-{currency_sym}{platform_fee:.2f}" if currency_sym == "$" else f"-{currency_sym}{int(platform_fee)}", icon="pie-chart-outline", color="#EF4444"),
-        EarningBreakdownItem(label="Tips (100%)", amount=f"{currency_sym}{tips:.2f}" if currency_sym == "$" else f"{currency_sym}{int(tips)}", icon="heart-outline", color="#10B981"),
+        EarningBreakdownItem(label="Total Fares Collected", amount=f"{currency_sym}{today_gross:.2f}", icon="cash-outline", color="#22C55E"),
+        EarningBreakdownItem(label="Driver Earnings (80%)", amount=f"{currency_sym}{net_earnings:.2f}", icon="car-outline", color="#3B5FC0"),
+        EarningBreakdownItem(label="Platform Fee (20%)", amount=f"-{currency_sym}{platform_fee:.2f}", icon="pie-chart-outline", color="#EF4444"),
+        EarningBreakdownItem(label="Tips (100%)", amount=f"{currency_sym}{tips:.2f}", icon="heart-outline", color="#10B981"),
     ]
 
-    fee_val = round(float(available_balance) * 0.20, 2)
-    net_val = round(float(available_balance) - fee_val, 2)
+    # available_balance already is 80% of fares (computed in ride_service), so we don't deduct again!
+    gross_wallet = available_balance / 0.80 if available_balance > 0 else 0
+    fee_val = gross_wallet * 0.20
+    net_val = available_balance
 
     payment_summary = [
-        PaymentSummaryRow(label="Gross Wallet Balance", value=f"{currency_sym}{available_balance:.2f}" if currency_sym == "$" else f"{currency_sym}{int(available_balance)}", bold=True),
-        PaymentSummaryRow(label="Platform Fees (20%)", value=f"−{currency_sym}{fee_val:.2f}" if currency_sym == "$" else f"−{currency_sym}{int(fee_val)}"),
-        PaymentSummaryRow(label="Available to Withdraw", value=f"{currency_sym}{net_val:.2f}" if currency_sym == "$" else f"{currency_sym}{int(net_val)}", bold=True, color="#22C55E"),
+        PaymentSummaryRow(label="Gross Fares", value=f"{currency_sym}{gross_wallet:.2f}", bold=True),
+        PaymentSummaryRow(label="Platform Fees (20%)", value=f"−{currency_sym}{fee_val:.2f}"),
+        PaymentSummaryRow(label="Available to Withdraw", value=f"{currency_sym}{net_val:.2f}", bold=True, color="#22C55E"),
     ]
 
     return EarningsResponse(

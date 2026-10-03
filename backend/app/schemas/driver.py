@@ -59,10 +59,22 @@ class DriverOut(BaseModel):
     avatar: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    destination_mode_active: bool = False
+    destination_lat: Optional[float] = None
+    destination_lng: Optional[float] = None
+    destination_address: Optional[str] = None
+    accepted_ride_classes: Optional[str] = None
+    radius_filter: int = 0
     documents: Optional[DriverDocumentOut] = None
 
     class Config:
         from_attributes = True
+
+class DestinationModeRequest(BaseModel):
+    active: bool
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    address: Optional[str] = None
 
 class DriverProfileUpdateRequest(BaseModel):
     # Driver Info
@@ -71,6 +83,8 @@ class DriverProfileUpdateRequest(BaseModel):
     phone: Optional[str] = None
     date_of_birth: Optional[str] = None
     residential_address: Optional[str] = None
+    accepted_ride_classes: Optional[str] = None
+    radius_filter: Optional[int] = None
 
     # License Info
     license_number: Optional[str] = None

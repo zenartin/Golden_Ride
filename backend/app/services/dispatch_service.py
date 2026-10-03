@@ -63,9 +63,15 @@ class DispatchService:
             doc = db.query(DriverDocument).filter(DriverDocument.driver_id == driver.id).first()
             driver_vtype = doc.vehicle_type if doc and doc.vehicle_type else "sedan"
             
-            if not is_vehicle_class_compatible(driver_vtype, ride.ride_class):
+            if not is_vehicle_class_compatible(driver_vtype, ride.ride_class, driver.accepted_ride_classes):
                 logger.info(f"Skipping driver {driver.id}: vehicle type {driver_vtype} not compatible with ride class {ride.ride_class}")
                 continue
+
+            if driver.radius_filter and driver.radius_filter > 0 and driver.latitude and driver.longitude and ride.pickup_latitude and ride.pickup_longitude:
+                distance = calculate_distance(driver.latitude, driver.longitude, ride.pickup_latitude, ride.pickup_longitude)
+                if distance > driver.radius_filter:
+                    logger.info(f"Skipping driver {driver.id}: ride distance {distance:.2f}km exceeds radius filter {driver.radius_filter}km")
+                    continue
 
             if driver.destination_mode_active and driver.destination_lat and driver.destination_lng:
                 is_eligible = is_ride_eligible_for_destination_mode(
@@ -254,46 +260,30 @@ class DispatchService:
 
     @classmethod
     async def dispatch_pending_rides_to_driver(cls, db: Session, driver: Driver):
-        logger.info(f"Checking for pending rides for newly online driver {driver.id}")
+        logger.info(f"Checking for pending rides for online driver {driver.id}")
         
-        if not driver.documents or not driver.documents.vehicle_type:
-            return
-            
-        driver_vtype = driver.documents.vehicle_type.lower()
+        doc = db.query(DriverDocument).filter(DriverDocument.driver_id == driver.id).first()
+        driver_vtype = doc.vehicle_type if doc and doc.vehicle_type else "sedan"
         
         pending_rides = db.query(Ride).filter(Ride.status == "pending").all()
         
         for ride in pending_rides:
-            target_classes = [ride.ride_class.lower()]
-                
-            if driver_vtype not in target_classes:
+            if not is_vehicle_class_compatible(driver_vtype, ride.ride_class, driver.accepted_ride_classes):
                 continue
                 
             if driver.destination_mode_active and driver.destination_lat and driver.destination_lng:
-                if not ride.dropoff_latitude or not ride.dropoff_longitude or not driver.latitude or not driver.longitude:
-                    continue
-                dist_driver_to_dest = calculate_distance(driver.latitude, driver.longitude, driver.destination_lat, driver.destination_lng)
-                dist_pickup_to_dest = calculate_distance(ride.pickup_latitude, ride.pickup_longitude, driver.destination_lat, driver.destination_lng)
-                dist_dropoff_to_dest = calculate_distance(ride.dropoff_latitude, ride.dropoff_longitude, driver.destination_lat, driver.destination_lng)
-                dist_pickup_to_dropoff = calculate_distance(ride.pickup_latitude, ride.pickup_longitude, ride.dropoff_latitude, ride.dropoff_longitude)
-                
-                # 1. Base distance (without ride)
-                base_distance = dist_driver_to_dest
-                
-                # 2. Ride path distance (driver -> pickup -> dropoff -> dest)
-                dist_driver_to_pickup = calculate_distance(driver.latitude, driver.longitude, ride.pickup_latitude, ride.pickup_longitude)
-                ride_path_distance = dist_driver_to_pickup + dist_pickup_to_dropoff + dist_dropoff_to_dest
-                
-                # 3. Calculate detour
-                detour = ride_path_distance - base_distance
-                
-                MAX_ALLOWED_DETOUR = 30.0 # 30km detour limit
-                
-                if detour > MAX_ALLOWED_DETOUR:
-                    continue
-                    
-                # 4. Prevent purely backward rides
-                if dist_dropoff_to_dest > (dist_pickup_to_dest + 5):
+                is_eligible = is_ride_eligible_for_destination_mode(
+                    driver_lat=driver.latitude,
+                    driver_lng=driver.longitude,
+                    dest_lat=driver.destination_lat,
+                    dest_lng=driver.destination_lng,
+                    pickup_lat=ride.pickup_latitude,
+                    pickup_lng=ride.pickup_longitude,
+                    dropoff_lat=ride.dropoff_latitude,
+                    dropoff_lng=ride.dropoff_longitude,
+                    max_detour_km=15.0
+                )
+                if not is_eligible:
                     continue
                 
             existing_assignment = db.query(RideAssignment).filter(

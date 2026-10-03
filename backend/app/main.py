@@ -4,11 +4,12 @@ import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth
+from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth, payments, razorpay, rider, safety, share, family
 from app.websocket.manager import manager
 from app.repositories.driver_repository import DriverRepository
 from app.exceptions import register_exception_handlers
@@ -16,6 +17,7 @@ from app.models.user import User
 from app.models.driver import Driver
 from app.models.ride import Ride
 from app.models.admin import Admin
+from app.models.safety import EmergencyContact, TripShare, TripLocation
 from app.utils.security import get_password_hash
 from app.middleware import setup_middleware
 from app.logging_config import setup_logging
@@ -185,10 +187,21 @@ app.include_router(rides.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
+app.include_router(rider.router, prefix="/api")
 app.include_router(content.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
+app.include_router(razorpay.router, prefix="/api")
 app.include_router(stripe_router.router, prefix="/api")
 app.include_router(admin_auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(safety.router, prefix="/api")
+app.include_router(share.router, prefix="/api")
+app.include_router(family.router, prefix="/api")
+
+@app.get("/track/{token}", response_class=HTMLResponse)
+def get_public_track_page(token: str):
+    with open(os.path.join(os.path.dirname(__file__), "templates", "track.html"), "r") as f:
+        return HTMLResponse(content=f.read())
 
 @app.get("/")
 def read_root():

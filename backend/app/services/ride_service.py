@@ -16,29 +16,28 @@ from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAccep
 logger = logging.getLogger("app")
 
 class RideService:
-    # USA rates (USD) — Algorithm: 1 km = $1
-    USD_BASE_RATES = {"base": 0.0, "per_km": 1.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 1.0}
+    # USA rates (USD) — Lyft algorithm (slightly less): Base $1.50, $0.55/km (~$0.88/mi), $0.15/min, $1.50 fee
+    USD_BASE_RATES = {"base": 1.50, "per_km": 0.55, "per_min": 0.15, "booking_fee": 1.50, "min_fare": 4.00}
     
-    # India rates (INR) — Algorithm: 1 km = ₹60
-    INR_BASE_RATES = {"base": 0.0, "per_km": 60.0, "per_min": 0.0, "booking_fee": 0.0, "min_fare": 60.0}
+    # India rates (INR) — Lyft algorithm adapted for India: Base ₹40, ₹15/km, ₹2/min, ₹10 fee
+    INR_BASE_RATES = {"base": 40.0, "per_km": 15.0, "per_min": 2.0, "booking_fee": 10.0, "min_fare": 50.0}
 
     # Class multipliers (matching frontend estimates)
     CLASS_MULTIPLIERS = {
-        "auto": 1.0,
-        "hatchback": 1.0,
-        "sedan": 1.0,
-        "comfort": 1.0,
-        "xuv": 1.0,
+        "golden ride sedan": 1.0,
+        "golden ride suv": 1.5,
+        "golden ride van": 2.0,
+        "golden ridex": 1.2,
+        "golden ridexl": 2.5,
+        "golden ride pet": 1.3,
     }
 
     @staticmethod
     def detect_currency(lat: float = None, lon: float = None) -> str:
         """
-        Detect currency based on longitude to prevent $600 rides in the US.
+        Always return USD globally as requested by the user.
         """
-        if lon is not None and lon < -50:
-            return "USD"
-        return "INR"
+        return "USD"
 
     @classmethod
     def calculate_fare(cls, distance_km: float, duration_min: float, ride_class: str, currency: str = "INR") -> tuple:
@@ -206,7 +205,7 @@ class RideService:
 
     @classmethod
     async def _schedule_ride_expiry(cls, ride_id: int):
-        await asyncio.sleep(300)
+        await asyncio.sleep(60)
         logger.info(f"Checking expiry for ride {ride_id}")
         
         db = SessionLocal()
@@ -230,6 +229,15 @@ class RideService:
     async def accept_ride(cls, db: Session, ride_id: int, driver_id: int) -> Ride:
         # Row-level locking accept operation
         ride = RideRepository.accept_ride(db, ride_id, driver_id)
+        
+        # Generate and set PIN
+        from app.utils.pin import generate_ride_pin, hash_ride_pin
+        from datetime import datetime, timedelta
+        pin = generate_ride_pin(str(ride.id))
+        ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
+        ride.verification_pin_expires_at = datetime.utcnow() + timedelta(minutes=15)
+        db.add(ride)
+        db.commit()
         
         # Update RideAssignment
         assignment = RideAssignmentRepository.get_by_ride_and_driver(db, ride_id, driver_id)

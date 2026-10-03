@@ -49,11 +49,13 @@ interface RideState {
   isLoading: boolean;
   error: string | null;
 
+  clearActiveRide: () => void;
   fetchIncomingRequests: () => Promise<void>;
   fetchActiveRide: () => Promise<void>;
   acceptRide: (rideId: number) => Promise<boolean>;
   declineRide: (rideId: number) => Promise<boolean>;
   updateRideStatus: (rideId: number, status: "arrived" | "started" | "completed") => Promise<boolean>;
+  verifyRidePin: (rideId: number, pin: string) => Promise<boolean>;
   fetchRideHistory: () => Promise<void>;
   updateLocation: (latitude: number, longitude: number) => Promise<void>;
   fetchMessages: (rideId: number) => Promise<void>;
@@ -90,6 +92,10 @@ export const useRideStore = create<RideState>()(
 
   setActiveRide: (ride) => {
     set({ activeRide: ride });
+  },
+
+  clearActiveRide: () => {
+    set({ activeRide: null });
   },
 
   fetchIncomingRequests: async () => {
@@ -161,7 +167,7 @@ export const useRideStore = create<RideState>()(
         status: statusName,
       });
       if (statusName === "completed") {
-        set({ activeRide: null });
+        set({ activeRide: response.data });
         await get().fetchRideHistory();
       } else {
         set({ activeRide: response.data });
@@ -169,6 +175,20 @@ export const useRideStore = create<RideState>()(
       return true;
     } catch (err: any) {
       set({ error: err.response?.data?.detail || `Failed to update status to ${statusName}` });
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  verifyRidePin: async (rideId, pin) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await apiClient.post(API_ENDPOINTS.RIDES_VERIFY_PIN(rideId), { pin });
+      set({ activeRide: response.data });
+      return true;
+    } catch (err: any) {
+      set({ error: err.response?.data?.detail || "Failed to verify PIN" });
       return false;
     } finally {
       set({ isLoading: false });

@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useRideStore } from "../../../store/rideStore";
 import { useAuthStore } from "../../../store/authStore";
+import { stopRingtone } from "../../../services/websocket";
 
 
 
@@ -73,12 +74,14 @@ export default function RideRequestScreen({ navigation, route }: any) {
       return;
     }
     if (!RIDE) return;
+    stopRingtone();
     const ok = await acceptRide(RIDE.id);
     if (ok) navigation.replace("ActiveRide", { rideId: RIDE.id });
   };
 
   const handleDecline = async () => {
     if (!RIDE) { navigation.goBack(); return; }
+    stopRingtone();
     await declineRide(RIDE.id);
     navigation.goBack();
   };

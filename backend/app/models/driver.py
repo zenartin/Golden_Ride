@@ -23,6 +23,12 @@ class Driver(Base):
     country = Column(String, default="USA")
     date_of_birth = Column(String, nullable=True)
     residential_address = Column(String, nullable=True)
+    destination_mode_active = Column(Boolean, default=False)
+    destination_lat = Column(Float, nullable=True)
+    destination_lng = Column(Float, nullable=True)
+    destination_address = Column(String, nullable=True)
+    accepted_ride_classes = Column(String, nullable=True)  # Comma-separated list of accepted ride classes
+    radius_filter = Column(Integer, default=0) # 0 means all requests, otherwise radius in km
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

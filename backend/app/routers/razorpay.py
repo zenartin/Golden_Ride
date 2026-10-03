@@ -29,7 +29,7 @@ def create_razorpay_link(
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
 
-    currency = "USD" if current_user.country == "USA" else "INR"
+    currency = "USD"
     
     # Amount in smallest unit (cents/paise)
     amount_in_smallest_unit = int(round(ride.fare_amount * 100))

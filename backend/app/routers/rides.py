@@ -29,7 +29,11 @@ def get_incoming_requests(
     driver_doc = db.query(DriverDocument).filter(DriverDocument.driver_id == current_driver.id).first()
     driver_vehicle_type = driver_doc.vehicle_type if (driver_doc and driver_doc.vehicle_type) else "sedan"
 
-    rides = db.query(Ride).filter(Ride.status == "pending").all()
+    from sqlalchemy.orm import joinedload
+    rides = db.query(Ride).options(
+        joinedload(Ride.user),
+        joinedload(Ride.driver).joinedload(Driver.documents),
+    ).filter(Ride.status == "pending").all()
     
     filtered_rides = []
     for ride in rides:
@@ -140,6 +144,23 @@ def update_coordinates(
     current_driver.latitude = payload.latitude
     current_driver.longitude = payload.longitude
     db.add(current_driver)
+    
+    # Check for active ride to record route history
+    from app.models.ride import Ride
+    from app.models.safety import TripLocation
+    active_ride = db.query(Ride).filter(
+        Ride.driver_id == current_driver.id,
+        Ride.status.in_(["accepted", "arrived", "started"])
+    ).first()
+    
+    if active_ride and active_ride.status == "started":
+        trip_loc = TripLocation(
+            ride_id=active_ride.id,
+            latitude=payload.latitude,
+            longitude=payload.longitude
+        )
+        db.add(trip_loc)
+        
     db.commit()
     return {"status": "success", "message": "Location updated"}
 

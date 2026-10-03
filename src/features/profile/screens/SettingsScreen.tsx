@@ -23,6 +23,7 @@ interface SettingRow {
   type: "toggle" | "nav" | "value";
   value?: string;
   toggleKey?: string;
+  navRoute?: string;
 }
 
 const SECTIONS: { title: string; items: SettingRow[] }[] = [
@@ -45,6 +46,7 @@ const SECTIONS: { title: string; items: SettingRow[] }[] = [
   {
     title: "Privacy & Safety",
     items: [
+      { icon: "medical-outline", label: "Safety Hub", type: "nav", navRoute: "SafetyHub" },
       { icon: "shield-outline", label: "Share Location", type: "toggle", toggleKey: "location" },
       { icon: "eye-off-outline", label: "Hide Phone Number", type: "toggle", toggleKey: "hidePhone" },
       { icon: "lock-closed-outline", label: "Change Password", type: "nav" },
@@ -102,14 +104,18 @@ export default function SettingsScreen({ navigation }: any) {
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.card}>
-              {section.items.map((item, i) => (
-                <View
+              {section.items.map((item, i) => {
+                const isNav = item.type === "nav" && item.navRoute;
+                const Wrapper = isNav ? TouchableOpacity : View;
+                return (
+                <Wrapper
                   key={item.label}
                   style={[styles.row, i > 0 && styles.rowBorder]}
+                  onPress={isNav ? () => navigation.navigate(item.navRoute) : undefined}
                 >
                   <View style={styles.rowLeft}>
                     <View style={styles.iconBox}>
-                      <Ionicons name={item.icon} size={18} color={Colors.primary} />
+                      <Ionicons name={item.icon as any} size={18} color={Colors.primary} />
                     </View>
                     <View>
                       <Text style={styles.rowLabel}>{item.label}</Text>
@@ -130,8 +136,9 @@ export default function SettingsScreen({ navigation }: any) {
                   {item.type === "nav" && (
                     <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
                   )}
-                </View>
-              ))}
+                </Wrapper>
+                );
+              })}
             </View>
           </View>
         ))}

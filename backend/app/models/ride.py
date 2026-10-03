@@ -40,6 +40,12 @@ class Ride(Base):
     coupon_code = Column(String, nullable=True)
     discount_amount = Column(Float, nullable=True)
 
+    # PIN Verification Fields
+    verification_pin_hash = Column(String(64), nullable=True)
+    verification_pin_expires_at = Column(DateTime, nullable=True)
+    verification_attempts = Column(Integer, default=0, nullable=False)
+    verification_verified_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     # SQLite doesn't support onupdate natively — we update manually in routers
     updated_at = Column(DateTime, default=datetime.utcnow)

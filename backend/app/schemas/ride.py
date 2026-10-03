@@ -28,6 +28,7 @@ class RideResponse(BaseModel):
     coupon_code: Optional[str] = None
     discount_amount: Optional[float] = None
     scheduled_time: Optional[datetime] = None
+    verification_pin: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -43,6 +44,8 @@ class RideResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class VerifyPinRequest(BaseModel):
+    pin: str
 
 class RideUpdateStatus(BaseModel):
     status: str  # "arrived", "started", "completed"

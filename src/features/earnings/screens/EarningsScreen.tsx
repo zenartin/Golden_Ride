@@ -8,6 +8,8 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,13 +31,13 @@ interface EarningsData {
 
 const formatAmount = (value: number) => {
   try {
-    return new Intl.NumberFormat("en-IN", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "INR",
+      currency: "USD",
       maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    return `Rs ${Math.round(value)}`;
+    return `$${Math.round(value)}`;
   }
 };
 
@@ -44,6 +46,8 @@ export default function EarningsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timeFilter, setTimeFilter] = useState<"daily" | "weekly">("weekly");
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     fetchEarnings();
@@ -114,8 +118,42 @@ export default function EarningsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.pageTitle}>Earnings</Text>
+        <View style={[styles.header, { zIndex: 10 }]}>
+          <View>
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.background, borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: Colors.border }}
+              onPress={() => setShowDropdown(true)}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.textPrimary, marginRight: 6 }}>
+                {timeFilter === "daily" ? "Daily Earnings" : "Weekly Earnings"}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            
+            <Modal visible={showDropdown} transparent animationType="fade">
+              <TouchableWithoutFeedback onPress={() => setShowDropdown(false)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 90, paddingLeft: Spacing.lg }}>
+                  <TouchableWithoutFeedback>
+                    <View style={{ backgroundColor: '#fff', borderRadius: 12, width: 220, overflow: 'hidden' }}>
+                      <TouchableOpacity 
+                        style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: timeFilter === "daily" ? Colors.primary + "15" : "#fff" }}
+                        onPress={() => { setTimeFilter("daily"); setShowDropdown(false); }}
+                      >
+                        <Text style={{ fontSize: 16, fontWeight: "600", color: timeFilter === "daily" ? Colors.primary : Colors.textPrimary }}>Daily Earnings</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={{ padding: 16, backgroundColor: timeFilter === "weekly" ? Colors.primary + "15" : "#fff" }}
+                        onPress={() => { setTimeFilter("weekly"); setShowDropdown(false); }}
+                      >
+                        <Text style={{ fontSize: 16, fontWeight: "600", color: timeFilter === "weekly" ? Colors.primary : Colors.textPrimary }}>Weekly Earnings</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          </View>
+          
           <TouchableOpacity style={styles.withdrawBtn} onPress={handleSettle}>
             <Ionicons name="cash-outline" size={16} color={Colors.white} />
             <Text style={styles.withdrawText}>Settle Balance</Text>
@@ -124,13 +162,17 @@ export default function EarningsScreen() {
 
         {/* Total Card */}
         <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total This Week</Text>
-          <Text style={styles.totalAmount}>{data?.weekly_total ?? formatAmount(0)}</Text>
+          <Text style={styles.totalLabel}>{timeFilter === "daily" ? "Total Today (Driver Cut)" : "Total This Week"}</Text>
+          <Text style={styles.totalAmount}>
+            {timeFilter === "daily" ? (data?.daily_breakdown?.[1]?.amount ?? formatAmount(0)) : (data?.weekly_total ?? formatAmount(0))}
+          </Text>
           <View style={styles.totalRow}>
             <View style={styles.totalStat}>
               <Ionicons name="car-sport-outline" size={14} color="rgba(255,255,255,0.8)" />
               <Text style={styles.totalStatText}>
-                {statistics.reduce((acc, b) => acc + b.trips, 0)} Trips
+                {timeFilter === "daily" 
+                  ? (statistics[statistics.length - 1]?.trips ?? 0)
+                  : statistics.reduce((acc, b) => acc + b.trips, 0)} Trips
               </Text>
             </View>
             <View style={styles.totalStat}>

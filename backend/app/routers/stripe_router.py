@@ -42,7 +42,7 @@ def create_stripe_link(
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
 
-    currency = "usd" if current_user.country == "USA" else "inr"
+    currency = "usd"
     amount_in_smallest_unit = int(round(ride.fare_amount * 100))
     account_name = os.getenv("STRIPE_ACCOUNT_NAME", "Golden Ride Services")
 
@@ -113,7 +113,7 @@ def create_payment_intent(
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
 
-    currency = "usd" if current_user.country == "USA" else "inr"
+    currency = "usd"
     amount_in_smallest_unit = int(round(ride.fare_amount * 100))
     account_name = os.getenv("STRIPE_ACCOUNT_NAME", "Golden Ride Services")
 
