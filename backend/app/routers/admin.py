@@ -153,12 +153,17 @@ def approve_driver(driver_id: int, current_admin: Admin = Depends(get_current_ad
 
 
 @router.post("/drivers/{driver_id}/reject")
-def reject_driver(driver_id: int, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+async def reject_driver(driver_id: int, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     driver = db.query(Driver).filter(Driver.id == driver_id).first()
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
     driver.is_approved = False
+    driver.is_online = False
     db.commit()
+
+    from app.websocket.manager import manager
+    await manager.send_to_driver(driver_id, {"type": "driver_revoked"})
+
     return {"message": "Driver approval revoked"}
 
 
@@ -495,3 +500,50 @@ def payout_history(limit: int = 100, current_admin: Admin = Depends(get_current_
         "amount": r.amount, "method": r.method, "reference": r.reference, "note": r.note,
         "paid_by": r.paid_by, "created_at": r.created_at,
     } for r in rows]
+
+# ─── Coupons ─────────────────────────────────────────────────────────────────
+from app.models.coupon import Coupon
+from app.schemas.coupon import CouponCreate, CouponUpdate, CouponOut
+
+@router.get("/coupons", response_model=List[CouponOut])
+def get_coupons(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    return db.query(Coupon).order_by(Coupon.id.asc()).all()
+
+@router.post("/coupons", response_model=CouponOut)
+def create_coupon(payload: CouponCreate, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    if db.query(Coupon).filter(Coupon.code == payload.code.upper()).first():
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    coupon = Coupon(**payload.dict())
+    coupon.code = coupon.code.upper()
+    db.add(coupon)
+    db.commit()
+    db.refresh(coupon)
+    return coupon
+
+@router.put("/coupons/{coupon_id}", response_model=CouponOut)
+def update_coupon(coupon_id: int, payload: CouponUpdate, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    update_data = payload.dict(exclude_unset=True)
+    if "code" in update_data:
+        update_data["code"] = update_data["code"].upper()
+        if db.query(Coupon).filter(Coupon.code == update_data["code"], Coupon.id != coupon_id).first():
+            raise HTTPException(status_code=400, detail="Coupon code already exists")
+
+    for key, value in update_data.items():
+        setattr(coupon, key, value)
+        
+    db.commit()
+    db.refresh(coupon)
+    return coupon
+
+@router.delete("/coupons/{coupon_id}")
+def delete_coupon(coupon_id: int, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    db.delete(coupon)
+    db.commit()
+    return {"status": "success", "message": "Coupon deleted"}

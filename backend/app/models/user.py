@@ -24,6 +24,8 @@ class User(Base):
     card_expiry = Column(String, nullable=True)
     card_cvv = Column(String, nullable=True)
     card_holder = Column(String, nullable=True)
+    home_address = Column(String, nullable=True)
+    date_of_birth = Column(String, nullable=True)  # YYYY-MM-DD
     created_at = Column(DateTime, default=datetime.utcnow)
 
     rides = relationship("Ride", back_populates="user")

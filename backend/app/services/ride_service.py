@@ -11,6 +11,7 @@ from app.repositories.driver_repository import DriverRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.ride_assignment_repository import RideAssignmentRepository
 from app.services.dispatch_service import DispatchService
+from app.utils.pin import generate_ride_pin, hash_ride_pin
 from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAcceptedError
 
 logger = logging.getLogger("app")
@@ -82,7 +83,7 @@ class RideService:
 
         # Get real road distance & duration via OSRM (free, no API key)
         if pickup_latitude and pickup_longitude and dropoff_latitude and dropoff_longitude:
-            from app.utils.helpers import get_osrm_route
+            from app.utils.helpers import get_osrm_route, format_duration
             route = get_osrm_route(pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude)
             distance_val = route["distance_km"]
             duration_min = route["duration_min"]
@@ -93,7 +94,7 @@ class RideService:
             duration_min = max(5, round(distance_val * 3))
 
         distance_str = f"{distance_val:.1f} km"
-        duration_str = f"{duration_min} min"
+        duration_str = format_duration(duration_min)
 
         fare_amount, fare_str = cls.calculate_fare(distance_val, duration_min, ride_class, currency)
 
@@ -111,6 +112,13 @@ class RideService:
             elif code == "WELCOME10":
                 limit = 500.0 if currency == "INR" else 6.0
                 discount_amount = round(min(fare_amount * 0.1, limit), 2)
+            else:
+                from app.services import family_coupons
+                fam = family_coupons.get_coupon(code)
+                if fam:
+                    ok, _ = family_coupons.check_eligibility(db, user_id, fam)
+                    if ok:
+                        discount_amount = family_coupons.compute_discount(fam, fare_amount)
 
             fare_amount = max(0.0, fare_amount - discount_amount)
             if currency == "INR":
@@ -153,6 +161,12 @@ class RideService:
             discount_amount=discount_amount,
             scheduled_time=scheduled_time
         )
+        
+        db.flush() # Flush to get ride.id for PIN generation
+        
+        pin = generate_ride_pin(str(ride.id))
+        ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
+        db.commit()
 
         if scheduled_time:
             # We don't have celery, so we will use asyncio for the POC
@@ -235,7 +249,7 @@ class RideService:
         from datetime import datetime, timedelta
         pin = generate_ride_pin(str(ride.id))
         ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
-        ride.verification_pin_expires_at = datetime.utcnow() + timedelta(minutes=15)
+        ride.verification_pin_expires_at = datetime.utcnow() + timedelta(hours=24)
         db.add(ride)
         db.commit()
         
@@ -344,89 +358,39 @@ class RideService:
         return updated_ride
 
     @classmethod
+    async def driver_cancel_ride(cls, db: Session, ride_id: int, driver_id: int, cancellation_reason: str = None) -> Ride:
+        ride = RideRepository.get_by_id(db, ride_id)
+        if not ride:
+            raise RideNotFoundError()
+        if ride.driver_id != driver_id:
+            raise Exception("Unauthorized driver for this ride")
+        if ride.status in ["completed", "cancelled"]:
+            raise Exception("Ride is already finalized")
+
+        # Refund user wallet if booked via Wallet
+        if ride.payment_method.lower() == "wallet":
+            user = UserRepository.get_by_id(db, ride.user_id)
+            if user:
+                user.wallet_balance += ride.fare_amount
+                tx = WalletTransaction(
+                    user_id=ride.user_id,
+                    title=f"Ride Refund (Driver Cancelled #{ride.id})",
+                    amount=ride.fare_amount,
+                    type="credit"
+                )
+                db.add(tx)
+                db.add(user)
+                db.commit()
+
+        updated_ride = RideRepository.update_status(db, ride, "cancelled", cancellation_reason=cancellation_reason)
+        await DispatchService.notify_ride_cancelled(db, updated_ride)
+        return updated_ride
+
+    @classmethod
     async def _check_and_trigger_simulation(cls, ride_id: int):
-        await asyncio.sleep(2)  # Wait for safe_dispatch to create assignments
-        db = SessionLocal()
-        try:
-            from app.models.driver import Driver
-            from app.models.driver import DriverDocument
-            from sqlalchemy import func
-            
-            ride = db.query(Ride).filter(Ride.id == ride_id).first()
-            if not ride or ride.status != "pending":
-                return
-                
-            online_drivers_count = db.query(Driver).join(DriverDocument).filter(
-                Driver.is_online == True,
-                func.lower(DriverDocument.vehicle_type) == ride.ride_class.lower()
-            ).count()
-            
-            if online_drivers_count == 0:
-                logger.info(f"No online drivers found for class {ride.ride_class}. Triggering auto-accept simulation.")
-                asyncio.create_task(cls._simulate_ride_flow(ride_id))
-        except Exception as e:
-            logger.error(f"Error checking simulation: {e}")
-        finally:
-            db.close()
+        # Simulation disabled for production/testing to prevent security issue
+        pass
 
     @classmethod
     async def _simulate_ride_flow(cls, ride_id: int):
-        # Wait 5 seconds, then accept the ride automatically using the first driver
-        await asyncio.sleep(5)
-        db = SessionLocal()
-        try:
-            ride = db.query(Ride).filter(Ride.id == ride_id).first()
-            if ride and ride.status == "pending":
-                driver = db.query(Driver).first()
-                if driver:
-                    # Make sure driver has documents and vehicle type populated
-                    from app.models.driver import DriverDocument
-                    doc = db.query(DriverDocument).filter(DriverDocument.driver_id == driver.id).first()
-                    if not doc:
-                        doc = DriverDocument(
-                            driver_id=driver.id, 
-                            vehicle_type=ride.ride_class, 
-                            vehicle_model="Tesla Model 3", 
-                            vehicle_plate_number="GOLDEN-1"
-                        )
-                        db.add(doc)
-                        db.commit()
-                    elif not doc.vehicle_type:
-                        doc.vehicle_type = ride.ride_class
-                        doc.vehicle_model = "Tesla Model 3"
-                        doc.vehicle_plate_number = "GOLDEN-1"
-                        db.add(doc)
-                        db.commit()
-
-                    # Set driver status online
-                    driver.is_online = True
-                    db.commit()
-                    
-                    # Accept ride
-                    await cls.accept_ride(db, ride.id, driver.id)
-                    logger.info(f"Simulated accept for ride {ride_id} by driver {driver.id}")
-                    
-                    # Wait 8 seconds, then arrive
-                    await asyncio.sleep(8)
-                    db.refresh(ride)
-                    if ride.status == "accepted":
-                        await cls.arrive_at_pickup(db, ride.id, driver.id)
-                        logger.info(f"Simulated arrival for ride {ride_id}")
-                        
-                    # Wait 8 seconds, then start
-                    await asyncio.sleep(8)
-                    db.refresh(ride)
-                    if ride.status == "arrived":
-                        await cls.start_ride(db, ride.id, driver.id)
-                        logger.info(f"Simulated start for ride {ride_id}")
-                        
-                    # Wait 12 seconds, then complete
-                    await asyncio.sleep(12)
-                    db.refresh(ride)
-                    if ride.status == "started":
-                        await cls.complete_ride(db, ride.id, driver.id)
-                        logger.info(f"Simulated completion for ride {ride_id}")
-        except Exception as e:
-            logger.error(f"Error in simulated ride flow: {e}")
-        finally:
-            db.close()
+        pass

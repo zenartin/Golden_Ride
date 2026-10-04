@@ -37,7 +37,7 @@ def get_incoming_requests(
     
     filtered_rides = []
     for ride in rides:
-        if not is_vehicle_class_compatible(driver_vehicle_type, ride.ride_class):
+        if not is_vehicle_class_compatible(driver_vehicle_type, ride.ride_class, current_driver.accepted_ride_classes):
             continue
 
         assignment = RideAssignmentRepository.get_by_ride_and_driver(db, ride.id, current_driver.id)
@@ -129,8 +129,10 @@ async def verify_pin(
     db.commit()
 
     if not verify_ride_pin(str(ride.id), payload.pin, ride.verification_pin_hash):
+        print(f"PIN verification failed for ride {ride.id}. Expected hash matches: False. Payload PIN: {payload.pin}")
         raise HTTPException(status_code=400, detail="Incorrect PIN")
 
+    print(f"PIN verification successful for ride {ride.id}")
     ride.verification_verified_at = datetime.utcnow()
     db.commit()
     return ride
@@ -178,6 +180,8 @@ async def update_status(
             ride = await RideService.start_ride(db, ride_id, current_driver.id)
         elif payload.status == "completed":
             ride = await RideService.complete_ride(db, ride_id, current_driver.id)
+        elif payload.status == "cancelled":
+            ride = await RideService.driver_cancel_ride(db, ride_id, current_driver.id)
         else:
             raise HTTPException(status_code=400, detail="Invalid status change")
         return ride

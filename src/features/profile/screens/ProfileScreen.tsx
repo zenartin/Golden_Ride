@@ -77,8 +77,12 @@ export default function ProfileScreen({ navigation }: any) {
   }, [driver?.is_online]);
 
   const handleToggle = async () => {
-    await toggleOnlineFn();
-    setIsOnline((v) => !v);
+    try {
+      await toggleOnlineFn();
+      setIsOnline((v) => !v);
+    } catch (err: any) {
+      Alert.alert("Cannot Go Online", err.response?.data?.detail || "An error occurred.");
+    }
   };
 
   const handleLogout = async () => {

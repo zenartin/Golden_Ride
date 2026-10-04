@@ -9,7 +9,7 @@ from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth, payments, razorpay, rider, safety, share, family
+from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth, payments, razorpay, rider, safety, share, family, recordings
 from app.websocket.manager import manager
 from app.repositories.driver_repository import DriverRepository
 from app.exceptions import register_exception_handlers
@@ -29,8 +29,43 @@ logger = logging.getLogger("app")
 # Initialize Database tables if they do not exist
 # In production, migrations (using Alembic) are used. 
 # Initialize Database tables if they do not exist
-# Initialize Database tables if they do not exist
 Base.metadata.create_all(bind=engine)
+
+def seed_default_coupons():
+    from app.models.coupon import Coupon
+    db = SessionLocal()
+    try:
+        count = db.query(Coupon).count()
+        if count == 0:
+            db.add_all([
+                Coupon(
+                    code="FAMILY30",
+                    title="30% off your 6th ride",
+                    description="Complete 5 rides and get 30% off on your 6th ride.",
+                    type="percentage",
+                    value=30.0,
+                    max_discount_usd=10.0,
+                    min_fare_usd=3.0,
+                    rides_required=5,
+                    one_time=True
+                ),
+                Coupon(
+                    code="FAMILYWELCOME",
+                    title="10% off for family members",
+                    description="10% off any ride for members of a family group.",
+                    type="percentage",
+                    value=10.0,
+                    max_discount_usd=6.0,
+                    min_fare_usd=0.5,
+                    rides_required=0,
+                    one_time=False
+                )
+            ])
+            db.commit()
+    finally:
+        db.close()
+
+seed_default_coupons()
 
 def ensure_local_schema_compatibility():
     inspector = inspect(engine)
@@ -59,6 +94,19 @@ def ensure_local_schema_compatibility():
             with engine.begin() as connection:
                 for name, sql_type in missing:
                     connection.execute(text(f"ALTER TABLE rides ADD COLUMN {name} {sql_type}"))
+
+    # --- users table ---
+    if "users" in table_names:
+        existing_users = {column["name"] for column in inspector.get_columns("users")}
+        required_user_columns = {
+            "home_address": "VARCHAR",
+            "date_of_birth": "VARCHAR",
+        }
+        missing_users = [(n, t) for n, t in required_user_columns.items() if n not in existing_users]
+        if missing_users:
+            with engine.begin() as connection:
+                for name, sql_type in missing_users:
+                    connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {sql_type}"))
 
     # --- drivers table ---
     if "drivers" in table_names:
@@ -197,6 +245,14 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(safety.router, prefix="/api")
 app.include_router(share.router, prefix="/api")
 app.include_router(family.router, prefix="/api")
+app.include_router(recordings.router, prefix="/api/recordings")
+
+import asyncio
+from app.tasks.cleanup import delete_expired_recordings_task
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(delete_expired_recordings_task())
 
 @app.get("/track/{token}", response_class=HTMLResponse)
 def get_public_track_page(token: str):

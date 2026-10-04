@@ -1,7 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-from app.schemas.user import User
+
+
+class FamilyUserOut(BaseModel):
+    id: int
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class FamilyGroupBase(BaseModel):
     family_name: str
@@ -14,9 +23,8 @@ class FamilyGroupOut(FamilyGroupBase):
     organizer_user_id: int
     status: str
     created_at: datetime
-    
-    class Config:
-        orm_mode = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 class FamilyMemberOut(BaseModel):
     id: int
@@ -25,10 +33,9 @@ class FamilyMemberOut(BaseModel):
     role: str
     status: str
     joined_at: datetime
-    user: Optional[User] = None
-    
-    class Config:
-        orm_mode = True
+    user: Optional[FamilyUserOut] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 class FamilyInvitationCreate(BaseModel):
     invitee_contact: str
@@ -40,9 +47,8 @@ class FamilyInvitationOut(BaseModel):
     status: str
     created_at: datetime
     expires_at: datetime
-    
-    class Config:
-        orm_mode = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 class FamilyGroupWithMembersOut(FamilyGroupOut):
     members: List[FamilyMemberOut] = []

@@ -245,12 +245,11 @@ async def toggle_online(
     current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
-    # Allow drivers to go online without profile completion for testing/demo purposes
-    # if not current_driver.is_online and not current_driver.profile_completed:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="You must complete your profile before going online"
-    #     )
+    if not current_driver.is_online and not current_driver.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has not been approved by an administrator yet."
+        )
     current_driver.is_online = not current_driver.is_online
     db.add(current_driver)
     db.commit()

@@ -18,7 +18,7 @@ let ringtoneTimeout: NodeJS.Timeout | null = null;
 let playRequestId = 0;
 
 async function playRingtone() {
-  stopRingtone();
+  await stopRingtone();
   playRequestId++;
   const currentRequestId = playRequestId;
   
@@ -47,7 +47,7 @@ async function playRingtone() {
     
     // Auto stop after 30 seconds
     ringtoneTimeout = setTimeout(() => {
-      stopRingtone();
+      stopRingtone().catch(() => {});
     }, 30000);
   } catch (err) {
     console.log("Error playing WebSocket ringtone:", err);
@@ -61,11 +61,12 @@ export async function stopRingtone() {
     ringtoneTimeout = null;
   }
   if (currentSound) {
-    try {
-      await currentSound.stopAsync();
-      await currentSound.unloadAsync();
-    } catch (e) {}
+    const soundToStop = currentSound;
     currentSound = null;
+    try {
+      await soundToStop.stopAsync();
+      await soundToStop.unloadAsync();
+    } catch (e) {}
   }
 }
 
@@ -176,6 +177,24 @@ export function connectDriverWebSocket(driverId: number, token: string) {
         if (activeRide && activeRide.id === msg.ride_id) {
           setActiveRide({ ...activeRide, status: msg.status });
         }
+      }
+      else if (msg.type === "driver_revoked") {
+        const authStore = useAuthStore.getState();
+        if (authStore.driver) {
+          useAuthStore.setState({
+            driver: {
+              ...authStore.driver,
+              is_approved: false,
+              is_online: false
+            }
+          });
+        }
+        import('react-native').then(({ Alert }) => {
+          Alert.alert(
+            "Account Revoked",
+            "Your account approval has been revoked by an administrator and you have been taken offline."
+          );
+        });
       }
     } catch (err) {
       console.log("Error parsing WS message:", err);

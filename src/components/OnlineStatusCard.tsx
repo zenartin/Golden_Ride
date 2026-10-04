@@ -7,7 +7,17 @@ import { useNavigation } from "@react-navigation/native";
 
 export default function OnlineStatusCard() {
   const driver = useAuthStore((s) => s.driver);
-  const toggleOnline = useAuthStore((s) => s.toggleOnline);
+  const toggleOnlineFn = useAuthStore((s) => s.toggleOnline);
+  
+  const handleToggle = async () => {
+    try {
+      await toggleOnlineFn();
+    } catch (err: any) {
+      import('react-native').then(({ Alert }) => {
+        Alert.alert("Cannot Go Online", err.response?.data?.detail || "An error occurred.");
+      });
+    }
+  };
   
   const isOnline = driver?.is_online || false;
   const earnings = driver?.balance || 0;
@@ -34,7 +44,7 @@ export default function OnlineStatusCard() {
         </View>
         <TouchableOpacity 
           style={[styles.toggle, { backgroundColor: isOnline ? Colors.success : Colors.border, alignItems: isOnline ? "flex-end" : "flex-start", padding: 2 }]} 
-          onPress={toggleOnline}
+          onPress={handleToggle}
         >
           <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#fff" }} />
         </TouchableOpacity>

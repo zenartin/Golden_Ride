@@ -45,6 +45,8 @@ class UserRegisterRequest(BaseModel):
     email: EmailStr
     phone: str
     password: str
+    home_address: Optional[str] = None
+    date_of_birth: Optional[str] = None  # YYYY-MM-DD
 
 class UserToken(BaseModel):
     access_token: str

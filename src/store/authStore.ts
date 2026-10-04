@@ -218,8 +218,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set((state) => ({
         driver: state.driver ? { ...state.driver, is_online: response.data.is_online } : null
       }));
-    } catch (err) {
+    } catch (err: any) {
       console.log("Toggle online status error:", err);
+      throw err;
     }
   },
 

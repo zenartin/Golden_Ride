@@ -21,6 +21,7 @@ from app.schemas.ride import (
 from app.utils.security import create_access_token, get_current_user, get_password_hash, verify_password
 from app.services.ride_service import RideService
 from app.utils.storage import save_upload_file
+from app.utils.helpers import format_duration
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -65,7 +66,7 @@ def _build_options_from_route(distance_km: float, duration_min: float, currency:
                 eta=f"{eta_base + index * 2} min",
                 price=int(round(fare_amount)) if currency == "INR" else round(fare_amount, 2),
                 distance=f"{distance_km:.1f} km",
-                duration=f"{duration_min} min",
+                duration=format_duration(duration_min),
             )
         )
     return options
@@ -102,7 +103,7 @@ def _serialize_ride(ride) -> dict:
         "dropoff_latitude": getattr(ride, "dropoff_latitude", None),
         "dropoff_longitude": getattr(ride, "dropoff_longitude", None),
         "distance": getattr(ride, "distance", "0 km"),
-        "duration": getattr(ride, "duration", "0 min"),
+        "duration": format_duration(int(getattr(ride, "duration", "0 min").split(" ")[0])),
         "fare": getattr(ride, "fare", "0"),
         "fare_amount": getattr(ride, "fare_amount", 0.0),
         "payment_method": getattr(ride, "payment_method", "Cash"),
@@ -138,6 +139,8 @@ def register(payload: UserRegisterRequest, db: Session = Depends(get_db)):
         email=payload.email,
         phone=payload.phone,
         password_hash=get_password_hash(payload.password),
+        home_address=payload.home_address,
+        date_of_birth=payload.date_of_birth,
     )
     db.add(user)
     db.commit()
@@ -482,6 +485,7 @@ class CouponValidateRequest(BaseModel):
 def validate_coupon(
     payload: CouponValidateRequest,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     code = payload.code.strip().upper()
     currency = "INR"
@@ -494,6 +498,23 @@ def validate_coupon(
         "WELCOME10": {"type": "percentage", "value": 10, "max_discount": 500.0 if currency == "INR" else 6.0, "min_fare": 50.0 if currency == "INR" else 0.5, "desc": "10% off up to ₹500"},
     }
     
+    from app.services import family_coupons
+    fam = family_coupons.get_coupon(db, code)
+    if fam:
+        ok, reason = family_coupons.check_eligibility(db, current_user.id, fam)
+        if not ok:
+            raise HTTPException(status_code=400, detail=reason)
+        discount = family_coupons.compute_discount(fam, payload.fare_amount)
+        if discount <= 0:
+            raise HTTPException(status_code=400, detail=f"Coupon requires a minimum fare of ${int(fam.min_fare_usd)}")
+        return {
+            "valid": True,
+            "code": code,
+            "discount_amount": discount,
+            "discounted_fare": max(0.0, payload.fare_amount - discount),
+            "message": f"Coupon {code} applied! Saved ${discount:.2f}.",
+        }
+
     if code not in COUPONS:
         raise HTTPException(status_code=400, detail="Invalid coupon code. Try GOLDEN50, RIDE100, or WELCOME10.")
         

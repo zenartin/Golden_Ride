@@ -64,6 +64,17 @@ export default function RideRequestScreen({ navigation, route }: any) {
     return () => clearInterval(interval);
   }, [RIDE?.id]);
 
+  const moveToNextOrClose = () => {
+    stopRingtone().catch(() => {});
+    const store = useRideStore.getState();
+    const remaining = store.incomingRequests.filter(r => String(r.id) !== String(RIDE?.id));
+    if (remaining.length > 0) {
+      navigation.replace("RideRequest", { rideId: remaining[0].id });
+    } else {
+      navigation.goBack();
+    }
+  };
+
   const handleAccept = async () => {
     if (!driver?.profile_completed) {
       Alert.alert(
@@ -74,16 +85,16 @@ export default function RideRequestScreen({ navigation, route }: any) {
       return;
     }
     if (!RIDE) return;
-    stopRingtone();
+    await stopRingtone();
     const ok = await acceptRide(RIDE.id);
     if (ok) navigation.replace("ActiveRide", { rideId: RIDE.id });
   };
 
   const handleDecline = async () => {
     if (!RIDE) { navigation.goBack(); return; }
-    stopRingtone();
+    await stopRingtone();
     await declineRide(RIDE.id);
-    navigation.goBack();
+    moveToNextOrClose();
   };
 
   if (!RIDE) {

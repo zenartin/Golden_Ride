@@ -147,9 +147,13 @@ export default function DriverDashboard({
       navigation.navigate("CompleteProfile");
       return;
     }
-    await toggleOnlineFn();
-    // Sync dashboard state
-    setDashboard((prev) => prev ? { ...prev, is_online: !prev.is_online } : null);
+    try {
+      await toggleOnlineFn();
+      // Sync dashboard state
+      setDashboard((prev) => prev ? { ...prev, is_online: !prev.is_online } : null);
+    } catch (err: any) {
+      Alert.alert("Cannot Go Online", err.response?.data?.detail || "An error occurred.");
+    }
   };
 
   const handleOpenMap = async () => {

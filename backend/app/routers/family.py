@@ -8,9 +8,31 @@ from app.database import get_db
 from app.models.user import User
 from app.models.family import FamilyGroup, FamilyMember, FamilyInvitation, FamilyMemberRole, FamilyMemberStatus, FamilyInvitationStatus
 from app.schemas.family import FamilyGroupCreate, FamilyGroupOut, FamilyGroupWithMembersOut, FamilyMemberOut, FamilyInvitationCreate, FamilyInvitationOut
-from app.dependencies.auth import get_current_user
+from app.utils.security import get_current_user
 
-router = APIRouter(prefix="/api/v1/family", tags=["Family"])
+router = APIRouter(prefix="/family", tags=["Family"])
+
+@router.get("/coupons")
+def list_family_coupons(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from app.services import family_coupons
+    done = family_coupons.completed_rides(db, current_user.id)
+    out = []
+    for c in family_coupons.FAMILY_COUPONS:
+        ok, reason = family_coupons.check_eligibility(db, current_user.id, c)
+        out.append({
+            "code": c["code"],
+            "title": c["title"],
+            "description": c["description"],
+            "discount_percent": c["value"],
+            "rides_required": c["rides_required"],
+            "rides_completed": done,
+            "unlocked": ok,
+            "locked_reason": reason,
+        })
+    return out
 
 @router.post("", response_model=FamilyGroupOut, status_code=status.HTTP_201_CREATED)
 def create_family_group(

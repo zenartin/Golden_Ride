@@ -9,6 +9,18 @@ from typing import Optional
 logger = logging.getLogger("app")
 
 
+def format_duration(duration_min: int) -> str:
+    """Format duration in minutes to hours and minutes string."""
+    if duration_min < 60:
+        return f"{duration_min} min"
+    
+    hours = duration_min // 60
+    mins = duration_min % 60
+    if mins == 0:
+        return f"{hours} hr"
+    return f"{hours} hr {mins} min"
+
+
 def calculate_distance_haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate the straight-line distance between two coordinates using the Haversine formula.
@@ -70,11 +82,14 @@ def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str, accep
     Check if a driver's vehicle type can accept a given ride class.
     Handles cross-naming (e.g. sedan vs comfort vs hatchback vs xuv).
     """
+    # 1. Strict Filter check: If driver specified accepted classes, STRICTLY enforce them.
     if accepted_ride_classes:
         allowed = [x.strip().lower() for x in accepted_ride_classes.split(",") if x.strip()]
         if allowed:
+            # Check if the requested ride class is exactly one of the allowed classes
             return str(ride_class).lower().strip() in allowed
 
+    # 2. No filter check: Fallback to checking vehicle_type against ride_class.
     if not driver_vehicle_type or not ride_class:
         return True
 
@@ -84,18 +99,25 @@ def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str, accep
     if d == r:
         return True
 
-    economy_family = {"hatchback", "economy", "golden ride economy"}
-    comfort_family = {"sedan", "comfort", "golden ride comfort"}
-    premium_family = {"suv", "xuv", "van", "premium", "golden ride premium"}
-
-    if d in premium_family and r in premium_family:
-        return True
-    if d in comfort_family and r in comfort_family:
-        return True
-    if d in economy_family and r in economy_family:
+    # Check for direct inclusion since "golden ride suv" contains "suv"
+    if d in r or r in d:
         return True
 
-    return True  # Fallback to allow matching if unknown category
+    # Strict family fallback logic: do not group van and suv together unless strictly needed.
+    # Group only identical categories.
+    economy_family = {"hatchback", "economy", "golden ride economy", "ridex", "golden ridex"}
+    comfort_family = {"sedan", "comfort", "golden ride comfort", "golden ride sedan"}
+    suv_family = {"suv", "xuv", "golden ride suv", "ridexl", "golden ridexl"}
+    van_family = {"van", "golden ride van"}
+    pet_family = {"pet", "golden ride pet"}
+
+    if d in suv_family and r in suv_family: return True
+    if d in van_family and r in van_family: return True
+    if d in comfort_family and r in comfort_family: return True
+    if d in economy_family and r in economy_family: return True
+    if d in pet_family and r in pet_family: return True
+
+    return False  # If it doesn't match the families and strict filter wasn't met, deny.
 
 
 def is_ride_eligible_for_destination_mode(

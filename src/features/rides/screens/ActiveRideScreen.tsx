@@ -92,6 +92,10 @@ export default function ActiveRideScreen({ navigation, route }: any) {
         setPhaseIndex(2);
       } else if (activeRide.status === "completed") {
         setPhaseIndex(3);
+      } else if (activeRide.status === "cancelled") {
+        Alert.alert("Ride Cancelled", "This ride has been cancelled.");
+        clearActiveRide();
+        navigation.replace("DriverDashboard");
       }
     }
   }, [activeRide?.status]);
@@ -421,6 +425,23 @@ export default function ActiveRideScreen({ navigation, route }: any) {
           >
             <Text style={styles.ctaText}>{phaseIndex === 1 ? "Verify & Start Ride" : config.cta}</Text>
             <Ionicons name={phaseIndex === 1 ? "shield-checkmark" : "arrow-forward"} size={20} color={Colors.white} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.ctaBtn, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.error, marginTop: 4 }]} 
+            onPress={() => {
+              Alert.alert(
+                "Cancel Ride?", 
+                "Are you sure you want to cancel this ride? This action cannot be undone.", 
+                [
+                  { text: "No", style: "cancel" },
+                  { text: "Yes, Cancel", style: "destructive", onPress: () => updateRideStatus(RIDE.id, "cancelled") }
+                ]
+              );
+            }}
+          >
+            <Text style={[styles.ctaText, { color: Colors.error }]}>Cancel Ride</Text>
+            <Ionicons name="close-circle" size={20} color={Colors.error} />
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

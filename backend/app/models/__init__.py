@@ -8,3 +8,5 @@ from app.models.driver_notification import DriverNotification
 from app.models.ride_assignment import RideAssignment
 from app.models.payment import Payment
 from app.models.family import FamilyGroup, FamilyMember, FamilyInvitation
+from app.models.recording import TripRecording
+from app.models.coupon import Coupon

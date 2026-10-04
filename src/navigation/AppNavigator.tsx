@@ -75,8 +75,6 @@ export default function AppNavigator() {
 
   // Handle push notifications and ringtone
   useEffect(() => {
-    let soundObj: Audio.Sound | null = null;
-
     async function setupPush() {
       if (!isAuthenticated || !token) return;
       
@@ -120,48 +118,19 @@ export default function AppNavigator() {
     const notificationListener = Notifications.addNotificationReceivedListener(async notification => {
       const data = notification.request.content.data;
       if (data?.type === 'new_ride') {
-        // Play looping ringtone
-        try {
-          if (soundObj) {
-            await soundObj.unloadAsync();
-          }
-          const { sound } = await Audio.Sound.createAsync(
-            require('../../assets/sounds/trip_request.wav'),
-            { isLooping: true }
-          );
-          soundObj = sound;
-          await soundObj.playAsync();
-          
-          // Auto stop after 15s to match backend
-          setTimeout(async () => {
-            if (soundObj) {
-              await soundObj.stopAsync();
-              await soundObj.unloadAsync();
-              soundObj = null;
-            }
-          }, 15000);
-        } catch (e) {
-          console.log("Error playing ringtone:", e);
-        }
+        // We rely on the websocket service to handle foreground ride ringtones
+        console.log("Foreground push notification received for new ride");
       }
     });
 
     // Handle user tapping notification or response
     const responseListener = Notifications.addNotificationResponseReceivedListener(async response => {
-      // Stop sound if it's playing
-      if (soundObj) {
-        await soundObj.stopAsync();
-        await soundObj.unloadAsync();
-        soundObj = null;
-      }
+      // Navigate to ride request or similar if needed
     });
 
     return () => {
       if (notificationListener) notificationListener.remove();
       if (responseListener) responseListener.remove();
-      if (soundObj) {
-        soundObj.unloadAsync();
-      }
     };
   }, [isAuthenticated, token]);
 

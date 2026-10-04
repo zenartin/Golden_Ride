@@ -54,7 +54,7 @@ interface RideState {
   fetchActiveRide: () => Promise<void>;
   acceptRide: (rideId: number) => Promise<boolean>;
   declineRide: (rideId: number) => Promise<boolean>;
-  updateRideStatus: (rideId: number, status: "arrived" | "started" | "completed") => Promise<boolean>;
+  updateRideStatus: (rideId: number, status: "arrived" | "started" | "completed" | "cancelled") => Promise<boolean>;
   verifyRidePin: (rideId: number, pin: string) => Promise<boolean>;
   fetchRideHistory: () => Promise<void>;
   updateLocation: (latitude: number, longitude: number) => Promise<void>;
@@ -166,7 +166,7 @@ export const useRideStore = create<RideState>()(
       const response = await apiClient.post(API_ENDPOINTS.RIDES_STATUS(rideId), {
         status: statusName,
       });
-      if (statusName === "completed") {
+      if (statusName === "completed" || statusName === "cancelled") {
         set({ activeRide: response.data });
         await get().fetchRideHistory();
       } else {
