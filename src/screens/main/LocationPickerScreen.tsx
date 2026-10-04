@@ -15,6 +15,8 @@ import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MainStackParamList } from "../../navigation/MainNavigator";
+import { apiClient } from "../../api/client";
+import { useRideStore } from "../../store/rideStore";
 import { searchPlaces, reverseGeocode, GeocodedPlace } from "../../services/geocoding";
 import * as Location from "expo-location";
 import { Colors, Spacing, Typography } from "../../theme";
@@ -38,7 +40,7 @@ const INITIAL_REGION_USA = {
 };
 
 export default function LocationPickerScreen({ navigation, route }: Props) {
-  const { mode } = route.params; // "pickup" | "dropoff"
+  const { mode, editRideId } = route.params; // "pickup" | "dropoff"
   const mapRef = useRef<MapView>(null);
   const insets = useSafeAreaInsets();
 
@@ -110,8 +112,27 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
     }
   };
 
-  const confirm = () => {
+  const confirm = async () => {
     if (!selected) return;
+
+    if (editRideId) {
+      setLocating(true);
+      try {
+        await apiClient.put(`/api/user/rides/${editRideId}/destination`, {
+          dropoff: selected.shortName,
+          dropoff_latitude: selected.lat,
+          dropoff_longitude: selected.lon
+        });
+        useRideStore.getState().fetchActiveRide();
+        navigation.goBack();
+      } catch (err) {
+        Alert.alert("Error", "Could not update destination.");
+      } finally {
+        setLocating(false);
+      }
+      return;
+    }
+
     navigation.navigate("Shell", {
       pickedLocation: {
         mode,

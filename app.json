@@ -51,14 +51,28 @@
         }
       ],
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24,
+            "kotlinVersion": "1.9.22"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "runtimeVersion": "1.0.0",
     "extra": {
       "eas": {
-        "projectId": "415c964c-7956-4f57-8648-ffce6bd9ea4f"
+        "projectId": "e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a"
       }
     },
-    "owner": "zenartin-expo"
+    "owner": "zenartin03"
   }
 }

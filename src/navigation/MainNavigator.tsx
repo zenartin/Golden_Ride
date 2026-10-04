@@ -13,6 +13,7 @@ import SavedLocationsScreen from "../screens/settings/SavedLocationsScreen";
 import PaymentMethodsScreen from "../screens/settings/PaymentMethodsScreen";
 import PaymentScreen from "../screens/main/PaymentScreen";
 import RatingScreen from "../screens/main/RatingScreen";
+import GiftCardsScreen from "../screens/main/GiftCardsScreen";
 import { SafetyHubScreen } from "../screens/safety/SafetyHubScreen";
 import { EmergencyContactsScreen } from "../screens/safety/EmergencyContactsScreen";
 import { FamilyDashboardScreen } from "../features/family/screens/FamilyDashboardScreen";
@@ -23,7 +24,7 @@ export type MainStackParamList = {
   TrackRide: undefined;
   TripDetail: { tripId: string };
   Chat: { rideId: string };
-  LocationPicker: { mode: "pickup" | "dropoff" };
+  LocationPicker: { mode: "pickup" | "dropoff"; editRideId?: number };
   Content: { slug: string; title: string };
   EditProfile: undefined;
   SavedLocations: undefined;
@@ -35,6 +36,7 @@ export type MainStackParamList = {
   EmergencyContacts: undefined;
   FamilyDashboard: undefined;
   InviteFamilyMember: undefined;
+  GiftCards: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -61,6 +63,7 @@ export default function MainNavigator() {
       <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen as any} />
       <Stack.Screen name="InviteFamilyMember" component={InviteMembersScreen as any} />
       <Stack.Screen name="Rating" component={RatingScreen} options={{ animation: "slide_from_bottom" }} />
+      <Stack.Screen name="GiftCards" component={GiftCardsScreen} options={{ animation: "slide_from_right" }} />
     </Stack.Navigator>
   );
 }

@@ -346,6 +346,18 @@ export default function TrackRideScreen({ navigation }: Props) {
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
               <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
             </View>
+
+            <View style={styles.fareRow}>
+              <Ionicons name="location-outline" size={16} color={Colors.textSecondary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fareText} numberOfLines={1}>Destination: {activeTrip.dropoff}</Text>
+              </View>
+              {activeTrip.status !== "completed" && activeTrip.status !== "cancelled" && (
+                 <Pressable onPress={() => navigation.navigate("LocationPicker", { mode: "dropoff", editRideId: activeTrip.id })}>
+                   <Text style={{ color: Colors.primary, fontSize: Typography.small, fontWeight: "700" }}>Edit</Text>
+                 </Pressable>
+              )}
+            </View>
           </View>
         )}
 

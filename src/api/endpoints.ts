@@ -31,5 +31,9 @@ export const API_ENDPOINTS = {
   MESSAGES_RIDE: (rideId: number | string) => `/messages/ride/${rideId}`,
   MESSAGES_SEND: "/messages",
   MESSAGES_SUPPORT: "/messages/support",
+
+  GIFTCARD_PURCHASE: "/user/giftcards/purchase",
+  GIFTCARD_REDEEM: "/user/giftcards/redeem",
+  GIFTCARDS_LIST: "/user/giftcards",
 };
 

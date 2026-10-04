@@ -12,6 +12,7 @@ from app.models.driver import Driver
 from app.models.message import Notification
 from app.models.ride import Ride
 from app.models.user import User
+from app.models.giftcard import GiftCard
 from app.schemas.auth import LoginRequest, OtpRequest, OtpVerifyRequest, UserRegisterRequest, UserToken
 from app.schemas.ride import (
     RideBookingRequest,
@@ -21,6 +22,7 @@ from app.schemas.ride import (
     RideResponse,
     WalletTopUpRequest,
 )
+from app.schemas.giftcard import GiftCardPurchaseRequest, GiftCardRedeemRequest, GiftCardResponse
 from app.utils.security import create_access_token, get_current_user, get_password_hash, verify_password
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -448,3 +450,70 @@ def cancel_ride(ride_id: int, current_user: User = Depends(get_current_user), db
     db.commit()
     db.refresh(ride)
     return ride
+
+@router.post("/giftcards/purchase", response_model=GiftCardResponse)
+def purchase_giftcard(
+    payload: GiftCardPurchaseRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    import random
+    import string
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
+    
+    gc = GiftCard(
+        code=code,
+        amount=payload.amount,
+        purchaser_id=current_user.id
+    )
+    db.add(gc)
+    db.commit()
+    db.refresh(gc)
+    return gc
+
+@router.post("/giftcards/redeem", response_model=GiftCardResponse)
+def redeem_giftcard(
+    payload: GiftCardRedeemRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    gc = db.query(GiftCard).filter(GiftCard.code == payload.code).first()
+    if not gc:
+        raise HTTPException(status_code=404, detail="Invalid gift card code")
+    if gc.is_redeemed:
+        raise HTTPException(status_code=400, detail="Gift card has already been redeemed")
+    
+    # Redeem card
+    gc.is_redeemed = True
+    gc.redeemer_id = current_user.id
+    gc.redeemed_at = datetime.utcnow()
+    
+    # Add funds to wallet
+    current_user.wallet_balance += gc.amount
+    
+    # Add a mock ride entry just to have it show up in the transaction history
+    ride = Ride(
+        user_id=current_user.id,
+        rider_name=current_user.name,
+        ride_class="wallet",
+        from_location="Gift Card Redemption",
+        to_location="Wallet",
+        fare_amount=gc.amount,
+        payment_method="giftcard",
+        status="cancelled", # Using cancelled so it shows as a credit in get_wallet logic
+        updated_at=datetime.utcnow()
+    )
+    db.add(ride)
+    
+    db.add(gc)
+    db.add(current_user)
+    db.commit()
+    db.refresh(gc)
+    return gc
+
+@router.get("/giftcards", response_model=List[GiftCardResponse])
+def list_giftcards(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return db.query(GiftCard).filter(GiftCard.purchaser_id == current_user.id).order_by(GiftCard.created_at.desc()).all()

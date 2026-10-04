@@ -61,6 +61,14 @@ interface WalletTransaction {
   date: string;
 }
 
+export interface GiftCard {
+  id: number;
+  code: string;
+  amount: number;
+  is_redeemed: boolean;
+  created_at: string;
+}
+
 interface RideState {
   pickup: string;
   dropoff: string;
@@ -72,6 +80,7 @@ interface RideState {
   history: Trip[];
   walletBalance: number;
   transactions: WalletTransaction[];
+  giftCards: GiftCard[];
   chatMessages: ChatMessage[];
   appliedCoupon: string | null;
   couponDiscount: number;
@@ -91,6 +100,9 @@ interface RideState {
   advanceActiveTrip: () => void;
   cancelActiveTrip: () => Promise<void>;
   topUpWallet: (amount: number) => Promise<void>;
+  purchaseGiftCard: (amount: number) => Promise<GiftCard>;
+  redeemGiftCard: (code: string) => Promise<void>;
+  fetchGiftCards: () => Promise<void>;
   setActiveTripStatus: (status: RideStatus, driverData?: any) => void;
 }
 
@@ -229,6 +241,7 @@ export const useRideStore = create<RideState>()(
       history: [],
       walletBalance: 0,
       transactions: [],
+      giftCards: [],
       chatMessages: [],
       setPickup: (value, coords) => set({ pickup: value, pickupCoords: coords ?? null, rideOptions: [], appliedCoupon: null, couponDiscount: 0 }),
       setDropoff: (value, coords) => set({ dropoff: value, dropoffCoords: coords ?? null, rideOptions: [], appliedCoupon: null, couponDiscount: 0 }),
@@ -396,6 +409,25 @@ export const useRideStore = create<RideState>()(
           console.log("Top-up failed", err);
           throw err;
         }
+      },
+      purchaseGiftCard: async (amount) => {
+        const gc = await apiRequest<GiftCard>(API_ENDPOINTS.GIFTCARD_PURCHASE, {
+          method: "POST",
+          body: { amount },
+        });
+        set((state) => ({ giftCards: [gc, ...state.giftCards] }));
+        return gc;
+      },
+      redeemGiftCard: async (code) => {
+        await apiRequest<GiftCard>(API_ENDPOINTS.GIFTCARD_REDEEM, {
+          method: "POST",
+          body: { code },
+        });
+        await get().refreshWallet();
+      },
+      fetchGiftCards: async () => {
+        const giftCards = await apiRequest<GiftCard[]>(API_ENDPOINTS.GIFTCARDS_LIST);
+        set({ giftCards });
       },
       setActiveTripStatus: (status, driverData) => {
         set((state) => {

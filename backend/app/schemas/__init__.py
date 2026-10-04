@@ -17,3 +17,4 @@ from app.schemas.driver import (
 )
 from app.schemas.ride import RideResponse, RideUpdateStatus, LocationUpdate
 from app.schemas.message import MessageResponse, MessageSend, NotificationResponse
+from app.schemas.giftcard import GiftCardPurchaseRequest, GiftCardRedeemRequest, GiftCardResponse

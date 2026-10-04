@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo } from "react";
-import { Pressable, Text, View, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { Pressable, Text, View, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 
 import SectionHeader from "../../components/SectionHeader";
 import { useRideStore } from "../../store/rideStore";
@@ -11,6 +12,7 @@ import { Colors, Spacing, Typography } from "../../theme";
 const topUps = [200, 500, 1000];
 
 export default function WalletScreen() {
+  const navigation = useNavigation<any>();
   const balance = useRideStore((state) => state.walletBalance);
   const transactions = useRideStore((state) => state.transactions);
   const topUpWallet = useRideStore((state) => state.topUpWallet);
@@ -22,6 +24,28 @@ export default function WalletScreen() {
     refreshWallet().catch(() => undefined);
   }, [refreshWallet]);
 
+  const handleRedeem = () => {
+    Alert.prompt(
+      "Redeem Gift Card",
+      "Enter your gift card code:",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Redeem", 
+          onPress: async (code) => {
+            if (!code) return;
+            try {
+              await useRideStore.getState().redeemGiftCard(code.toUpperCase());
+              Alert.alert("Success", "Gift card redeemed! Funds added to wallet.");
+            } catch (e: any) {
+              Alert.alert("Error", "Invalid or already redeemed gift card.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const recent = useMemo(() => transactions, [transactions]);
 
   return (
@@ -32,7 +56,31 @@ export default function WalletScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Balance Card */}
+        <View style={styles.balanceCard}>
+          <Text style={styles.kicker}>Available Balance</Text>
+          <Text style={styles.balance}>${balance.toFixed(2)}</Text>
+          <Text style={styles.note}>Use your wallet balance to seamlessly pay for your rides without adding a card.</Text>
+        </View>
 
+        {/* Gift Cards Row */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <TouchableOpacity 
+            style={[styles.topUpButton, { backgroundColor: "#DBEAFE" }]} 
+            // @ts-ignore
+            onPress={() => useAuthStore.getState().user && navigation.navigate("GiftCards")}
+          >
+            <Ionicons name="gift-outline" size={20} color="#2563EB" />
+            <Text style={[styles.topUpText, { color: "#2563EB" }]}>Buy Gift Card</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.topUpButton, { backgroundColor: "#FCE7F3" }]} 
+            onPress={handleRedeem}
+          >
+            <Ionicons name="scan-outline" size={20} color="#DB2777" />
+            <Text style={[styles.topUpText, { color: "#DB2777" }]}>Redeem Code</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Transactions History Card */}
         <View style={styles.card}>
@@ -106,13 +154,15 @@ const styles = StyleSheet.create({
   topUpRow: { flexDirection: "row", gap: 10 },
   topUpButton: {
     flex: 1,
-    minHeight: 48,
+    paddingVertical: 14,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FFF3D9",
+    flexDirection: "row",
+    gap: 6,
   },
-  topUpText: { color: Colors.textPrimary, fontSize: 13, fontWeight: "800" },
+  topUpText: { color: Colors.textPrimary, fontSize: 14, fontWeight: "800" },
   txRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   txIcon: {
     width: 38,
