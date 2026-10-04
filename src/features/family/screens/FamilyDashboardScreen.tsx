@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
@@ -11,6 +12,23 @@ export const FamilyDashboardScreen = () => {
   const { token, user } = useAuthStore();
   const [familyData, setFamilyData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [coupons, setCoupons] = useState<any[]>([]);
+
+  const fetchCoupons = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/family/coupons`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCoupons(response.data);
+    } catch {
+      setCoupons([]);
+    }
+  };
+
+  const copyCode = async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    Alert.alert('Copied', `Coupon ${code} copied. Paste it when booking a ride.`);
+  };
 
   const fetchFamily = async () => {
     try {
@@ -31,6 +49,7 @@ export const FamilyDashboardScreen = () => {
 
   useEffect(() => {
     fetchFamily();
+    fetchCoupons();
   }, []);
 
   const createFamily = async () => {
@@ -102,6 +121,33 @@ export const FamilyDashboardScreen = () => {
             </View>
           </View>
         )}
+        ListFooterComponent={() => (
+          <View style={styles.couponSection}>
+            <Text style={styles.sectionTitle}>Family Coupons</Text>
+            {coupons.map((c) => (
+              <View key={c.code} style={[styles.couponCard, !c.unlocked && styles.couponLocked]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.couponTitle}>{c.title}</Text>
+                  <Text style={styles.couponDesc}>{c.description}</Text>
+                  {c.rides_required > 0 && (
+                    <Text style={styles.couponProgress}>
+                      Rides: {Math.min(c.rides_completed, c.rides_required)}/{c.rides_required}
+                      {c.unlocked ? '  • Unlocked' : c.locked_reason ? `  • ${c.locked_reason}` : ''}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  disabled={!c.unlocked}
+                  style={[styles.codeBtn, !c.unlocked && { opacity: 0.4 }]}
+                  onPress={() => copyCode(c.code)}
+                >
+                  <Text style={styles.codeText}>{c.code}</Text>
+                  <Ionicons name="copy-outline" size={14} color="#000" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
       />
     </View>
   );
@@ -125,4 +171,12 @@ const styles = StyleSheet.create({
   memberInfo: { flex: 1 },
   memberName: { fontSize: 16, fontWeight: '600' },
   memberRole: { fontSize: 14, color: '#666', marginTop: 4 },
+  couponSection: { padding: 20 },
+  couponCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF9DB', borderWidth: 1, borderColor: '#FFD700', borderStyle: 'dashed', padding: 15, borderRadius: 12, marginTop: 12 },
+  couponLocked: { backgroundColor: '#f1f1f1', borderColor: '#ccc' },
+  couponTitle: { fontSize: 15, fontWeight: '700' },
+  couponDesc: { fontSize: 13, color: '#666', marginTop: 2 },
+  couponProgress: { fontSize: 12, color: '#B45309', marginTop: 6, fontWeight: '600' },
+  codeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFD700', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginLeft: 10 },
+  codeText: { fontSize: 13, fontWeight: '800', color: '#000' },
 });

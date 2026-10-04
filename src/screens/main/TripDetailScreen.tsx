@@ -67,7 +67,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Price and status</Text>
-        <Text style={styles.status}>Rs. {trip.price}</Text>
+        <Text style={styles.status}>${trip.price}</Text>
         <Text style={styles.meta}>Distance: {trip.distance}</Text>
         <Text style={styles.meta}>Duration: {trip.duration}</Text>
         <Text style={styles.meta}>Payment: {trip.paymentMethod}</Text>
@@ -75,7 +75,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
       </View>
 
       <AppButton title="Open route" onPress={openRoute} />
-      <AppButton title="Back to trips" onPress={() => navigation.navigate("Shell")} variant="secondary" />
+      <AppButton title="Back to trips" onPress={() => navigation.goBack()} variant="secondary" />
     </View>
   );
 }

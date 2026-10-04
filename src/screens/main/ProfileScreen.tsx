@@ -205,20 +205,6 @@ export default function ProfileScreen({ navigation }: Props) {
 
           <View style={styles.separator} />
 
-          {/* Family Group */}
-          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("FamilyDashboard")}>
-            <View style={[styles.iconWrap, { backgroundColor: "#FFF7ED" }]}>
-              <Ionicons name="people-outline" size={20} color="#F97316" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.menuLabel}>Family Group</Text>
-              <Text style={styles.menuSublabel}>Manage family members & rides</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
-          </Pressable>
-
-          <View style={styles.separator} />
-
           {/* Saved Places */}
           <Pressable style={styles.menuItem} onPress={() => navigation.navigate("SavedLocations")}>
             <View style={[styles.iconWrap, { backgroundColor: "#EBFDF5" }]}>

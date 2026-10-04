@@ -26,7 +26,7 @@ export default function UserDashboardHeader({ activeTab, onProfilePress }: Props
     : null;
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+    <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
       <View style={styles.titleBlock}>
         <Text style={styles.greeting} numberOfLines={1} adjustsFontSizeToFit>Good day, {firstName}</Text>
         <Text style={styles.subtitle} numberOfLines={1}>{activeTab === "Home" ? "Go Anywhere, Anytime." : "Golden Ride passenger app"}</Text>

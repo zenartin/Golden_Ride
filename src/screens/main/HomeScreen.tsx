@@ -348,23 +348,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
           <UserDashboardHeader activeTab="Home" onProfilePress={() => openTab("Profile")} />
         </View>
       )}
-      {/* Floating Action Buttons */}
-      <View style={styles.floatingActions}>
-        <Pressable 
-          style={styles.floatingIconBtn} 
-          onPress={() => {
-            if (mapRef.current && user) {
-              // Current Location mock/real integration
-              const myLat = 39.8283;
-              const myLon = -98.5795;
-              mapRef.current.animateToRegion({ latitude: myLat, longitude: myLon, latitudeDelta: 0.01, longitudeDelta: 0.01 });
-              setPickup("My Current Location", { lat: myLat, lon: myLon });
-            }
-          }}
-        >
-          <Ionicons name="locate" size={24} color={Colors.textPrimary} />
-        </Pressable>
-      </View>
+
 
       {/* 3. Floating Bottom Sheet UI */}
       <View style={styles.bottomOverlay}>
@@ -750,7 +734,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 10,
     zIndex: 10,
   },
   floatingActions: {

@@ -78,3 +78,23 @@ export async function reverseGeocode(lat: number, lon: number): Promise<Geocoded
     return null;
   }
 }
+
+export async function getRoutePolyline(startLat: number, startLon: number, endLat: number, endLon: number): Promise<{ latitude: number; longitude: number }[]> {
+  try {
+    const url = `http://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?geometries=geojson&overview=full`;
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    if (!data.routes || data.routes.length === 0) return [];
+    
+    // OSRM returns coordinates in [lon, lat] format
+    const coordinates = data.routes[0].geometry.coordinates;
+    return coordinates.map((coord: [number, number]) => ({
+      latitude: coord[1],
+      longitude: coord[0]
+    }));
+  } catch (err) {
+    console.log("OSRM routing error:", err);
+    return [];
+  }
+}

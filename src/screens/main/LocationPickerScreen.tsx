@@ -283,6 +283,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary + "44",
   },
   resultsCard: {
+    position: "absolute",
+    top: 150,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.surface,
     marginHorizontal: Spacing.lg,
     borderRadius: 16,

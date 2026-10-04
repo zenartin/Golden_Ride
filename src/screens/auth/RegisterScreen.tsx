@@ -12,6 +12,8 @@ export default function RegisterScreen({ navigation }: any) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [dob, setDob] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,21 @@ export default function RegisterScreen({ navigation }: any) {
       Alert.alert("Missing Phone", "Please enter your phone number.");
       return;
     }
+    if (!homeAddress.trim()) {
+      Alert.alert("Missing Address", "Please enter your home address.");
+      return;
+    }
+    const dobMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob.trim());
+    const dobDate = dobMatch ? new Date(dob.trim()) : null;
+    if (!dobDate || isNaN(dobDate.getTime()) || dobDate > new Date()) {
+      Alert.alert("Invalid Date of Birth", "Please enter your date of birth as YYYY-MM-DD.");
+      return;
+    }
+    const ageYears = (Date.now() - dobDate.getTime()) / (365.25 * 24 * 3600 * 1000);
+    if (ageYears < 18) {
+      Alert.alert("Age Requirement", "You must be at least 18 years old to register.");
+      return;
+    }
     if (!password.trim()) {
       Alert.alert("Missing Password", "Please choose a password.");
       return;
@@ -38,7 +55,7 @@ export default function RegisterScreen({ navigation }: any) {
       return;
     }
     setLoading(true);
-    const ok = await register({ name, email, phone, password });
+    const ok = await register({ name, email, phone, password, home_address: homeAddress.trim(), date_of_birth: dob.trim() });
     setLoading(false);
     if (!ok) {
       Alert.alert("Register failed", error || "Please fill every field.");
@@ -55,9 +72,11 @@ export default function RegisterScreen({ navigation }: any) {
         <Text style={styles.subtitle}>Set up your rider profile in a minute.</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Account Details</Text>
-          <AppInput label="Name" value={name} onChangeText={setName} placeholder="Full name" />
+          <AppInput label="Full Name" value={name} onChangeText={setName} placeholder="Full name" />
           <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
-          <AppInput label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" />
+          <AppInput label="Phone Number" value={phone} onChangeText={setPhone} placeholder="Phone number" />
+          <AppInput label="Home Address" value={homeAddress} onChangeText={setHomeAddress} placeholder="Street, city, state, ZIP" />
+          <AppInput label="Date of Birth" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" />
           <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
           <AppInput label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" secureTextEntry />
 

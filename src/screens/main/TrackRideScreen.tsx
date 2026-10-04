@@ -11,6 +11,9 @@ import { useAuthStore } from "../../store/authStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { openDirectionsInMaps } from "../../utils/openMaps";
 import { apiClient as api, BASE_URL } from "../../api/client";
+import { DashcamOverlay } from "../../components/DashcamOverlay";
+import { getRoutePolyline } from "../../services/geocoding";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<MainStackParamList, "TrackRide">;
 
@@ -53,6 +56,9 @@ export default function TrackRideScreen({ navigation }: Props) {
   const activeTrip = useRideStore((state) => state.activeTrip);
   const cancelActiveTrip = useRideStore((state) => state.cancelActiveTrip);
   const refreshActiveTrip = useRideStore((state) => state.refreshActiveTrip);
+  const [showDashcam, setShowDashcam] = useState(false);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const insets = useSafeAreaInsets();
   
   const mapRef = useRef<MapView>(null);
 
@@ -81,6 +87,19 @@ export default function TrackRideScreen({ navigation }: Props) {
       navigation.replace("Payment", { tripId: activeTrip.id });
     }
   }, [activeTrip?.status]);
+
+  useEffect(() => {
+    if (activeTrip?.pickupLatitude && activeTrip?.pickupLongitude && activeTrip?.dropoffLatitude && activeTrip?.dropoffLongitude) {
+      getRoutePolyline(
+        activeTrip.pickupLatitude,
+        activeTrip.pickupLongitude,
+        activeTrip.dropoffLatitude,
+        activeTrip.dropoffLongitude
+      ).then((coords) => {
+        if (coords.length > 0) setRouteCoords(coords);
+      });
+    }
+  }, [activeTrip?.pickupLatitude, activeTrip?.dropoffLatitude]);
 
   // Dynamic zoom fitting map to show both markers
   useEffect(() => {
@@ -176,6 +195,8 @@ export default function TrackRideScreen({ navigation }: Props) {
 
   return (
     <View style={styles.root}>
+      {showDashcam && <DashcamOverlay rideId={activeTrip.id} onClose={() => setShowDashcam(false)} />}
+      
       {/* Real Live Map - identical layout style to home page map */}
       <View style={styles.mapCard}>
         <MapView
@@ -215,7 +236,13 @@ export default function TrackRideScreen({ navigation }: Props) {
               </View>
             </Marker>
           )}
-          {activeTrip.pickupLatitude && activeTrip.dropoffLatitude && (
+          {routeCoords.length > 0 ? (
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor={Colors.primary}
+              strokeWidth={4}
+            />
+          ) : activeTrip.pickupLatitude && activeTrip.dropoffLatitude && (
             <Polyline
               coordinates={[
                 { latitude: activeTrip.pickupLatitude, longitude: activeTrip.pickupLongitude! },
@@ -230,11 +257,20 @@ export default function TrackRideScreen({ navigation }: Props) {
 
         {/* SOS Emergency Button Overlay */}
         <Pressable 
-          style={styles.sosOverlayBtn}
+          style={[styles.sosOverlayBtn, { top: insets.top > 0 ? insets.top + 10 : Spacing.md + 20 }]}
           onPress={() => Linking.openURL('tel:112')}
         >
           <Ionicons name="shield-checkmark" size={20} color="#FFF" />
           <Text style={styles.sosOverlayText}>SOS</Text>
+        </Pressable>
+
+        {/* Dashcam Record Ride Overlay */}
+        <Pressable 
+          style={[styles.dashcamOverlayBtn, { top: insets.top > 0 ? insets.top + 10 : Spacing.md + 20 }]}
+          onPress={() => setShowDashcam(true)}
+        >
+          <Ionicons name="videocam-outline" size={20} color="#FFF" />
+          <Text style={styles.sosOverlayText}>Record</Text>
         </Pressable>
       </View>
 
@@ -314,7 +350,7 @@ export default function TrackRideScreen({ navigation }: Props) {
         )}
 
         {/* PIN Verification UI - Only show when waiting for driver */}
-        {(activeTrip.status === "confirmed" || activeTrip.status === "arriving") && activeTrip.verificationPin && (
+        {activeTrip.status !== "completed" && activeTrip.status !== "cancelled" && activeTrip.verificationPin && (
           <View style={[styles.card, { alignItems: "center", backgroundColor: "#F8FAFC", paddingVertical: Spacing.lg }]}>
             <Text style={{ fontSize: Typography.body, fontWeight: "800", color: Colors.textPrimary }}>Your Ride PIN</Text>
             <View style={{ flexDirection: "row", gap: 12, marginVertical: Spacing.md }}>
@@ -376,7 +412,7 @@ export default function TrackRideScreen({ navigation }: Props) {
         </View>
 
         {/* Actions */}
-        {(activeTrip.status === "searching" || activeTrip.status === "confirmed") && (
+        {activeTrip.status !== "completed" && activeTrip.status !== "cancelled" && (
           <AppButton title="Cancel Ride" onPress={handleCancel} variant="secondary" />
         )}
 
@@ -524,6 +560,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
     shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  dashcamOverlayBtn: {
+    position: "absolute",
+    top: Spacing.md,
+    left: Spacing.md,
+    backgroundColor: "#3B82F6",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

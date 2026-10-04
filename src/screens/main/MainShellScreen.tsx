@@ -11,10 +11,11 @@ import HomeScreen from "./HomeScreen";
 import TripsScreen from "./TripsScreen";
 import WalletScreen from "./WalletScreen";
 import ProfileScreen from "./ProfileScreen";
+import { FamilyDashboardScreen } from "../../features/family/screens/FamilyDashboardScreen";
 import { MainStackParamList } from "../../navigation/MainNavigator";
 
 type Props = NativeStackScreenProps<MainStackParamList, "Shell">;
-type TabKey = "Home" | "Trips" | "Wallet" | "Profile";
+type TabKey = "Home" | "Trips" | "Family" | "Wallet" | "Profile";
 
 export default function MainShellScreen({ navigation, route }: Props) {
   const [tab, setTab] = useState<TabKey>("Home");
@@ -54,6 +55,7 @@ export default function MainShellScreen({ navigation, route }: Props) {
 
   const content = useMemo(() => {
     if (tab === "Trips") return <TripsScreen navigation={navigation} />;
+    if (tab === "Family") return <FamilyDashboardScreen />;
     if (tab === "Wallet") return <WalletScreen />;
     if (tab === "Profile") return <ProfileScreen navigation={navigation} />;
     return <HomeScreen navigation={navigation} route={route} openTab={setTab} />;

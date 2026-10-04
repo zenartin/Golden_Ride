@@ -23,7 +23,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (payload: { email: string; password: string }) => Promise<boolean>;
-  register: (payload: { name: string; email: string; phone: string; password: string }) => Promise<boolean>;
+  register: (payload: { name: string; email: string; phone: string; password: string; home_address?: string; date_of_birth?: string }) => Promise<boolean>;
   requestOtp: (phone: string) => Promise<string | null>;
   verifyOtp: (payload: { phone: string; otp: string }) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthState>()(
           return false;
         }
       },
-      register: async ({ name, email, phone, password }) => {
+      register: async ({ name, email, phone, password, home_address, date_of_birth }) => {
         if (!name.trim() || !email.trim() || !phone.trim() || !password.trim()) {
           set({ error: "Complete all registration fields" });
           return false;
@@ -131,7 +131,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await apiRequest<AuthResponse>(API_ENDPOINTS.REGISTER, {
             method: "POST",
             auth: false,
-            body: { name, email, phone, password },
+            body: { name, email, phone, password, home_address, date_of_birth },
           });
           await AsyncStorage.setItem("userToken", response.access_token);
           set({
