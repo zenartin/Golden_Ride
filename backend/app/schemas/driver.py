@@ -177,12 +177,23 @@ class PaymentSummaryRow(BaseModel):
     color: Optional[str] = None
 
 
+class WithdrawalOut(BaseModel):
+    id: int
+    amount: float
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class EarningsResponse(BaseModel):
     weekly_total: str
     statistics: List[WeeklyBar]
     daily_breakdown: List[EarningBreakdownItem]
     payment_summary: List[PaymentSummaryRow]
     available_balance: float
+    withdrawals: List[WithdrawalOut] = []
 
 
 class SettingsResponse(BaseModel):
@@ -206,13 +217,3 @@ class SupportRequest(BaseModel):
 
 class WithdrawalCreate(BaseModel):
     amount: float
-
-
-class WithdrawalOut(BaseModel):
-    id: int
-    amount: float
-    status: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True

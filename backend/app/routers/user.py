@@ -17,9 +17,11 @@ from app.schemas.ride import (
     RideOption,
     RideResponse,
     WalletTopUpRequest,
+    DestinationUpdate,
 )
 from app.utils.security import create_access_token, get_current_user, get_password_hash, verify_password
 from app.services.ride_service import RideService
+from app.services.dispatch_service import DispatchService
 from app.utils.storage import save_upload_file
 from app.utils.helpers import format_duration
 
@@ -442,6 +444,58 @@ async def cancel_ride(
         return ride
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/rides/{ride_id}/destination", response_model=RideResponse)
+async def update_destination(
+    ride_id: int,
+    payload: DestinationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    ride = db.query(Ride).options(joinedload(Ride.user), joinedload(Ride.driver)).filter(Ride.id == ride_id, Ride.user_id == current_user.id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+        
+    if ride.status not in ["pending", "accepted", "arrived", "started"]:
+        raise HTTPException(status_code=400, detail="Cannot change destination for this ride status")
+        
+    ride.to_location = payload.dropoff
+    if payload.dropoff_latitude and payload.dropoff_longitude:
+        ride.dropoff_latitude = payload.dropoff_latitude
+        ride.dropoff_longitude = payload.dropoff_longitude
+        
+        # Recalculate fare using OSRM 
+        from app.utils.helpers import get_osrm_route
+        if ride.pickup_latitude and ride.pickup_longitude:
+            try:
+                route = get_osrm_route(ride.pickup_latitude, ride.pickup_longitude, payload.dropoff_latitude, payload.dropoff_longitude)
+                distance_val = route["distance_km"]
+                duration_min = route["duration_min"]
+                ride.distance = f"{distance_val:.1f} km"
+                ride.duration = format_duration(duration_min)
+                
+                currency = RideService.detect_currency(ride.pickup_latitude, ride.pickup_longitude)
+                fare_amount, fare_str = RideService.calculate_fare(distance_val, duration_min, ride.ride_class, currency)
+                
+                # Deduct original discount if any
+                if ride.discount_amount:
+                    discounted_fare = max(0.0, fare_amount - ride.discount_amount)
+                    ride.fare_amount = discounted_fare
+                    ride.fare = f"₹{int(discounted_fare)}" if currency == "INR" else f"${discounted_fare:.2f}"
+                else:
+                    ride.fare_amount = fare_amount
+                    ride.fare = fare_str
+            except Exception as e:
+                pass # Silent fallback if OSRM fails
+    
+    db.commit()
+    db.refresh(ride)
+    
+    # Notify Driver if assigned
+    if ride.driver_id:
+        await DispatchService.notify_destination_changed(db, ride)
+        
+    return _serialize_ride(ride)
 
 @router.post("/profile/upload-avatar")
 def upload_avatar(

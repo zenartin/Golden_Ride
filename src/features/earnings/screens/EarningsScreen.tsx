@@ -21,12 +21,14 @@ import { API_ENDPOINTS } from "../../../api/endpoints";
 interface WeeklyBar { day: string; amount: number; trips: number; }
 interface BreakdownItem { label: string; amount: string; icon: string; color: string; }
 interface PaymentRow { label: string; value: string; bold?: boolean; color?: string; }
+interface Withdrawal { id: number; amount: number; status: string; created_at: string; }
 interface EarningsData {
   weekly_total: string;
   statistics: WeeklyBar[];
   daily_breakdown: BreakdownItem[];
   payment_summary: PaymentRow[];
   available_balance: number;
+  withdrawals: Withdrawal[];
 }
 
 const formatAmount = (value: number) => {
@@ -246,11 +248,43 @@ export default function EarningsScreen() {
                 </Text>
               </View>
             ))}
-            <TouchableOpacity style={styles.withdrawFullBtn} onPress={handleSettle}>
-              <Text style={styles.withdrawFullText}>
-                Settle Balance {formatAmount(Math.abs(withdrawableAmount))}
-              </Text>
-            </TouchableOpacity>
+            {/* Disable Settle if there's a pending withdrawal */}
+            {data.withdrawals?.some(w => w.status === "pending") ? (
+               <View style={[styles.withdrawFullBtn, { backgroundColor: Colors.border }]}>
+                 <Text style={[styles.withdrawFullText, { color: Colors.textSecondary }]}>
+                   Withdrawal Pending Approval
+                 </Text>
+               </View>
+            ) : (
+               <TouchableOpacity style={styles.withdrawFullBtn} onPress={handleSettle}>
+                 <Text style={styles.withdrawFullText}>
+                   Settle Balance {formatAmount(Math.abs(withdrawableAmount))}
+                 </Text>
+               </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Withdrawal History */}
+        {data?.withdrawals && data.withdrawals.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Withdrawal History</Text>
+            {data.withdrawals.map((w) => (
+              <View key={w.id} style={styles.payRow}>
+                <View>
+                  <Text style={styles.payLabel}>Withdrawal</Text>
+                  <Text style={{ fontSize: 12, color: Colors.textSecondary, marginTop: 2 }}>
+                    {new Date(w.created_at + 'Z').toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={[styles.payValue, { fontWeight: "700" }]}>${w.amount.toFixed(2)}</Text>
+                  <Text style={{ fontSize: 12, color: w.status === "completed" ? Colors.success : Colors.warning, fontWeight: "600", marginTop: 2 }}>
+                    {w.status === "completed" ? "Payment Done" : "Pending"}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 

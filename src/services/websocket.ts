@@ -178,6 +178,13 @@ export function connectDriverWebSocket(driverId: number, token: string) {
           setActiveRide({ ...activeRide, status: msg.status });
         }
       }
+      else if (msg.type === "destination_changed") {
+        const activeRide = useRideStore.getState().activeRide;
+        if (activeRide && activeRide.id === msg.ride.id) {
+          Alert.alert("Destination Updated", "The rider has changed the destination. Route and fare have been updated.");
+          setActiveRide(msg.ride);
+        }
+      }
       else if (msg.type === "driver_revoked") {
         const authStore = useAuthStore.getState();
         if (authStore.driver) {

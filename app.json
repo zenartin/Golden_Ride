@@ -55,14 +55,28 @@
             "./assets/sounds/trip_request.wav"
           ]
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24,
+            "kotlinVersion": "1.9.22"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
       ]
     ],
     "runtimeVersion": "1.0.1",
     "extra": {
       "eas": {
-        "projectId": "d9732498-30d7-4c57-b380-6d60872774a1"
+        "projectId": "bbb30ec2-88e1-47f9-8a39-277caf844753"
       }
     },
-    "owner": "zenartin-expo"
+    "owner": "zenartin03"
   }
 }

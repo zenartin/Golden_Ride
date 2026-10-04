@@ -355,12 +355,15 @@ def get_earnings(
         PaymentSummaryRow(label="Available to Withdraw", value=f"{currency_sym}{net_val:.2f}", bold=True, color="#22C55E"),
     ]
 
+    withdrawals_db = db.query(Withdrawal).filter(Withdrawal.driver_id == current_driver.id).order_by(Withdrawal.created_at.desc()).all()
+    
     return EarningsResponse(
         weekly_total=weekly_total,
         statistics=statistics,
         daily_breakdown=daily_breakdown,
         payment_summary=payment_summary,
-        available_balance=available_balance
+        available_balance=available_balance,
+        withdrawals=withdrawals_db
     )
 
 @router.post("/withdraw", response_model=WithdrawalOut)

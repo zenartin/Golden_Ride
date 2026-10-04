@@ -51,6 +51,29 @@ class DispatchService:
             "ride": ride_payload
         }
 
+    @classmethod
+    async def notify_destination_changed(cls, db: Session, ride: Ride):
+        logger.info(f"Notifying destination change for ride {ride.id}")
+        ride_payload = cls._serialize_ride(ride)
+        message = {
+            "type": "destination_changed",
+            "ride": ride_payload
+        }
+        
+        # Send WebSocket message if assigned driver is online
+        if ride.driver_id:
+            await manager.send_personal_message(message, ride.driver_id)
+            
+            # Optionally send FCM push
+            token_record = DeviceTokenRepository.get_token(db, ride.driver_id)
+            if token_record and token_record.fcm_token:
+                FCMService.send_push_notification(
+                    token=token_record.fcm_token,
+                    title="Destination Updated",
+                    body="The rider has changed their destination.",
+                    data={"type": "destination_changed", "ride_id": str(ride.id)}
+                )
+
         drivers = (
             db.query(Driver)
             .filter(Driver.is_online == True)

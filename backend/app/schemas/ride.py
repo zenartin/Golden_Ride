@@ -56,6 +56,12 @@ class LocationUpdate(BaseModel):
     longitude: float
 
 
+class DestinationUpdate(BaseModel):
+    dropoff: str
+    dropoff_latitude: Optional[float] = None
+    dropoff_longitude: Optional[float] = None
+
+
 class RideEstimateRequest(BaseModel):
     pickup: str
     dropoff: str
