@@ -1,0 +1,50 @@
+{
+  "id": "6415bd8d-176c-4b07-bf15-4b981ec99dc7",
+  "status": "ERRORED",
+  "platform": "ANDROID",
+  "error": {
+    "errorCode": "EAS_BUILD_UNKNOWN_GRADLE_ERROR",
+    "message": "Gradle build failed with unknown error. See logs for the \"Run gradlew\" phase for more information."
+  },
+  "artifacts": {},
+  "fingerprint": {
+    "id": "01a10a8a-a1ff-7433-b673-846a5ce5a5f9",
+    "hash": "e4a14ea656e1fe46fdd2d0cb325110a7083e583d"
+  },
+  "initiatingActor": {
+    "id": "6bf71910-2c81-439a-ba3a-b2a8cacb454b",
+    "displayName": "zenartin03"
+  },
+  "logFiles": [
+    "https://storage.googleapis.com/eas-workflows-production/logs/e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a/6415bd8d-176c-4b07-bf15-4b981ec99dc7/2026-10-05T05%3A30%3A23Z-2de5e7d5-6e55-4128-ad92-2d5c5a32c404.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20261005%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20261005T055552Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=40a7fbf4ef35ebabd465c9f6a071b31310c37f1acf704618b579acc63a2fe9597cc8d2fb920cd8c71440b1a0cd697540215ce3d0fdee9cc2d447298cae43fc44f1741bb525924da31ecb5cc0f6951169ec63dd35bf69fd5c71dfe4a78c73a40d4616c97d3c1ba879e91d99b69b8d1306054d74e4bae40cbaef75ab3931580f958a22b0a30db67865f1f04facc974bf4c95913ee24ef1f67db1f5555b2cbe110d49bcd579ca9270b0b6ae90a21127ea64b930a4d5f8264cc4b30b8adc15e9f609821edf10f6167a37d46cee4a42add998ca6caab9193b81cffde03a87343a7927bc62b344ee82c91daaba2bc17bfb709c879a715ad390ddd8f9d831d6f2bc4fb5"
+  ],
+  "project": {
+    "id": "e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a",
+    "name": "golden-ride-user",
+    "slug": "golden-ride-user",
+    "ownerAccount": {
+      "id": "f25bdbd6-5356-467b-91f2-3366b0152afe",
+      "name": "zenartin03"
+    }
+  },
+  "channel": "production",
+  "distribution": "STORE",
+  "buildProfile": "production",
+  "sdkVersion": "54.0.0",
+  "appVersion": "1.0.0",
+  "appBuildVersion": "6",
+  "runtimeVersion": "1.0.0",
+  "gitCommitHash": "52d15231aefa07c1431ff47d5730fb908e10bd36",
+  "gitCommitMessage": "Fix Android build configs",
+  "priority": "NORMAL",
+  "createdAt": "2026-10-05T05:30:19.962Z",
+  "updatedAt": "2026-10-05T05:33:04.855Z",
+  "completedAt": "2026-10-05T05:33:04.636Z",
+  "expirationDate": "2026-11-04T05:30:20.013Z",
+  "isForIosSimulator": false,
+  "metrics": {
+    "buildWaitTime": 3131,
+    "buildQueueTime": 4701,
+    "buildDuration": 156842
+  }
+}
