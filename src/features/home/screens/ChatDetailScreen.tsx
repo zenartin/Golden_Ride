@@ -108,7 +108,7 @@ export default function ChatDetailScreen({ navigation, route }: any) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
       >
         {loading ? (
@@ -153,7 +153,8 @@ export default function ChatDetailScreen({ navigation, route }: any) {
             placeholderTextColor={Colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
-            onSubmitEditing={handleSend}
+            blurOnSubmit
+            returnKeyType="default"
             editable={!isChatDisabled}
           />
           <TouchableOpacity

@@ -92,7 +92,7 @@ export default function EarningsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={styles.centerLoader}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -105,7 +105,7 @@ export default function EarningsScreen() {
   const withdrawableAmount = data?.available_balance ?? 0;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <StatusBar backgroundColor={Colors.background} barStyle="dark-content" />
 
       {error && (
@@ -215,55 +215,6 @@ export default function EarningsScreen() {
           </View>
         </View>
 
-        {/* Today's Breakdown */}
-        {data?.daily_breakdown && data.daily_breakdown.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Today's Breakdown</Text>
-              <Text style={styles.cardSub}>{statistics[statistics.length - 1]?.trips ?? 0} trips</Text>
-            </View>
-            {data.daily_breakdown.map((item) => (
-              <View key={item.label} style={styles.breakdownRow}>
-                <View style={[styles.breakdownIcon, { backgroundColor: item.color + "18" }]}>
-                  <Ionicons name={item.icon as any} size={18} color={item.color} />
-                </View>
-                <Text style={styles.breakdownLabel}>{item.label}</Text>
-                <Text style={[styles.breakdownAmount, { color: item.color }]}>{item.amount}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Payment Summary */}
-        {data?.payment_summary && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Payment Summary</Text>
-            {data.payment_summary.map((row) => (
-              <View key={row.label} style={styles.payRow}>
-                <Text style={[styles.payLabel, row.bold && { fontWeight: "700", color: Colors.textPrimary }]}>
-                  {row.label}
-                </Text>
-                <Text style={[styles.payValue, row.bold && { fontWeight: "800" }, row.color ? { color: row.color } : null]}>
-                  {row.value}
-                </Text>
-              </View>
-            ))}
-            {/* Disable Settle if there's a pending withdrawal */}
-            {data.withdrawals?.some(w => w.status === "pending") ? (
-               <View style={[styles.withdrawFullBtn, { backgroundColor: Colors.border }]}>
-                 <Text style={[styles.withdrawFullText, { color: Colors.textSecondary }]}>
-                   Withdrawal Pending Approval
-                 </Text>
-               </View>
-            ) : (
-               <TouchableOpacity style={styles.withdrawFullBtn} onPress={handleSettle}>
-                 <Text style={styles.withdrawFullText}>
-                   Settle Balance {formatAmount(Math.abs(withdrawableAmount))}
-                 </Text>
-               </TouchableOpacity>
-            )}
-          </View>
-        )}
 
         {/* Withdrawal History */}
         {data?.withdrawals && data.withdrawals.length > 0 && (

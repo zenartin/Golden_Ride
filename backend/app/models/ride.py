@@ -31,7 +31,10 @@ class Ride(Base):
     payment_method = Column(String, default="Online")  # "Online", "Cash"
     pickup_eta = Column(String, default="3 min away")
 
-    status = Column(String, default="pending")  # pending, accepted, arrived, started, completed, declined, cancelled, scheduled
+    status = Column(String, default="pending")  # pending, accepted, arrived, started, awaiting_payment, completed, declined, cancelled, scheduled
+    payment_status = Column(String, default="unpaid")  # unpaid, paid
+    paid_at = Column(DateTime, nullable=True)
+    stripe_payment_intent_id = Column(String, nullable=True)
     scheduled_time = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)

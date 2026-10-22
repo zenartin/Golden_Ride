@@ -81,7 +81,7 @@ const SignupScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView 
@@ -243,16 +243,16 @@ const styles = StyleSheet.create({
 
   header: {
     padding: 20,
-    paddingBottom: 30,
+    paddingBottom: 36,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
 
-  title: { fontSize: 28, fontWeight: "800", color: "#fff", marginTop: 20 },
+  title: { fontSize: 26, lineHeight: 34, fontWeight: "800", color: "#fff", marginTop: 20 },
 
   subtitle: { color: "#B8C7E0", marginTop: 8, fontSize: 14 },
 
-  featureRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  featureRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-start", marginTop: 20, gap: 8 },
 
   feature: {
     backgroundColor: "rgba(255,255,255,0.1)",
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
     margin: 20,
-    marginTop: -20,
+    marginTop: 20,
     borderRadius: 25,
     padding: 20,
     shadowColor: "#000",
@@ -298,9 +298,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    padding: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 50,
     borderRadius: 30,
-    marginTop: 10,
+    marginTop: 14,
   },
 
   buttonText: { fontWeight: "800", color: "#000", fontSize: 16 },

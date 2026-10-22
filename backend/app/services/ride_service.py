@@ -315,18 +315,39 @@ class RideService:
         if ride.status != "started":
             raise Exception(f"Cannot complete ride from status: {ride.status}")
 
-        # Credit driver balance (80% of fare + 100% of tips)
-        driver = DriverRepository.get_by_id(db, driver_id)
-        if driver:
-            # If tip exists in the model in the future, add it here. Currently it's just 80% fare.
-            driver_earnings = round(ride.fare_amount * 0.80, 2)
-            driver.balance = (driver.balance or 0.0) + driver_earnings
-            db.add(driver)
-            db.commit()
-
-        updated_ride = RideRepository.update_status(db, ride, "completed", actual_fare=ride.fare_amount)
+        # Trip finished -> wait for payment. Wallet rides are prepaid at booking.
+        updated_ride = RideRepository.update_status(db, ride, "awaiting_payment", actual_fare=ride.fare_amount)
+        if (ride.payment_method or "").lower() == "wallet" or ride.payment_status == "paid":
+            updated_ride = cls.mark_ride_paid(db, updated_ride)
         await DispatchService.notify_ride_status_update(db, updated_ride)
         return updated_ride
+
+    @classmethod
+    def mark_ride_paid(cls, db: Session, ride: Ride, payment_method: str = None) -> Ride:
+        """Single source of truth: flag ride as paid; finalize to 'completed' if trip ended.
+        Credits driver earnings exactly once (on first transition to paid)."""
+        from datetime import datetime as _dt
+        if payment_method:
+            ride.payment_method = payment_method
+        first_time = ride.payment_status != "paid"
+        ride.payment_status = "paid"
+        if first_time:
+            ride.paid_at = _dt.utcnow()
+        if ride.status in ("awaiting_payment", "started", "completed"):
+            if ride.status != "completed" and ride.driver_id and first_time:
+                driver = DriverRepository.get_by_id(db, ride.driver_id)
+                if driver:
+                    driver.balance = (driver.balance or 0.0) + round((ride.actual_fare or ride.fare_amount) * 0.80, 2)
+                    db.add(driver)
+            if ride.status == "awaiting_payment":
+                ride.status = "completed"
+                if not ride.completed_at:
+                    ride.completed_at = _dt.utcnow()
+        ride.updated_at = _dt.utcnow()
+        db.add(ride)
+        db.commit()
+        db.refresh(ride)
+        return ride
 
     @classmethod
     async def cancel_ride(cls, db: Session, ride_id: int, user_id: int, cancellation_reason: str = None) -> Ride:
@@ -335,7 +356,7 @@ class RideService:
             raise RideNotFoundError()
         if ride.user_id != user_id:
             raise Exception("Unauthorized user for this ride")
-        if ride.status in ["completed", "cancelled"]:
+        if ride.status in ["completed", "cancelled", "awaiting_payment"]:
             raise Exception("Ride is already finalized")
 
         # Refund user wallet if booked via Wallet
@@ -364,7 +385,7 @@ class RideService:
             raise RideNotFoundError()
         if ride.driver_id != driver_id:
             raise Exception("Unauthorized driver for this ride")
-        if ride.status in ["completed", "cancelled"]:
+        if ride.status in ["completed", "cancelled", "awaiting_payment"]:
             raise Exception("Ride is already finalized")
 
         # Refund user wallet if booked via Wallet

@@ -71,7 +71,7 @@ def get_active_ride(
     # Find ride assigned to this driver that is not completed or declined
     ride = db.query(Ride).filter(
         Ride.driver_id == current_driver.id,
-        Ride.status.in_(["accepted", "arrived", "started"])
+        Ride.status.in_(["accepted", "arrived", "started", "awaiting_payment"])
     ).first()
     return ride
 
@@ -195,9 +195,29 @@ def get_ride_history(
 ):
     rides = db.query(Ride).filter(
         Ride.driver_id == current_driver.id,
-        Ride.status.in_(["completed", "cancelled", "declined", "arrived", "started", "accepted"])
+        Ride.status.in_(["completed", "cancelled", "declined", "arrived", "started", "accepted", "awaiting_payment"])
     ).order_by(Ride.created_at.desc()).all()
     return rides
+
+
+@router.post("/{ride_id}/confirm-cash")
+def confirm_cash_payment(
+    ride_id: int,
+    current_driver: Driver = Depends(get_current_driver),
+    db: Session = Depends(get_db)
+):
+    """Driver confirms that cash was received for a ride that is awaiting_payment."""
+    ride = db.query(Ride).filter(Ride.id == ride_id, Ride.driver_id == current_driver.id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found or not assigned to you")
+    if ride.status != "awaiting_payment":
+        raise HTTPException(status_code=400, detail=f"Ride is not awaiting payment (current: {ride.status})")
+    if (ride.payment_method or "").lower() not in ["cash", "cod", ""]:
+        raise HTTPException(status_code=400, detail="Cash confirmation is only for cash rides")
+
+    from app.services.ride_service import RideService
+    updated_ride = RideService.mark_ride_paid(db, ride, payment_method="cash")
+    return {"status": "success", "ride_id": updated_ride.id, "payment_status": updated_ride.payment_status}
 
 
 @router.get("/{ride_id}", response_model=RideResponse)

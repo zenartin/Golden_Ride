@@ -165,11 +165,8 @@ def verify_stripe_payment(
         raise HTTPException(status_code=404, detail="Ride not found")
 
     if request.session_id.startswith("cs_mock_") or request.session_id.startswith("pi_mock_"):
-        ride.payment_method = "Stripe"
-        ride.status = "completed"
-        db.add(ride)
-        db.commit()
-        db.refresh(ride)
+        from app.services.ride_service import RideService
+        ride = RideService.mark_ride_paid(db, ride, payment_method="Stripe")
         return {
             "status": "success",
             "trip_id": ride.id,
@@ -180,11 +177,8 @@ def verify_stripe_payment(
         if request.session_id.startswith("pi_"):
             intent = stripe.PaymentIntent.retrieve(request.session_id)
             if intent.status == "succeeded":
-                ride.payment_method = "Stripe"
-                ride.status = "completed"
-                db.add(ride)
-                db.commit()
-                db.refresh(ride)
+                from app.services.ride_service import RideService
+                ride = RideService.mark_ride_paid(db, ride, payment_method="Stripe")
                 return {
                     "status": "success",
                     "trip_id": ride.id,
@@ -193,16 +187,15 @@ def verify_stripe_payment(
         else:
             session = stripe.checkout.Session.retrieve(request.session_id)
             if session.payment_status == "paid":
-                ride.payment_method = "Stripe"
-                ride.status = "completed"
-                db.add(ride)
-                db.commit()
-                db.refresh(ride)
+                from app.services.ride_service import RideService
+                ride = RideService.mark_ride_paid(db, ride, payment_method="Stripe")
                 return {
                     "status": "success",
                     "trip_id": ride.id,
                     "payment_method": "Stripe"
                 }
         raise HTTPException(status_code=400, detail="Payment not completed")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

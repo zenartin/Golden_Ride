@@ -11,6 +11,47 @@ from app.utils.security import get_current_user
 
 router = APIRouter(prefix="/rider", tags=["rider"])
 
+# ── Payment helpers (used by both driver & passenger apps) ──────────────────
+
+@router.get("/rides/unpaid")
+def get_unpaid_ride(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Return the passenger's most-recent ride that still awaits payment, or null."""
+    ride = db.query(Ride).filter(
+        Ride.user_id == current_user.id,
+        Ride.status == "awaiting_payment"
+    ).order_by(Ride.updated_at.desc()).first()
+    if not ride:
+        return None
+    return {
+        "id": ride.id,
+        "status": ride.status,
+        "payment_status": ride.payment_status or "pending",
+        "payment_method": ride.payment_method,
+        "fare_amount": ride.actual_fare or ride.fare_amount,
+        "from_location": ride.from_location,
+        "to_location": ride.to_location,
+    }
+
+@router.get("/rides/{ride_id}/payment-status")
+def get_ride_payment_status(
+    ride_id: int,
+    db: Session = Depends(get_db)
+):
+    """Return current status + payment_status for any ride (accessible by driver or passenger)."""
+    ride = db.query(Ride).filter(Ride.id == ride_id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found")
+    return {
+        "ride_id": ride.id,
+        "status": ride.status,
+        "payment_status": ride.payment_status or "pending",
+        "payment_method": ride.payment_method,
+        "amount": ride.actual_fare or ride.fare_amount,
+    }
+
 # 1. Ride Rating
 class RateRideRequest(BaseModel):
     rating: float

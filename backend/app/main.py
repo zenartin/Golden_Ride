@@ -88,6 +88,9 @@ def ensure_local_schema_compatibility():
             "coupon_code": "VARCHAR",
             "discount_amount": "FLOAT",
             "scheduled_time": "TIMESTAMP",
+            "paid_at": "TIMESTAMP",
+            "payment_status": "VARCHAR DEFAULT 'unpaid'",
+            "stripe_payment_intent_id": "VARCHAR",
         }
         missing = [(name, sql_type) for name, sql_type in required_columns.items() if name not in existing]
         if missing:
@@ -189,6 +192,9 @@ def ensure_local_schema_compatibility():
         existing_users = {column["name"] for column in inspector.get_columns("users")}
         required_user_columns = {
             "stripe_customer_id": "VARCHAR",
+            "stripe_payment_method_id": "VARCHAR",
+            "card_brand": "VARCHAR",
+            "card_last4": "VARCHAR",
             "country": "VARCHAR DEFAULT 'USA'",
             "card_number": "VARCHAR",
             "card_expiry": "VARCHAR",

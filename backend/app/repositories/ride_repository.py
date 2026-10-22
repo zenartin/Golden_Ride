@@ -120,8 +120,9 @@ class RideRepository:
         
         if status == "started":
             ride.started_at = datetime.utcnow()
-        elif status == "completed":
-            ride.completed_at = datetime.utcnow()
+        elif status in ("completed", "awaiting_payment"):
+            if not ride.completed_at:
+                ride.completed_at = datetime.utcnow()
             if actual_fare is not None:
                 ride.actual_fare = actual_fare
         elif status == "cancelled":

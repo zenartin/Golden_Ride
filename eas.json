@@ -5,7 +5,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DRIVER_API_URL": "https://api.golden-ride.com/api"
+        "EXPO_PUBLIC_DRIVER_API_URL": "https://54-197-9-181.nip.io/api"
       }
     },
     "production": {
@@ -17,11 +17,18 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_DRIVER_API_URL": "https://api.golden-ride.com/api"
+        "EXPO_PUBLIC_DRIVER_API_URL": "https://54-197-9-181.nip.io/api"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "../AuthKey_NV742T4CVU.p8",
+        "ascApiKeyIssuerId": "cb62a969-b3c7-4722-ba8b-bda7e3118a01",
+        "ascApiKeyId": "NV742T4CVU",
+        "ascAppId": "6799399942"
+      }
+    }
   }
 }

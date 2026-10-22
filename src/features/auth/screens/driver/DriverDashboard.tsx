@@ -198,7 +198,7 @@ export default function DriverDashboard({
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <StatusBar backgroundColor={Colors.background} barStyle="dark-content" />
 
       {/* Header */}

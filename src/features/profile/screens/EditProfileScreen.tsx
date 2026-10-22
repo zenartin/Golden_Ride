@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Platform } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   View,
   Text,
@@ -27,6 +29,8 @@ export default function EditProfileScreen({ navigation }: any) {
   const [name, setName] = useState(driver?.name || "");
   const [phone, setPhone] = useState(driver?.phone || "");
   const [email, setEmail] = useState(driver?.email || "");
+  const [dob, setDob] = useState(driver?.date_of_birth || "");
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [city, setCity] = useState(driver?.residential_address || "");
   const [vehicle, setVehicle] = useState(driver?.documents?.vehicle_model || "");
   const [vehicleType, setVehicleType] = useState(driver?.documents?.vehicle_type || "");
@@ -74,6 +78,7 @@ export default function EditProfileScreen({ navigation }: any) {
       name,
       phone,
       email,
+      date_of_birth: dob || undefined,
       residential_address: city,
       vehicle_model: vehicle,
       vehicle_type: vehicleType,
@@ -190,6 +195,30 @@ export default function EditProfileScreen({ navigation }: any) {
               placeholder="your@email.com"
               keyboardType="email-address"
             />
+            <TouchableOpacity activeOpacity={0.8} onPress={() => setShowDobPicker(true)}>
+              <View pointerEvents="none">
+                <AppInput
+                  label="Date of Birth"
+                  leftIcon="calendar-outline"
+                  value={dob}
+                  onChangeText={setDob}
+                  placeholder="YYYY-MM-DD"
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
+            {showDobPicker && (
+              <DateTimePicker
+                value={dob ? new Date(dob) : new Date(1990, 0, 1)}
+                mode="date"
+                maximumDate={new Date()}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(_e: any, d?: Date) => {
+                  setShowDobPicker(Platform.OS === "ios");
+                  if (d) setDob(d.toISOString().split("T")[0]);
+                }}
+              />
+            )}
             <AppInput
               label="City"
               leftIcon="location-outline"

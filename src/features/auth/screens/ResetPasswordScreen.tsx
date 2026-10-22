@@ -45,7 +45,7 @@ export default function ResetPasswordScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
@@ -105,7 +105,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: Spacing.lg,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingBottom: 220,
   },
   title: {
     fontSize: Typography.heading,

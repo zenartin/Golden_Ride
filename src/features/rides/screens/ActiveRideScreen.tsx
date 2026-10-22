@@ -10,6 +10,7 @@ import {
   Linking,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
@@ -18,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useRideStore } from "../../../store/rideStore";
 import { useAuthStore } from "../../../store/authStore";
+import apiClient from "../../../api/axios";
 import { openDirectionsInMaps } from "../../../utils/openMaps";
 import { getCurrentDeviceLocation } from "../../../utils/deviceLocation";
 import { getRoutePolyline } from "../../../utils/routing";
@@ -90,8 +92,9 @@ export default function ActiveRideScreen({ navigation, route }: any) {
         setPhaseIndex(1);
       } else if (activeRide.status === "started") {
         setPhaseIndex(2);
-      } else if (activeRide.status === "completed") {
+      } else if (activeRide.status === "awaiting_payment" || activeRide.status === "completed") {
         setPhaseIndex(3);
+        if (activeRide.status === "completed") setPaymentPaid(true);
       } else if (activeRide.status === "cancelled") {
         Alert.alert("Ride Cancelled", "This ride has been cancelled.");
         clearActiveRide();
@@ -99,6 +102,34 @@ export default function ActiveRideScreen({ navigation, route }: any) {
       }
     }
   }, [activeRide?.status]);
+
+  // Lift the bottom sheet above the keyboard so PIN digits stay visible
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const show = Keyboard.addListener(showEvt, (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvt, () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  // Payment confirmation state (ride is only finished once payment is confirmed)
+  const [paymentPaid, setPaymentPaid] = useState(false);
+  useEffect(() => {
+    if (phaseIndex !== 3 || paymentPaid || !activeRide?.id) return;
+    const rideId = activeRide.id;
+    const check = async () => {
+      try {
+        const res = await apiClient.get(`/rider/rides/${rideId}/payment-status`);
+        if (res.data?.payment_status === "paid" || res.data?.status === "completed") {
+          setPaymentPaid(true);
+        }
+      } catch (e) {}
+    };
+    check();
+    const interval = setInterval(check, 3000);
+    return () => clearInterval(interval);
+  }, [phaseIndex, paymentPaid, activeRide?.id]);
 
   // Fetch route when phase changes
   useEffect(() => {
@@ -200,8 +231,36 @@ export default function ActiveRideScreen({ navigation, route }: any) {
       await updateRideStatus(RIDE.id, "completed");
       setPhaseIndex(3);
     } else {
-      clearActiveRide();
-      navigation.replace("DriverDashboard");
+      const isCash = RIDE.payment_method?.toLowerCase() === "cash";
+      if (paymentPaid) {
+        clearActiveRide();
+        navigation.replace("DriverDashboard");
+        return;
+      }
+      if (isCash) {
+        Alert.alert(
+          "Confirm Cash Received",
+          `Please confirm you have received ${RIDE.fare} in cash from the passenger.`,
+          [
+            { text: "Not Yet", style: "cancel" },
+            {
+              text: "Yes, Received",
+              onPress: async () => {
+                try {
+                  await apiClient.post(`/rides/${RIDE.id}/confirm-cash`);
+                  setPaymentPaid(true);
+                  clearActiveRide();
+                  navigation.replace("DriverDashboard");
+                } catch (err: any) {
+                  Alert.alert("Error", err?.response?.data?.detail || "Could not confirm cash payment.");
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
+      Alert.alert("Waiting for Payment", "The passenger has not completed the payment yet. You will be notified once it is confirmed.");
     }
   };
 
@@ -283,11 +342,10 @@ export default function ActiveRideScreen({ navigation, route }: any) {
       </View>
 
       {/* Bottom Sheet Details wrapped in ScrollView for Redmi screens to prevent overflow */}
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
+      <View
+        style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), marginBottom: keyboardHeight }]}
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12 }}>
 
           {/* Phase Status */}
           <View style={[styles.phaseBanner, { backgroundColor: config.color + "14" }]}>
@@ -414,6 +472,55 @@ export default function ActiveRideScreen({ navigation, route }: any) {
             </View>
           )}
 
+          {/* Payment Status Card during Ride Completed Phase */}
+          {phaseIndex === 3 && (
+            <View style={styles.paymentCard}>
+              <View style={styles.paymentCardHeader}>
+                <Ionicons
+                  name={RIDE.payment_method?.toLowerCase() === "cash" ? "cash-outline" : "card-outline"}
+                  size={24}
+                  color={Colors.primary}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.paymentCardTitle}>Payment Status</Text>
+                  <Text style={styles.paymentCardSub}>
+                    {RIDE.payment_method?.toLowerCase() === "cash"
+                      ? "Cash Collection Required"
+                      : `Processed via ${RIDE.payment_method || "Stripe"}`}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.paymentBadge,
+                    {
+                      backgroundColor:
+                        RIDE.payment_method?.toLowerCase() === "cash" ? "#FEF3C7" : "#DEF7EC",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.paymentBadgeText,
+                      {
+                        color:
+                          RIDE.payment_method?.toLowerCase() === "cash" ? "#B45309" : "#03543F",
+                      },
+                    ]}
+                  >
+                    {paymentPaid ? "Payment Received" : RIDE.payment_method?.toLowerCase() === "cash" ? "Collect Cash" : "Awaiting Payment"}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.paymentCardNote}>
+                {RIDE.payment_method?.toLowerCase() === "cash"
+                  ? `Please collect ${RIDE.fare} in cash from the passenger before completing this trip.`
+                  : paymentPaid
+                  ? `Passenger paid ${RIDE.fare}. It has been added to your earnings.`
+                  : `Waiting for the passenger to pay ${RIDE.fare}. This ride will not be added to your earnings until payment is confirmed.`}
+              </Text>
+            </View>
+          )}
+
           {/* CTA Action Button */}
           <TouchableOpacity 
             style={[
@@ -421,30 +528,47 @@ export default function ActiveRideScreen({ navigation, route }: any) {
               { backgroundColor: phaseIndex === 1 && pin.length < 4 ? Colors.textMuted : config.color }
             ]} 
             onPress={handleCTA}
-            disabled={phaseIndex === 1 && pin.length < 4}
+            disabled={(phaseIndex === 1 && pin.length < 4) || (phaseIndex === 3 && !paymentPaid && RIDE.payment_method?.toLowerCase() !== "cash")}
           >
-            <Text style={styles.ctaText}>{phaseIndex === 1 ? "Verify & Start Ride" : config.cta}</Text>
-            <Ionicons name={phaseIndex === 1 ? "shield-checkmark" : "arrow-forward"} size={20} color={Colors.white} />
+            <Text style={styles.ctaText}>
+              {phaseIndex === 1
+                ? "Verify & Start Ride"
+                : phaseIndex === 3
+                ? paymentPaid
+                  ? "Complete & Return to Home"
+                  : RIDE.payment_method?.toLowerCase() === "cash"
+                  ? "Confirm Cash & Finish"
+                  : "Waiting for Passenger Payment…"
+                : config.cta}
+            </Text>
+            <Ionicons
+              name={phaseIndex === 1 ? "shield-checkmark" : phaseIndex === 3 ? "checkmark-circle" : "arrow-forward"}
+              size={20}
+              color={Colors.white}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.ctaBtn, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.error, marginTop: 4 }]} 
-            onPress={() => {
-              Alert.alert(
-                "Cancel Ride?", 
-                "Are you sure you want to cancel this ride? This action cannot be undone.", 
-                [
-                  { text: "No", style: "cancel" },
-                  { text: "Yes, Cancel", style: "destructive", onPress: () => updateRideStatus(RIDE.id, "cancelled") }
-                ]
-              );
-            }}
-          >
-            <Text style={[styles.ctaText, { color: Colors.error }]}>Cancel Ride</Text>
-            <Ionicons name="close-circle" size={20} color={Colors.error} />
-          </TouchableOpacity>
+          {/* Cancel button only allowed prior to ride completion */}
+          {phaseIndex < 3 && (
+            <TouchableOpacity 
+              style={[styles.ctaBtn, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.error, marginTop: 4 }]} 
+              onPress={() => {
+                Alert.alert(
+                  "Cancel Ride?", 
+                  "Are you sure you want to cancel this ride? This action cannot be undone.", 
+                  [
+                    { text: "No", style: "cancel" },
+                    { text: "Yes, Cancel", style: "destructive", onPress: () => updateRideStatus(RIDE.id, "cancelled") }
+                  ]
+                );
+              }}
+            >
+              <Text style={[styles.ctaText, { color: Colors.error }]}>Cancel Ride</Text>
+              <Ionicons name="close-circle" size={20} color={Colors.error} />
+            </TouchableOpacity>
+          )}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
@@ -578,5 +702,43 @@ const styles = StyleSheet.create({
     opacity: 0,
     width: 1,
     height: 1,
+  },
+  paymentCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    padding: Spacing.md,
+    marginTop: 4,
+    gap: 8,
+  },
+  paymentCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  paymentCardTitle: {
+    fontSize: Typography.body,
+    fontWeight: "800",
+    color: Colors.textPrimary,
+  },
+  paymentCardSub: {
+    fontSize: Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  paymentBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  paymentBadgeText: {
+    fontSize: Typography.caption,
+    fontWeight: "800",
+  },
+  paymentCardNote: {
+    fontSize: Typography.small,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
 });

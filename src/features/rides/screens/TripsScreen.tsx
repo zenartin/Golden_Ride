@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useRideStore, Ride } from "../../../store/rideStore";
+import { formatDuration } from "../../../utils/formatDuration";
 
 type TripStatus = "completed" | "cancelled" | "ongoing" | "pending" | "accepted" | "arrived" | "started" | "declined";
 
@@ -57,7 +58,7 @@ export default function TripsScreen({ navigation }: any) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={styles.centerLoader}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -66,7 +67,7 @@ export default function TripsScreen({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <StatusBar backgroundColor={Colors.background} barStyle="dark-content" />
 
       {/* Header */}
@@ -155,7 +156,7 @@ export default function TripsScreen({ navigation }: any) {
                   <Ionicons name="navigate-outline" size={13} color={Colors.textSecondary} />
                   <Text style={styles.metaText}>{item.distance}</Text>
                   <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
-                  <Text style={styles.metaText}>{item.duration}</Text>
+                  <Text style={styles.metaText}>{formatDuration(item.duration as any)}</Text>
                   {renderStars(item.rider_rating)}
                 </View>
                 <Text style={styles.fareText}>{item.fare}</Text>

@@ -91,7 +91,7 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <StatusBar backgroundColor={Colors.background} barStyle="dark-content" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -151,7 +151,7 @@ export default function ProfileScreen({ navigation }: any) {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           {[
-            { label: "This Month", value: `₹${driverBalance.toLocaleString()}`, icon: "cash-outline" as const, color: Colors.success },
+            { label: "This Month", value: `$${driverBalance.toLocaleString()}`, icon: "cash-outline" as const, color: Colors.success },
             { label: "Total KM", value: dashboard?.stats?.find((s: any) => s.label === "Km")?.value || "0", icon: "navigate-outline" as const, color: Colors.info },
             { label: "Acceptance", value: "100%", icon: "checkmark-circle-outline" as const, color: Colors.warning },
           ].map((s) => (

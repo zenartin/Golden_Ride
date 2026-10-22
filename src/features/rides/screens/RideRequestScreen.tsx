@@ -8,6 +8,7 @@ import {
   Alert,
   StatusBar,
   Image,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,22 +16,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useRideStore } from "../../../store/rideStore";
 import { useAuthStore } from "../../../store/authStore";
-import { stopRingtone } from "../../../services/websocket";
-
-
-
+import { stopRingtone, playRingtone } from "../../../services/websocket";
+import { formatDuration } from "../../../utils/formatDuration";
 
 export default function RideRequestScreen({ navigation, route }: any) {
   const { incomingRequests, fetchIncomingRequests, acceptRide, declineRide } = useRideStore();
   const driver = useAuthStore((s) => s.driver);
+  const [selectedRideId, setSelectedRideId] = useState<string | number | null>(route?.params?.rideId || null);
   const [timeLeft, setTimeLeft] = useState(30);
   const progressAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const rideId = route?.params?.rideId;
-  const RIDE = rideId
-    ? incomingRequests.find((r) => String(r.id) === String(rideId))
-    : incomingRequests[0];
+  const RIDE = incomingRequests.find((r) => String(r.id) === String(selectedRideId)) || incomingRequests[0];
 
   const riderInitials = RIDE?.rider_name
     ? RIDE.rider_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -38,10 +35,21 @@ export default function RideRequestScreen({ navigation, route }: any) {
 
   useEffect(() => {
     if (!RIDE) fetchIncomingRequests();
+    if (RIDE?.id != null) {
+      // Fresh sound per request id (deduped inside playRingtone)
+      playRingtone(RIDE.id).catch(() => {});
+    }
+    setTimeLeft(30);
+    progressAnim.setValue(1);
     // Countdown
     const interval = setInterval(() => {
       setTimeLeft((t) => {
-        if (t <= 1) { clearInterval(interval); navigation.goBack(); return 0; }
+        if (t <= 1) {
+          clearInterval(interval);
+          stopRingtone().catch(() => {});
+          if (navigation.canGoBack()) navigation.goBack();
+          return 0;
+        }
         return t - 1;
       });
     }, 1000);
@@ -64,13 +72,22 @@ export default function RideRequestScreen({ navigation, route }: any) {
     return () => clearInterval(interval);
   }, [RIDE?.id]);
 
+  // Fully unload the sound whenever this screen goes away
+  useEffect(() => {
+    return () => {
+      // Don't silence a newer incoming request's ringtone
+      if (useRideStore.getState().incomingRequests.length === 0) stopRingtone().catch(() => {});
+    };
+  }, []);
+
   const moveToNextOrClose = () => {
     stopRingtone().catch(() => {});
     const store = useRideStore.getState();
     const remaining = store.incomingRequests.filter(r => String(r.id) !== String(RIDE?.id));
     if (remaining.length > 0) {
-      navigation.replace("RideRequest", { rideId: remaining[0].id });
-    } else {
+      // Switch in place (no stacked duplicate screens); effect above plays a fresh sound
+      setSelectedRideId(remaining[0].id);
+    } else if (navigation.canGoBack()) {
       navigation.goBack();
     }
   };
@@ -87,7 +104,7 @@ export default function RideRequestScreen({ navigation, route }: any) {
     if (!RIDE) return;
     await stopRingtone();
     const ok = await acceptRide(RIDE.id);
-    if (ok) navigation.replace("ActiveRide", { rideId: RIDE.id });
+    if (ok) navigation.reset({ index: 1, routes: [{ name: "DriverDashboard" }, { name: "ActiveRide", params: { rideId: RIDE.id } }] });
   };
 
   const handleDecline = async () => {
@@ -116,6 +133,48 @@ export default function RideRequestScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.6)" />
 
       <View style={styles.card}>
+        {/* Multi-Request Switcher Tabs if more than 1 pending */}
+        {incomingRequests.length > 1 && (
+          <View style={styles.multiReqContainer}>
+            <Text style={styles.multiReqLabel}>
+              Pending Requests ({incomingRequests.length})
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.multiReqScroll}
+            >
+              {incomingRequests.map((req, idx) => {
+                const isSelected = String(req.id) === String(RIDE?.id);
+                return (
+                  <TouchableOpacity
+                    key={req.id}
+                    onPress={() => setSelectedRideId(req.id)}
+                    style={[
+                      styles.multiReqChip,
+                      isSelected && styles.multiReqChipActive,
+                    ]}
+                  >
+                    <Ionicons
+                      name="car"
+                      size={14}
+                      color={isSelected ? Colors.white : Colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.multiReqText,
+                        isSelected && styles.multiReqTextActive,
+                      ]}
+                    >
+                      {req.rider_name ? req.rider_name.split(" ")[0] : `Ride #${idx + 1}`} ({req.fare || `$${req.fare_amount || 0}`})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Timer */}
         <View style={styles.timerBar}>
           <Animated.View
@@ -169,7 +228,7 @@ export default function RideRequestScreen({ navigation, route }: any) {
               <Text style={styles.routeLabel}>Pickup</Text>
               <Text style={styles.routeLocation}>{RIDE.from_location}</Text>
             </View>
-            <Text style={styles.pickupEta}>{RIDE.pickup_eta}</Text>
+            <Text style={styles.pickupEta}>{formatDuration(RIDE.pickup_eta)}</Text>
           </View>
           <View style={styles.routeDivider} />
           <View style={styles.routeRow}>
@@ -191,7 +250,7 @@ export default function RideRequestScreen({ navigation, route }: any) {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="time-outline" size={18} color={Colors.info} />
-            <Text style={styles.statText}>{RIDE.duration}</Text>
+            <Text style={styles.statText}>{formatDuration(RIDE.duration as any)}</Text>
             <Text style={styles.statLabel}>Duration</Text>
           </View>
           <View style={styles.statDivider} />
@@ -302,5 +361,49 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 9,
     fontWeight: "900",
+  },
+  multiReqContainer: {
+    marginBottom: 12,
+    backgroundColor: Colors.background,
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  multiReqLabel: {
+    fontSize: Typography.small,
+    fontWeight: "800",
+    color: Colors.textSecondary,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  multiReqScroll: {
+    gap: 8,
+    flexDirection: "row",
+  },
+  multiReqChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  multiReqChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  multiReqText: {
+    fontSize: Typography.caption,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  multiReqTextActive: {
+    color: Colors.white,
+    fontWeight: "800",
   },
 });

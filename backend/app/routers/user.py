@@ -105,7 +105,7 @@ def _serialize_ride(ride) -> dict:
         "dropoff_latitude": getattr(ride, "dropoff_latitude", None),
         "dropoff_longitude": getattr(ride, "dropoff_longitude", None),
         "distance": getattr(ride, "distance", "0 km"),
-        "duration": format_duration(int(getattr(ride, "duration", "0 min").split(" ")[0])),
+        "duration": format_duration(getattr(ride, "duration", "0 min")),
         "fare": getattr(ride, "fare", "0"),
         "fare_amount": getattr(ride, "fare_amount", 0.0),
         "payment_method": getattr(ride, "payment_method", "Cash"),
@@ -245,8 +245,10 @@ def get_profile(current_user: User = Depends(get_current_user)):
         "wallet_balance": current_user.wallet_balance,
         "card_number": current_user.card_number,
         "card_expiry": current_user.card_expiry,
-        "card_cvv": current_user.card_cvv,
         "card_holder": current_user.card_holder,
+        "has_payment_method": bool(current_user.stripe_payment_method_id),
+        "card_brand": current_user.card_brand,
+        "card_last4": current_user.card_last4,
     }
 
 
@@ -357,6 +359,16 @@ async def book_ride(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    unpaid = (
+        db.query(Ride)
+        .filter(Ride.user_id == current_user.id, Ride.status == "awaiting_payment")
+        .first()
+    )
+    if unpaid:
+        raise HTTPException(
+            status_code=400,
+            detail="Please complete payment for your previous ride before booking a new one.",
+        )
     try:
         ride = await RideService.create_ride(
             db=db,
@@ -387,7 +399,7 @@ def get_active_ride(current_user: User = Depends(get_current_user), db: Session 
         )
         .filter(
             Ride.user_id == current_user.id,
-            Ride.status.in_(["pending", "accepted", "arrived", "started"]),
+            Ride.status.in_(["pending", "accepted", "arrived", "started", "awaiting_payment"]),
         )
         .order_by(Ride.created_at.desc())
         .first()

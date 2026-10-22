@@ -9,8 +9,23 @@ from typing import Optional
 logger = logging.getLogger("app")
 
 
+def parse_duration_minutes(value) -> int:
+    """Parse '600 min', '1 hr 5 min', or a number into total minutes."""
+    import re
+    if isinstance(value, (int, float)):
+        return int(value)
+    text = str(value or "0").lower()
+    hrs = re.search(r"(\d+)\s*(?:h|hr|hrs|hour|hours)\b", text)
+    mins = re.search(r"(\d+)\s*(?:m|min|mins|minute|minutes)\b", text)
+    if hrs or mins:
+        return int(hrs.group(1) if hrs else 0) * 60 + int(mins.group(1) if mins else 0)
+    num = re.search(r"\d+", text)
+    return int(num.group(0)) if num else 0
+
+
 def format_duration(duration_min: int) -> str:
     """Format duration in minutes to hours and minutes string."""
+    duration_min = parse_duration_minutes(duration_min)
     if duration_min < 60:
         return f"{duration_min} min"
     

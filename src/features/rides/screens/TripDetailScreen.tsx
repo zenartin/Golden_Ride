@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, Typography } from "../../../theme";
 import apiClient from "../../../api/axios";
 import { API_ENDPOINTS } from "../../../api/endpoints";
+import { formatDuration } from "../../../utils/formatDuration";
 
 export default function TripDetailScreen({ navigation, route }: any) {
   const tripId = route?.params?.tripId ?? "1";
@@ -138,7 +139,7 @@ export default function TripDetailScreen({ navigation, route }: any) {
             { label: "Trip ID", value: `#${TRIP.id}` },
             { label: "Date & Time", value: `${formattedDate} ${formattedTime}` },
             { label: "Distance", value: TRIP.distance },
-            { label: "Duration", value: TRIP.duration },
+            { label: "Duration", value: formatDuration(TRIP.duration) },
             { label: "Payment Method", value: TRIP.payment_method },
           ].map((row, i) => (
             <View key={row.label} style={[styles.infoRow, i > 0 && styles.rowBorder]}>
@@ -146,25 +147,6 @@ export default function TripDetailScreen({ navigation, route }: any) {
               <Text style={styles.infoValue}>{row.value}</Text>
             </View>
           ))}
-        </View>
-
-        {/* Fare Breakdown */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Fare Breakdown</Text>
-          {[
-            { label: "Ride Fare", value: TRIP.fare },
-            { label: "Surge Bonus", value: "$0" },
-            { label: "Tip", value: "$0" },
-          ].map((row, i) => (
-            <View key={row.label} style={[styles.infoRow, i > 0 && styles.rowBorder]}>
-              <Text style={styles.infoLabel}>{row.label}</Text>
-              <Text style={styles.infoValue}>{row.value}</Text>
-            </View>
-          ))}
-          <View style={[styles.infoRow, styles.rowBorder, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total Earned</Text>
-            <Text style={styles.totalValue}>{TRIP.fare}</Text>
-          </View>
         </View>
 
         {/* Rider & Rating */}

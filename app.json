@@ -2,7 +2,7 @@
   "expo": {
     "name": "Golden Ride Driver",
     "slug": "driver-app",
-    "version": "1.0.1",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.goldenridedriver",
-      "buildNumber": "5"
+      "buildNumber": "9"
     },
     "android": {
       "config": {
@@ -33,7 +33,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "versionCode": 5
+      "versionCode": 7
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -58,18 +58,18 @@
       [
         "expo-build-properties",
         {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "minSdkVersion": 24
-          },
           "ios": {
             "deploymentTarget": "15.1"
+          },
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
           }
         }
       ]
     ],
-    "runtimeVersion": "1.0.1",
+    "runtimeVersion": "1.0.2",
     "extra": {
       "eas": {
         "projectId": "bbb30ec2-88e1-47f9-8a39-277caf844753"

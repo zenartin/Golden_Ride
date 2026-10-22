@@ -4,7 +4,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 
+export function matchesDriverPreferences(ride: { ride_class?: string }): boolean {
+  try {
+    const { useAuthStore } = require("./authStore");
+    const accepted: string = useAuthStore.getState().driver?.accepted_ride_classes || "";
+    const list = accepted.split(",").map((c: string) => c.trim().toLowerCase()).filter(Boolean);
+    if (list.length === 0 || !ride.ride_class) return true;
+    return list.includes(String(ride.ride_class).trim().toLowerCase());
+  } catch {
+    return true;
+  }
+}
+
 export interface Ride {
+  ride_class?: string;
   id: number;
   driver_id?: number;
   rider_name: string;
@@ -20,7 +33,7 @@ export interface Ride {
   fare_amount: number;
   payment_method: string;
   pickup_eta: string;
-  status: "pending" | "accepted" | "arrived" | "started" | "completed" | "declined" | "cancelled";
+  status: "pending" | "accepted" | "arrived" | "started" | "awaiting_payment" | "completed" | "declined" | "cancelled";
   latitude?: number;
   longitude?: number;
   pickup_latitude?: number;
@@ -76,6 +89,7 @@ export const useRideStore = create<RideState>()(
   error: null,
 
   addIncomingRequest: (ride) => {
+    if (!matchesDriverPreferences(ride)) return;
     set((state) => {
       if (state.incomingRequests.some((r) => String(r.id) === String(ride.id))) {
         return state;
@@ -100,23 +114,27 @@ export const useRideStore = create<RideState>()(
 
   fetchIncomingRequests: async () => {
     try {
-      set({ isLoading: true });
       const response = await apiClient.get(API_ENDPOINTS.RIDES_REQUESTS);
-      const requests = response.data;
-      set({ incomingRequests: requests });
-      
-      // Globally trigger navigation if there are pending requests, ensuring it pops up on any tab
-      if (requests.length > 0) {
-        import("../navigation/navigationRef").then(({ navigate, navigationRef }) => {
-          if (navigationRef.isReady()) {
-            navigate("RideRequest", { rideId: requests[0].id });
-          }
-        });
+      const requests = (response.data as Ride[]).filter(matchesDriverPreferences);
+      const prevIds = get().incomingRequests.map((r) => r.id).sort().join(",");
+      const nextIds = requests.map((r) => r.id).sort().join(",");
+      const changed = prevIds !== nextIds;
+      // Only touch state when something actually changed (avoids re-rendering every poll)
+      if (changed) set({ incomingRequests: requests });
+
+      // Pop the request screen only for a changed list and when not already showing it
+      if (changed && requests.length > 0) {
+        const hadNew = requests.some((r) => !prevIds.split(",").includes(String(r.id)));
+        if (hadNew) {
+          import("../navigation/navigationRef").then(({ navigate, navigationRef }) => {
+            if (navigationRef.isReady() && navigationRef.getCurrentRoute()?.name !== "RideRequest") {
+              navigate("RideRequest", { rideId: requests[0].id });
+            }
+          });
+        }
       }
     } catch (err: any) {
       console.log("Fetch requests error:", err);
-    } finally {
-      set({ isLoading: false });
     }
   },
 

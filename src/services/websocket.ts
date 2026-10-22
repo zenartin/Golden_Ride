@@ -1,8 +1,9 @@
 import { BASE_URL } from "../api/axios";
-import { useRideStore } from "../store/rideStore";
+import { useRideStore, matchesDriverPreferences } from "../store/rideStore";
+import * as Notifications from "expo-notifications";
 import { useAuthStore } from "../store/authStore";
 import { navigate, goBack, navigationRef } from "../navigation/navigationRef";
-import { Alert } from "react-native";
+import { Alert, Vibration } from "react-native";
 import { Audio } from "expo-av";
 
 let socket: WebSocket | null = null;
@@ -12,61 +13,74 @@ let heartbeatInterval: NodeJS.Timeout | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let isExplicitDisconnect = false;
 
-// Manage the ringtone globally
+// Manage the ringtone globally. Dedupe is keyed by ride request id (not a boolean flag):
+// each new request id gets a brand-new Audio.Sound; the previous one is fully unloaded.
 let currentSound: Audio.Sound | null = null;
 let ringtoneTimeout: NodeJS.Timeout | null = null;
-let playRequestId = 0;
+let playToken = 0;
+const alertedRequestIds = new Set<string>();
 
-async function playRingtone() {
+let ringingId: string | null = null;
+
+export async function playRingtone(requestId?: string | number) {
+  if (requestId !== undefined && requestId !== null) {
+    const key = String(requestId);
+    // Skip only if this exact request is already ringing right now. After a stop
+    // (accept/decline/timeout) the next request must always ring again.
+    if (ringingId === key) return;
+    ringingId = key;
+  }
+  const keepId = ringingId;
   await stopRingtone();
-  playRequestId++;
-  const currentRequestId = playRequestId;
-  
+  ringingId = keepId;
+  const myToken = ++playToken;
+
   try {
-    console.log("Setting up ringtone audio mode...");
+    Vibration.vibrate([0, 500, 300, 500, 300, 500]);
+  } catch (e) {}
+
+  try {
     await Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: true,
       shouldDuckAndroid: true,
     });
 
-    console.log("Playing trip request ringtone...");
     const { sound } = await Audio.Sound.createAsync(
       require('../../assets/sounds/trip_request_melodic.wav'),
-      { isLooping: true }
+      { isLooping: true, shouldPlay: false, volume: 1.0 }
     );
-    
-    // If stopRingtone was called while we were loading, abort playing!
-    if (currentRequestId !== playRequestId) {
-      await sound.unloadAsync();
+
+    // If stopRingtone / another play was called while loading, abort.
+    if (myToken !== playToken) {
+      await sound.unloadAsync().catch(() => {});
       return;
     }
 
     currentSound = sound;
-    await currentSound.playAsync();
-    
-    // Auto stop after 30 seconds
+    await sound.playAsync();
+
     ringtoneTimeout = setTimeout(() => {
       stopRingtone().catch(() => {});
     }, 30000);
   } catch (err) {
-    console.log("Error playing WebSocket ringtone:", err);
+    console.log("Error playing ringtone:", err);
   }
 }
 
 export async function stopRingtone() {
-  playRequestId++; // Invalidate any loading sounds
+  ringingId = null;
+  playToken++; // Invalidate any loading sounds
   if (ringtoneTimeout) {
     clearTimeout(ringtoneTimeout);
     ringtoneTimeout = null;
   }
+  try { Vibration.cancel(); } catch (e) {}
   if (currentSound) {
     const soundToStop = currentSound;
     currentSound = null;
-    try {
-      await soundToStop.stopAsync();
-      await soundToStop.unloadAsync();
-    } catch (e) {}
+    try { await soundToStop.stopAsync(); } catch (e) {}
+    try { await soundToStop.unloadAsync(); } catch (e) {}
   }
 }
 
@@ -85,7 +99,7 @@ export function connectDriverWebSocket(driverId: number, token: string) {
   
   // Safety check: if host starts with "." something went wrong, fallback to known WSS host
   if (baseHost.includes("://.") || !baseHost.startsWith("ws")) {
-    baseHost = "ws://54.197.9.181";
+    baseHost = "wss://54-197-9-181.nip.io";
   }
   
   const wsUrl = `${baseHost}/ws/driver/${driverId}?token=${token}`;
@@ -123,11 +137,20 @@ export function connectDriverWebSocket(driverId: number, token: string) {
       const { addIncomingRequest, removeIncomingRequest, setActiveRide } = useRideStore.getState();
 
       if (msg.type === "new_ride") {
-        playRingtone();
+        if (!matchesDriverPreferences(msg.ride)) return;
+        playRingtone(msg.ride.id);
         addIncomingRequest(msg.ride);
         // Popup modal request screen
         navigate("RideRequest", { rideId: msg.ride.id });
       } 
+      else if (msg.type === "chat_message" || msg.type === "new_message") {
+        const m = msg.message || msg;
+        if (m.sender !== "driver") {
+          import("./chatNotifier").then(({ notifyIncomingMessage }) =>
+            notifyIncomingMessage(m)
+          ).catch(() => {});
+        }
+      }
       else if (msg.type === "ride_accepted") {
         stopRingtone();
         const { incomingRequests } = useRideStore.getState();

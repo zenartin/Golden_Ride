@@ -167,13 +167,12 @@ def confirm_payment(
             payment.updated_at = datetime.utcnow()
 
             # Also update the Ride status to "completed" if it was pending payment
+            db.commit()
             if payment.ride_id:
                 ride = db.query(Ride).filter(Ride.id == payment.ride_id).first()
-                if ride and ride.status in ["pending", "accepted"]:
-                    ride.status = "completed"
-                    db.add(ride)
-
-            db.commit()
+                if ride:
+                    from app.services.ride_service import RideService
+                    RideService.mark_ride_paid(db, ride)
             db.refresh(payment)
 
             return ConfirmPaymentResponse(
@@ -293,13 +292,12 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             payment.updated_at = datetime.utcnow()
 
             # Mark ride as completed/paid
+            db.commit()
             if payment.ride_id:
                 ride = db.query(Ride).filter(Ride.id == payment.ride_id).first()
-                if ride and ride.status in ["pending", "accepted"]:
-                    ride.status = "completed"
-                    db.add(ride)
-
-            db.commit()
+                if ride:
+                    from app.services.ride_service import RideService
+                    RideService.mark_ride_paid(db, ride)
             logger.info(f"PaymentIntent {payment_intent_id} marked as succeeded.")
 
     elif event_type == "payment_intent.payment_failed":
