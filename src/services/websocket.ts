@@ -23,7 +23,7 @@ export function connectUserWebSocket(userId: number, token: string) {
 
   // Safety fallback if URL mangling produced an invalid host
   if (baseHost.includes("://.") || !baseHost.startsWith("ws")) {
-    baseHost = "ws://54.197.9.181";
+    baseHost = "wss://54-197-9-181.nip.io";
   }
 
   const wsUrl = `${baseHost}/ws/user/${userId}?token=${token}`;
@@ -58,6 +58,13 @@ export function connectUserWebSocket(userId: number, token: string) {
         Alert.alert("Ride Accepted! 🚕", `Your ride request has been accepted by ${msg.driver.name}.`);
         navigate("TrackRide");
       } 
+      else if (msg.type === "chat_message" || msg.type === "new_message") {
+        const m = msg.message || msg;
+        if (m.sender !== "rider") {
+          useRideStore.getState().fetchMessages?.(Number(m.ride_id ?? msg.ride_id)).catch?.(() => {});
+          import("./chatNotifier").then(({ notifyIncomingMessage }) => notifyIncomingMessage(m)).catch(() => {});
+        }
+      }
       else if (msg.type === "ride_expired") {
         setActiveTripStatus("cancelled");
         Alert.alert("Ride Expired", "No driver accepted your request within 60 seconds.");
@@ -81,23 +88,27 @@ export function connectUserWebSocket(userId: number, token: string) {
           mappedStatus = "on_trip";
           title = "Trip Started! 🚀";
           body = "You are now on your way to the drop location.";
-        } else if (msg.status === "completed") {
+        } else if (msg.status === "awaiting_payment") {
           mappedStatus = "completed";
           title = "Trip Completed! 🏁";
-          body = `You have arrived. Final fare: $${msg.actual_fare || ""}`;
+          body = `You have arrived. Please pay $${msg.actual_fare || ""} to finish.`;
+        } else if (msg.status === "completed") {
+          mappedStatus = "completed";
         } else if (msg.status === "cancelled") {
           mappedStatus = "cancelled";
           title = "Trip Cancelled";
           body = "The driver or dispatcher cancelled your trip.";
         }
 
-        setActiveTripStatus(mappedStatus);
+        setActiveTripStatus(mappedStatus, undefined, msg.status === "awaiting_payment");
         
         if (title) {
           Alert.alert(title, body);
         }
         
-        if (mappedStatus === "completed" || mappedStatus === "cancelled") {
+        if (msg.status === "awaiting_payment") {
+          navigate("Payment", { tripId: String(msg.ride_id) });
+        } else if (mappedStatus === "cancelled") {
           navigate("Shell");
         }
       }

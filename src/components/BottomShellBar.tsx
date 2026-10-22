@@ -24,7 +24,7 @@ export default function BottomShellBar({
   const insets = useSafeAreaInsets();
   
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(Spacing.md, insets.bottom + Spacing.xs) }]}>
+    <View style={[styles.wrap, { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 }]}>
       {tabs.map((tab) => {
         const active = tab.key === activeTab;
         return (
@@ -42,12 +42,11 @@ const styles = StyleSheet.create({
   wrap: {
     flexDirection: "row",
     backgroundColor: Colors.surface,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.divider,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
+    paddingTop: 6,
   },
-  tab: { flex: 1, alignItems: "center", gap: 4 },
+  tab: { flex: 1, alignItems: "center", gap: 2 },
   label: { fontSize: Typography.tiny, color: Colors.textMuted, fontWeight: "700" },
   labelActive: { color: Colors.primary },
 });

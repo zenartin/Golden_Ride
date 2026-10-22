@@ -20,7 +20,7 @@ import { FamilyDashboardScreen } from "../features/family/screens/FamilyDashboar
 import { InviteMembersScreen } from "../features/family/screens/InviteMembersScreen";
 
 export type MainStackParamList = {
-  Shell: { pickedLocation?: { mode: "pickup" | "dropoff"; place: GeocodedPlace } } | undefined;
+  Shell: { tab?: string; screen?: string; pickedLocation?: { mode: "pickup" | "dropoff"; place: GeocodedPlace } } | undefined;
   TrackRide: undefined;
   TripDetail: { tripId: string };
   Chat: { rideId: string };

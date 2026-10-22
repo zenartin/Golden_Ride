@@ -42,6 +42,8 @@ export interface Trip {
   driverUpiId?: string;
   driverAvatar?: string;
   verificationPin?: string;
+  /** true while trip is finished but payment has not been confirmed */
+  paymentPending?: boolean;
 }
 
 export interface ChatMessage {
@@ -98,12 +100,13 @@ interface RideState {
   fetchMessages: (rideId: number) => Promise<void>;
   sendMessage: (rideId: number, content: string) => Promise<boolean>;
   advanceActiveTrip: () => void;
+  completeActiveTrip: () => void;
   cancelActiveTrip: () => Promise<void>;
   topUpWallet: (amount: number) => Promise<void>;
   purchaseGiftCard: (amount: number) => Promise<GiftCard>;
   redeemGiftCard: (code: string) => Promise<void>;
   fetchGiftCards: () => Promise<void>;
-  setActiveTripStatus: (status: RideStatus, driverData?: any) => void;
+  setActiveTripStatus: (status: RideStatus, driverData?: any, paymentPending?: boolean) => void;
 }
 
 const rideMeta: Record<string, { title: string; subtitle: string; seats: number; multiplier: number; icon: string }> = {
@@ -163,7 +166,7 @@ type ApiRide = {
   duration: string;
   fare_amount: number;
   payment_method: string;
-  status: RideStatus | "pending" | "accepted" | "arrived" | "started" | "declined";
+  status: RideStatus | "pending" | "accepted" | "arrived" | "started" | "declined" | "awaiting_payment";
   created_at?: string;
   driver_name?: string | null;
   driver_phone?: string | null;
@@ -174,6 +177,7 @@ type ApiRide = {
   pickup_longitude?: number | null;
   dropoff_latitude?: number | null;
   dropoff_longitude?: number | null;
+  driver_latitude?: number | null;
   driver_longitude?: number | null;
   driver_upi_id?: string | null;
   driver_avatar?: string | null;
@@ -186,6 +190,7 @@ const mapApiStatus = (status: ApiRide["status"]): RideStatus => {
   if (status === "arrived") return "arriving";
   if (status === "started") return "on_trip";
   if (status === "declined") return "cancelled";
+  if (status === "awaiting_payment") return "completed";
   return status as RideStatus;
 };
 
@@ -212,6 +217,7 @@ const mapApiRide = (ride: ApiRide): Trip => {
     duration: ride.duration,
     paymentMethod: ride.payment_method,
     status: mapApiStatus(ride.status),
+    paymentPending: ride.status === "awaiting_payment",
     createdAt: ride.created_at || new Date().toISOString(),
     driverPhone: ride.driver_phone || undefined,
     driverUpiId: ride.driver_upi_id || undefined,
@@ -429,7 +435,7 @@ export const useRideStore = create<RideState>()(
         const giftCards = await apiRequest<GiftCard[]>(API_ENDPOINTS.GIFTCARDS_LIST);
         set({ giftCards });
       },
-      setActiveTripStatus: (status, driverData) => {
+      setActiveTripStatus: (status, driverData, paymentPending) => {
         set((state) => {
           if (!state.activeTrip) return state;
           const carDescription = driverData 
@@ -438,6 +444,7 @@ export const useRideStore = create<RideState>()(
           const updated = { 
             ...state.activeTrip, 
             status,
+            paymentPending: status === "completed" ? !!paymentPending : state.activeTrip.paymentPending,
             driver: driverData ? driverData.name : state.activeTrip.driver,
             car: carDescription,
             plate: driverData ? driverData.vehicle_number : state.activeTrip.plate,

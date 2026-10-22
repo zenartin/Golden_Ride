@@ -18,7 +18,11 @@ type Props = NativeStackScreenProps<MainStackParamList, "Shell">;
 type TabKey = "Home" | "Trips" | "Family" | "Wallet" | "Profile";
 
 export default function MainShellScreen({ navigation, route }: Props) {
-  const [tab, setTab] = useState<TabKey>("Home");
+  const [tab, setTab] = useState<TabKey>(((route.params as any)?.tab as TabKey) || "Home");
+  React.useEffect(() => {
+    const t = (route.params as any)?.tab as TabKey | undefined;
+    if (t) setTab(t);
+  }, [(route.params as any)?.tab]);
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
 
   React.useEffect(() => {

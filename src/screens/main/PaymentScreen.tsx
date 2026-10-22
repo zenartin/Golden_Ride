@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -41,7 +42,10 @@ export default function PaymentScreen({ route, navigation }: any) {
     let isMounted = true;
     fetchTripDetail(tripId)
       .then((t) => {
-        if (isMounted && t) setTrip(t);
+        if (isMounted && t) {
+          setTrip(t);
+          if (!t.paymentPending) setDriverPaid(true);
+        }
       })
       .catch((err) => {
         console.log("Fetch trip detail error:", err);
@@ -73,6 +77,53 @@ export default function PaymentScreen({ route, navigation }: any) {
       isMounted = false;
     };
   }, [tripId]);
+
+  // Cash rides: poll until driver confirms receiving cash
+  useEffect(() => {
+    if (driverPaid || !trip) return;
+    const interval = setInterval(() => {
+      fetchTripDetail(tripId)
+        .then((t) => {
+          if (t && !t.paymentPending) setDriverPaid(true);
+        })
+        .catch(() => undefined);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [driverPaid, trip?.id, tripId]);
+
+  // Prevent leaving before payment is completed
+  useEffect(() => {
+    const onBackPress = () => {
+      if (!driverPaid) {
+        Alert.alert(
+          "Payment Incomplete",
+          "Please complete payment for this ride before leaving.",
+          [{ text: "OK" }]
+        );
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+    const unsubscribe = navigation.addListener("beforeRemove", (e: any) => {
+      if (driverPaid) {
+        return;
+      }
+      e.preventDefault();
+      Alert.alert(
+        "Payment Incomplete",
+        "Please complete payment for this ride before leaving.",
+        [{ text: "OK" }]
+      );
+    });
+
+    return () => {
+      backHandler.remove();
+      unsubscribe();
+    };
+  }, [navigation, driverPaid]);
 
   if (!trip) {
     return (
@@ -173,8 +224,10 @@ export default function PaymentScreen({ route, navigation }: any) {
   };
 
   const handleDone = () => {
+    // Clear activeTrip and move to completed history
+    useRideStore.getState().completeActiveTrip();
     // Navigate to Rating screen instead of Shell directly
-    navigation.navigate("Rating", { tripId });
+    navigation.replace("Rating", { tripId });
   };
 
   return (
@@ -236,7 +289,7 @@ export default function PaymentScreen({ route, navigation }: any) {
         <Text style={styles.pageTitle}>Complete Payment</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Ride Summary */}
         <View style={styles.card}>
           <Ionicons

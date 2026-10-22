@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Pressable, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TextInput, Pressable, Alert, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -34,16 +34,25 @@ export default function RatingScreen({ navigation, route }: Props) {
       }).catch(err => console.log("Rating submission error:", err));
 
       useRideStore.setState({ activeTrip: null });
-      navigation.navigate("Shell");
+      navigation.reset({ index: 0, routes: [{ name: "Shell" }] });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSkip = () => {
+  const goHome = () => {
     useRideStore.setState({ activeTrip: null });
-    navigation.navigate("Shell");
+    navigation.reset({ index: 0, routes: [{ name: "Shell" }] });
   };
+
+  // Ride is already paid here; hardware back simply returns to a fresh Home (never back to Payment).
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      goHome();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -84,9 +93,6 @@ export default function RatingScreen({ navigation, route }: Props) {
           onPress={handleSubmit} 
           disabled={submitting || rating === 0}
         />
-        <Pressable style={styles.skipBtn} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
-        </Pressable>
       </View>
     </SafeAreaView>
   );

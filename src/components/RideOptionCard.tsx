@@ -1,4 +1,5 @@
 import React from "react";
+import { formatDuration } from "../utils/formatDuration";
 import { Pressable, Text, View, StyleSheet, Alert } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
@@ -192,7 +193,7 @@ export default function RideOptionCard({
       <View style={styles.metaRow}>
         <View style={styles.metaChip}>
           <Ionicons name="time-outline" size={13} color={Colors.textSecondary} />
-          <Text style={styles.metaText}>{option.eta}</Text>
+          <Text style={styles.metaText}>{formatDuration(option.eta)}</Text>
         </View>
         {option.distance && (
           <View style={styles.metaChip}>

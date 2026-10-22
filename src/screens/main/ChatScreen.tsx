@@ -87,6 +87,11 @@ export default function ChatScreen({ navigation, route }: any) {
         <View style={{ width: 40 }} />
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+      >
       {loading ? (
         <View style={styles.centerLoader}>
           <ActivityIndicator size="small" color={Colors.primary} />
@@ -123,11 +128,7 @@ export default function ChatScreen({ navigation, route }: any) {
         />
       )}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
-        style={styles.inputBarWrapper}
-      >
+        <View style={styles.inputBarWrapper}>
         <View style={[styles.inputBar, isChatDisabled && styles.inputBarDisabled]}>
           <TextInput
             style={[styles.textInput, isChatDisabled && styles.textInputDisabled]}
@@ -135,7 +136,8 @@ export default function ChatScreen({ navigation, route }: any) {
             placeholderTextColor={Colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
-            onSubmitEditing={handleSend}
+            blurOnSubmit
+            returnKeyType="default"
             editable={!isChatDisabled}
           />
           <TouchableOpacity 
@@ -145,6 +147,7 @@ export default function ChatScreen({ navigation, route }: any) {
           >
             <Ionicons name="send" size={18} color={Colors.white} />
           </TouchableOpacity>
+        </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -37,8 +37,10 @@ export class RecordingService {
       await axios.post(`${BASE_URL}/recordings/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        }
+        },
+        transformRequest: (data: any) => data,
+        timeout: 120000,
+        maxBodyLength: Infinity,
       });
       
       // Attempt to delete local file after successful upload to free space

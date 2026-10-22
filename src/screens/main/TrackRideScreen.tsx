@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { formatDuration } from "../../utils/formatDuration";
 import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking, Image, Share } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
@@ -257,7 +258,7 @@ export default function TrackRideScreen({ navigation }: Props) {
 
         {/* SOS Emergency Button Overlay */}
         <Pressable 
-          style={[styles.sosOverlayBtn, { top: insets.top > 0 ? insets.top + 10 : Spacing.md + 20 }]}
+          style={[styles.sosOverlayBtn, { top: insets.top + 16 }]}
           onPress={() => Linking.openURL('tel:112')}
         >
           <Ionicons name="shield-checkmark" size={20} color="#FFF" />
@@ -266,7 +267,7 @@ export default function TrackRideScreen({ navigation }: Props) {
 
         {/* Dashcam Record Ride Overlay */}
         <Pressable 
-          style={[styles.dashcamOverlayBtn, { top: insets.top > 0 ? insets.top + 10 : Spacing.md + 20 }]}
+          style={[styles.dashcamOverlayBtn, { top: insets.top + 16 }]}
           onPress={() => setShowDashcam(true)}
         >
           <Ionicons name="videocam-outline" size={20} color="#FFF" />
@@ -344,7 +345,7 @@ export default function TrackRideScreen({ navigation }: Props) {
 
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
+              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {formatDuration(activeTrip.duration)}</Text>
             </View>
 
             <View style={styles.fareRow}>
@@ -388,7 +389,7 @@ export default function TrackRideScreen({ navigation }: Props) {
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {activeTrip.duration}</Text>
+              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {formatDuration(activeTrip.duration)}</Text>
             </View>
             <View style={styles.fareRow}>
               <Ionicons name="card-outline" size={16} color={Colors.textSecondary} />
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   mapCard: {
-    height: 200,
+    height: 260,
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,

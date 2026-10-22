@@ -14,12 +14,17 @@ export interface GeocodedPlace {
 
 const BASE_URL = "https://photon.komoot.io"; // Much faster OSM geocoder
 
-export async function searchPlaces(query: string, limit = 6): Promise<GeocodedPlace[]> {
+export async function searchPlaces(query: string, limit = 6, bias?: { lat: number; lon: number }): Promise<GeocodedPlace[]> {
   if (!query.trim() || query.trim().length < 2) return [];
   const params = new URLSearchParams({
     q: query.trim(),
     limit: String(limit),
   });
+  if (bias) {
+    params.set("lat", String(bias.lat));
+    params.set("lon", String(bias.lon));
+    params.set("location_bias_scale", "0.5");
+  }
   const url = `${BASE_URL}/api?${params}`;
   try {
     const resp = await fetch(url, {
@@ -81,7 +86,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<Geocoded
 
 export async function getRoutePolyline(startLat: number, startLon: number, endLat: number, endLon: number): Promise<{ latitude: number; longitude: number }[]> {
   try {
-    const url = `http://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?geometries=geojson&overview=full`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?geometries=geojson&overview=full`;
     const resp = await fetch(url);
     if (!resp.ok) return [];
     const data = await resp.json();

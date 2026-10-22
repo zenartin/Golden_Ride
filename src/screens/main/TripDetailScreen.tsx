@@ -7,6 +7,7 @@ import { MainStackParamList } from "../../navigation/MainNavigator";
 import { useRideStore, Trip } from "../../store/rideStore";
 import { Colors, Spacing, Typography } from "../../theme";
 import { openDirectionsInMaps } from "../../utils/openMaps";
+import { formatDuration } from "../../utils/formatDuration";
 
 type Props = NativeStackScreenProps<MainStackParamList, "TripDetail">;
 
@@ -69,13 +70,13 @@ export default function TripDetailScreen({ route, navigation }: Props) {
         <Text style={styles.sectionTitle}>Price and status</Text>
         <Text style={styles.status}>${trip.price}</Text>
         <Text style={styles.meta}>Distance: {trip.distance}</Text>
-        <Text style={styles.meta}>Duration: {trip.duration}</Text>
+        <Text style={styles.meta}>Duration: {formatDuration(trip.duration)}</Text>
         <Text style={styles.meta}>Payment: {trip.paymentMethod}</Text>
         <Text style={styles.meta}>Status: {trip.status}</Text>
       </View>
 
       <AppButton title="Open route" onPress={openRoute} />
-      <AppButton title="Back to trips" onPress={() => navigation.goBack()} variant="secondary" />
+      <AppButton title="Back to trips" onPress={() => (navigation as any).reset({ index: 0, routes: [{ name: "Shell", params: { tab: "Trips", screen: "Trips" } }] })} variant="secondary" />
     </View>
   );
 }

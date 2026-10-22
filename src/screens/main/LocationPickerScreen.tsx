@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -62,7 +63,12 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
     }
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
-      const hits = await searchPlaces(query, 8);
+      let bias: { lat: number; lon: number } | undefined;
+      try {
+        const last = await Location.getLastKnownPositionAsync();
+        if (last) bias = { lat: last.coords.latitude, lon: last.coords.longitude };
+      } catch {}
+      const hits = await searchPlaces(query, 8, bias);
       setResults(hits);
       setSearching(false);
     }, 500);
@@ -118,15 +124,15 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
     if (editRideId) {
       setLocating(true);
       try {
-        await apiClient.put(`/api/user/rides/${editRideId}/destination`, {
+        await apiClient.put(`/user/rides/${editRideId}/destination`, {
           dropoff: selected.shortName,
           dropoff_latitude: selected.lat,
           dropoff_longitude: selected.lon
         });
-        useRideStore.getState().fetchActiveRide();
+        await useRideStore.getState().refreshActiveTrip().catch(() => undefined);
         navigation.goBack();
-      } catch (err) {
-        Alert.alert("Error", "Could not update destination.");
+      } catch (err: any) {
+        Alert.alert("Error", err?.response?.data?.detail || "Could not update destination.");
       } finally {
         setLocating(false);
       }

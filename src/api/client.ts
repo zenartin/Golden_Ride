@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 // Production AWS EC2 Backend
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://54.197.9.181/api";
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://54-197-9-181.nip.io/api";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

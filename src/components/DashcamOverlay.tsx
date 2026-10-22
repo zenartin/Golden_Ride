@@ -51,6 +51,18 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
     );
   }
 
+  const finishPromiseRef = useRef<Promise<void> | null>(null);
+
+  const handleClose = async () => {
+    if (isRecording) {
+      setIsRecording(false);
+      try { cameraRef.current?.stopRecording(); } catch (e) {}
+      // wait for the recording to finish & upload before unmounting the camera
+      if (finishPromiseRef.current) await finishPromiseRef.current.catch(() => {});
+    }
+    onClose();
+  };
+
   const toggleCameraType = () => {
     setType(current => (current === 'back' ? 'front' : 'back'));
   };
@@ -70,15 +82,20 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
       setRecordingId(recId);
       setIsRecording(true);
       
-      try {
-        const video = await cameraRef.current.recordAsync({ maxDuration: 60 * 60 });
-        // When recording stops naturally or programmatically, upload it
-        if (video?.uri) {
-          await RecordingService.uploadRecording(recId, video.uri);
+      finishPromiseRef.current = (async () => {
+        try {
+          const video = await cameraRef.current!.recordAsync({ maxDuration: 60 * 60 });
+          // When recording stops naturally or programmatically, upload it
+          if (video?.uri) {
+            const ok = await RecordingService.uploadRecording(recId, video.uri);
+            if (!ok) alert("Recording saved on device but upload failed. It will stay on your phone.");
+          }
+        } catch (e) {
+          console.error("Recording failed", e);
+          setIsRecording(false);
+          alert("Video recording failed. Please try again.");
         }
-      } catch (e) {
-        console.error("Recording failed", e);
-      }
+      })();
     }
   };
 
@@ -86,7 +103,7 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
     <View style={styles.overlay}>
       <CameraView style={styles.camera} facing={type} ref={cameraRef} mode="video">
         <View style={styles.topControls}>
-          <TouchableOpacity onPress={onClose} style={styles.iconBtn}>
+          <TouchableOpacity onPress={handleClose} style={styles.iconBtn}>
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
           {isRecording && (

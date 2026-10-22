@@ -2,14 +2,14 @@
   "expo": {
     "name": "Golden Ride",
     "slug": "golden-ride-user",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.goldenride.user",
-      "buildNumber": "6"
+      "buildNumber": "2"
     },
     "android": {
       "config": {
@@ -30,7 +30,7 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "versionCode": 6
+      "versionCode": 7
     },
     "web": {
       "favicon": "./favicon.png"
@@ -54,18 +54,18 @@
       [
         "expo-build-properties",
         {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "minSdkVersion": 24
-          },
           "ios": {
             "deploymentTarget": "15.1"
+          },
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
           }
         }
       ]
     ],
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.0.4",
     "extra": {
       "eas": {
         "projectId": "e5a0c852-3e63-44a5-9f0a-82d1a9c50e4a"

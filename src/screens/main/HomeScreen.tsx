@@ -95,7 +95,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     if (pickupCoords && dropoffCoords) {
       const fetchRoute = async () => {
         try {
-          const res = await fetch(`http://router.project-osrm.org/route/v1/driving/${pickupCoords.lon},${pickupCoords.lat};${dropoffCoords.lon},${dropoffCoords.lat}?overview=full`);
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${pickupCoords.lon},${pickupCoords.lat};${dropoffCoords.lon},${dropoffCoords.lat}?overview=full`);
           const data = await res.json();
           if (data.routes && data.routes.length > 0) {
             const points = polyline.decode(data.routes[0].geometry);
@@ -233,6 +233,18 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   }, [user]);
 
   const handleBook = async () => {
+    if (activeTrip?.status === "completed") {
+      Alert.alert(
+        "Payment Outstanding",
+        "You have a completed ride that requires payment before booking a new trip.",
+        [
+          { text: "Pay Now", onPress: () => navigation.navigate("Payment", { tripId: activeTrip.id }) },
+          { text: "Cancel", style: "cancel" }
+        ]
+      );
+      return;
+    }
+
     if (!pickup.trim() || !dropoff.trim()) {
       Alert.alert("Missing info", "Please select both pickup and destination.");
       return;
@@ -371,7 +383,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
             <View style={{ paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, marginBottom: 4 }}>
               <View style={styles.inputRow}>
                 <View style={styles.dotLine}>
-                  <Ionicons name="location" size={18} color="#10B981" />
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#10B981", marginVertical: 4 }} />
                   <View style={[styles.line, { height: 16, marginVertical: 2 }]} />
                   <Ionicons name="flag" size={16} color="#EF4444" />
                 </View>
@@ -380,9 +392,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   <View style={{ height: 1, backgroundColor: Colors.border, width: "100%" }} />
                   <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{dropoff}</Text>
                 </View>
-                <Pressable onPress={() => useRideStore.setState({ rideOptions: [] })} style={{ padding: 8, alignSelf: "center", backgroundColor: Colors.background, borderRadius: 20 }}>
-                  <Ionicons name="pencil" size={18} color={Colors.primary} />
-                </Pressable>
+
               </View>
             </View>
 
@@ -442,7 +452,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
 
             <View style={styles.inputRow}>
               <View style={styles.dotLine}>
-                <Ionicons name="location" size={22} color="#10B981" />
+                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "#10B981", marginVertical: 4 }} />
                 <View style={styles.line} />
                 <Ionicons name="flag" size={20} color="#EF4444" />
               </View>
