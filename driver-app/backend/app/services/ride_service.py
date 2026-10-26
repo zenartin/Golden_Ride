@@ -319,8 +319,45 @@ class RideService:
         updated_ride = RideRepository.update_status(db, ride, "awaiting_payment", actual_fare=ride.fare_amount)
         if (ride.payment_method or "").lower() == "wallet" or ride.payment_status == "paid":
             updated_ride = cls.mark_ride_paid(db, updated_ride)
+        elif (ride.payment_method or "").lower() not in ("cash", "cod"):
+            updated_ride = cls.charge_saved_card(db, updated_ride)
         await DispatchService.notify_ride_status_update(db, updated_ride)
         return updated_ride
+
+    @classmethod
+    def charge_saved_card(cls, db: Session, ride: Ride) -> Ride:
+        """Charge the rider's saved card off-session. On failure the ride stays
+        'awaiting_payment' so the rider can pay manually."""
+        import logging
+        import stripe
+        from app.core.config import settings
+        from app.models.user import User
+        log = logging.getLogger("payments")
+        try:
+            user = db.query(User).filter(User.id == ride.user_id).first()
+            if not user or not user.stripe_customer_id or not user.stripe_payment_method_id:
+                log.warning("Ride %s: no saved card for rider", ride.id)
+                return ride
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            amount = int(round((ride.actual_fare or ride.fare_amount) * 100))
+            intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency="usd",
+                customer=user.stripe_customer_id,
+                payment_method=user.stripe_payment_method_id,
+                off_session=True,
+                confirm=True,
+                metadata={"ride_id": str(ride.id)},
+                idempotency_key=f"ride-{ride.id}-charge",
+            )
+            ride.stripe_payment_intent_id = intent.id
+            if intent.status == "succeeded":
+                return cls.mark_ride_paid(db, ride, payment_method="card")
+            db.add(ride)
+            db.commit()
+        except Exception as e:
+            log.error("Ride %s card charge failed: %s", ride.id, e)
+        return ride
 
     @classmethod
     def mark_ride_paid(cls, db: Session, ride: Ride, payment_method: str = None) -> Ride:

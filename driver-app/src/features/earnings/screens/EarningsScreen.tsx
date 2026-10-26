@@ -188,32 +188,6 @@ export default function EarningsScreen() {
           </View>
         </LinearGradient>
 
-        {/* Bar Chart */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Daily Breakdown</Text>
-          <View style={styles.chart}>
-            {statistics.map((bar) => {
-              const heightPct = (bar.amount / maxBar) * 100;
-              const currentDayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
-              const isToday = bar.day === currentDayName;
-              return (
-                <View key={bar.day} style={styles.barCol}>
-                  <Text style={styles.barAmount}>{formatAmount(bar.amount)}</Text>
-                  <View style={styles.barBg}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        { height: `${heightPct}%` as any },
-                        isToday && styles.barToday,
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.barDay, isToday && styles.barDayToday]}>{bar.day}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
 
 
         {/* Withdrawal History */}
