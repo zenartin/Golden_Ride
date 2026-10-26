@@ -243,9 +243,9 @@ def get_profile(current_user: User = Depends(get_current_user)):
         "avatar": current_user.avatar,
         "rating": current_user.rating,
         "wallet_balance": current_user.wallet_balance,
-        "card_number": current_user.card_number,
-        "card_expiry": current_user.card_expiry,
-        "card_holder": current_user.card_holder,
+        "card_number": (f"•••• •••• •••• {current_user.card_last4}" if current_user.stripe_payment_method_id and current_user.card_last4 else None),
+        "card_expiry": None,
+        "card_holder": None,
         "has_payment_method": bool(current_user.stripe_payment_method_id),
         "card_brand": current_user.card_brand,
         "card_last4": current_user.card_last4,
@@ -651,23 +651,51 @@ class CardUpdateRequest(BaseModel):
     card_holder: str
 
 @router.put("/profile/card")
-def update_card(
-    payload: CardUpdateRequest,
+def update_card(payload: CardUpdateRequest):
+    # Raw card numbers/CVVs must never reach our servers (PCI). Old app builds land here.
+    raise HTTPException(status_code=400, detail="Please update the Golden Ride app to add your card securely.")
+
+
+@router.post("/card/setup-intent")
+def create_card_setup_intent(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    current_user.card_number = payload.card_number
-    current_user.card_expiry = payload.card_expiry
-    current_user.card_cvv = payload.card_cvv
-    current_user.card_holder = payload.card_holder
-    
-    db.add(current_user)
-    db.commit()
-    db.refresh(current_user)
-    
+    """Create a Stripe SetupIntent so the app can collect the card with Stripe's secure CardField."""
+    import stripe
+    from app.services import stripe_service
+    if stripe_service.is_mock():
+        return {"client_secret": None, "mock": True}
+    try:
+        customer_id = stripe_service.ensure_customer(db, current_user)
+        intent = stripe.SetupIntent.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            usage="off_session",
+        )
+        return {"client_secret": intent.client_secret, "mock": False}
+    except Exception:
+        raise HTTPException(status_code=502, detail="Could not start card setup. Please try again.")
+
+
+class SaveCardRequest(BaseModel):
+    payment_method_id: str
+
+@router.post("/card/save")
+def save_card(
+    payload: SaveCardRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Attach the Stripe payment method created by the app and remember brand/last4."""
+    from app.services import stripe_service
+    try:
+        stripe_service.save_payment_method(db, current_user, payload.payment_method_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not save this card.")
     return {
         "status": "success",
-        "card_number": current_user.card_number,
-        "card_expiry": current_user.card_expiry,
-        "card_holder": current_user.card_holder,
+        "has_payment_method": True,
+        "card_brand": current_user.card_brand,
+        "card_last4": current_user.card_last4,
     }
