@@ -86,7 +86,8 @@ export default function PaymentMethodsScreen() {
 
     if (success) {
       Alert.alert("Success", "Credit/Debit Card details updated successfully.");
-      navigation.goBack();
+      if (navigation.canGoBack()) navigation.goBack();
+      else (navigation as any).navigate("Shell");
     } else {
       Alert.alert("Error", "Failed to update card details. Please try again.");
     }

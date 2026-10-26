@@ -1,6 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { useAuthStore } from "../store/authStore";
 import MainShellScreen from "../screens/main/MainShellScreen";
 import TrackRideScreen from "../screens/main/TrackRideScreen";
 import TripDetailScreen from "../screens/main/TripDetailScreen";
@@ -42,8 +43,9 @@ export type MainStackParamList = {
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
 export default function MainNavigator() {
+  const hasCard = useAuthStore((s) => !!s.user?.card_number);
   return (
-    <Stack.Navigator id="main-stack" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator id="main-stack" initialRouteName={hasCard ? "Shell" : "PaymentMethods"} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Shell" component={MainShellScreen} />
       <Stack.Screen name="TrackRide" component={TrackRideScreen} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} />
