@@ -1,0 +1,603 @@
+import React, { useEffect, useRef, useState } from "react";
+import { formatDuration } from "../../utils/formatDuration";
+import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking, Image, Share } from "react-native";
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+
+import AppButton from "../../components/AppButton";
+import { MainStackParamList } from "../../navigation/MainNavigator";
+import { useRideStore } from "../../store/rideStore";
+import { useAuthStore } from "../../store/authStore";
+import { Colors, Spacing, Typography } from "../../theme";
+import { openDirectionsInMaps } from "../../utils/openMaps";
+import { apiClient as api, BASE_URL } from "../../api/client";
+import { DashcamOverlay } from "../../components/DashcamOverlay";
+import { getRoutePolyline } from "../../services/geocoding";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+type Props = NativeStackScreenProps<MainStackParamList, "TrackRide">;
+
+const statusSteps = [
+  { key: "searching", label: "Searching", icon: "search-outline" },
+  { key: "confirmed", label: "Confirmed", icon: "checkmark-circle-outline" },
+  { key: "arriving", label: "Driver Arrived", icon: "car-outline" },
+  { key: "on_trip", label: "On Trip", icon: "navigate-outline" },
+  { key: "completed", label: "Completed", icon: "flag-outline" },
+] as const;
+
+const statusColors: Record<string, string> = {
+  searching: "#F59E0B",
+  confirmed: "#10B981",
+  arriving: "#3B82F6",
+  on_trip: "#8B5CF6",
+  completed: "#22D3EE",
+  cancelled: "#EF4444",
+};
+
+const statusDescriptions: Record<string, string> = {
+  searching: "Sending your request to nearby drivers…",
+  confirmed: "Your driver is heading to your pickup location.",
+  arriving: "Your driver has arrived at the pickup location.",
+  on_trip: "You're on the way to your destination.",
+  completed: "You've arrived! Trip completed.",
+  cancelled: "This trip was cancelled.",
+};
+
+const statusHeaders: Record<string, string> = {
+  searching: "Searching for driver…",
+  confirmed: "Ride Confirmed",
+  arriving: "Driver Arrived",
+  on_trip: "Trip Started",
+  completed: "Trip Completed",
+  cancelled: "Trip Cancelled",
+};
+
+export default function TrackRideScreen({ navigation }: Props) {
+  const activeTrip = useRideStore((state) => state.activeTrip);
+  const cancelActiveTrip = useRideStore((state) => state.cancelActiveTrip);
+  const refreshActiveTrip = useRideStore((state) => state.refreshActiveTrip);
+  const [showDashcam, setShowDashcam] = useState(false);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const insets = useSafeAreaInsets();
+  
+  const mapRef = useRef<MapView>(null);
+
+  const user = useAuthStore((s) => s.user);
+
+  const fetchTripDetail = useRideStore((state) => state.fetchTripDetail);
+
+  // Poll for status updates every 4 seconds when trip is active
+  useEffect(() => {
+    if (!activeTrip || activeTrip.status === "completed" || activeTrip.status === "cancelled") return;
+    
+    // Immediate initial fetch
+    fetchTripDetail(activeTrip.id).catch(err => console.log(err));
+
+    const interval = setInterval(() => {
+      fetchTripDetail(activeTrip.id).catch(err => {
+        console.log("Fetch trip detail error:", err);
+      });
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [activeTrip?.status, activeTrip?.id]);
+
+  useEffect(() => {
+    if (activeTrip?.status === "completed") {
+      navigation.replace("Payment", { tripId: activeTrip.id });
+    }
+  }, [activeTrip?.status]);
+
+  useEffect(() => {
+    if (activeTrip?.pickupLatitude && activeTrip?.pickupLongitude && activeTrip?.dropoffLatitude && activeTrip?.dropoffLongitude) {
+      getRoutePolyline(
+        activeTrip.pickupLatitude,
+        activeTrip.pickupLongitude,
+        activeTrip.dropoffLatitude,
+        activeTrip.dropoffLongitude
+      ).then((coords) => {
+        if (coords.length > 0) setRouteCoords(coords);
+      });
+    }
+  }, [activeTrip?.pickupLatitude, activeTrip?.dropoffLatitude]);
+
+  // Dynamic zoom fitting map to show both markers
+  useEffect(() => {
+    if (activeTrip && mapRef.current) {
+      const coords = [];
+      if (activeTrip.pickupLatitude && activeTrip.pickupLongitude) {
+        coords.push({ latitude: activeTrip.pickupLatitude, longitude: activeTrip.pickupLongitude });
+      }
+      if (activeTrip.dropoffLatitude && activeTrip.dropoffLongitude) {
+        coords.push({ latitude: activeTrip.dropoffLatitude, longitude: activeTrip.dropoffLongitude });
+      }
+      if (activeTrip.driverLatitude && activeTrip.driverLongitude) {
+        coords.push({ latitude: activeTrip.driverLatitude, longitude: activeTrip.driverLongitude });
+      }
+      
+      if (coords.length >= 2) {
+        mapRef.current.fitToCoordinates(coords, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      }
+    }
+  }, [activeTrip?.pickupLatitude, activeTrip?.dropoffLatitude, activeTrip?.driverLatitude]);
+
+  const handleCancel = async () => {
+    Alert.alert("Cancel Ride?", "Are you sure you want to cancel this ride?", [
+      { text: "No", style: "cancel" },
+      {
+        text: "Yes, Cancel",
+        style: "destructive",
+        onPress: async () => {
+          await cancelActiveTrip();
+          navigation.navigate("Shell");
+        },
+      },
+    ]);
+  };
+
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+
+  const handleShareRide = async () => {
+    if (!activeTrip) return;
+    try {
+      if (shareToken) {
+        await api.post(`/share/rides/${activeTrip.id}/stop`);
+        setShareToken(null);
+        Alert.alert("Stopped Sharing", "Your live location is no longer being shared.");
+      } else {
+        setIsSharing(true);
+        const res = await api.post(`/share/rides/${activeTrip.id}`);
+        setShareToken(res.data.token);
+        
+        const baseUrlWithoutApi = BASE_URL.replace("/api", "");
+        const trackUrl = `${baseUrlWithoutApi}/track/${res.data.token}`;
+        
+        await Share.share({
+          message: `Follow my Golden Ride live: ${trackUrl}`,
+          title: "Follow My Ride",
+        });
+        setIsSharing(false);
+      }
+    } catch (err: any) {
+      setIsSharing(false);
+      Alert.alert("Sharing Failed", "Could not generate sharing link. Please try again.");
+      console.log("Share error:", err);
+    }
+  };
+
+  if (!activeTrip) {
+    return (
+      <View style={styles.emptyWrap}>
+        <Ionicons name="map-outline" size={48} color={Colors.primary} />
+        <Text style={styles.title}>No active ride</Text>
+        <Text style={styles.subtitle}>Book a trip from the Home tab to see live tracking here.</Text>
+        <AppButton title="Go home" onPress={() => navigation.navigate("Shell")} />
+      </View>
+    );
+  }
+
+  const currentColor = statusColors[activeTrip.status] ?? Colors.primary;
+  const currentDesc = statusDescriptions[activeTrip.status] ?? activeTrip.status;
+  const currentStepIndex = statusSteps.findIndex((s) => s.key === activeTrip.status);
+
+
+  // Map Region defaults
+  const pickupRegion = {
+    latitude: activeTrip.pickupLatitude ?? 39.8283,
+    longitude: activeTrip.pickupLongitude ?? -98.5795,
+    latitudeDelta: activeTrip.pickupLatitude ? 0.08 : 30,
+    longitudeDelta: activeTrip.pickupLatitude ? 0.08 : 30,
+  };
+
+  return (
+    <View style={styles.root}>
+      {showDashcam && <DashcamOverlay rideId={activeTrip.id} onClose={() => setShowDashcam(false)} />}
+      
+      {/* Real Live Map - identical layout style to home page map */}
+      <View style={styles.mapCard}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={PROVIDER_DEFAULT}
+          initialRegion={pickupRegion}
+          showsUserLocation
+          showsMyLocationButton={false}
+          pitchEnabled={false}
+        >
+          {activeTrip.pickupLatitude && activeTrip.pickupLongitude && (
+            <Marker
+              coordinate={{ latitude: activeTrip.pickupLatitude, longitude: activeTrip.pickupLongitude }}
+              pinColor="#10B981"
+              title="Pickup"
+              description={activeTrip.pickup}
+            />
+          )}
+          {activeTrip.dropoffLatitude && activeTrip.dropoffLongitude && (
+            <Marker
+              coordinate={{ latitude: activeTrip.dropoffLatitude, longitude: activeTrip.dropoffLongitude }}
+              pinColor={Colors.primary}
+              title="Destination"
+              description={activeTrip.dropoff}
+            />
+          )}
+          {/* Driver car marker */}
+          {activeTrip.driverLatitude && activeTrip.driverLongitude && (
+            <Marker
+              coordinate={{ latitude: activeTrip.driverLatitude, longitude: activeTrip.driverLongitude }}
+              title="Driver Location"
+              description={activeTrip.driver}
+            >
+              <View style={styles.carMarker}>
+                <Ionicons name="car-sport" size={20} color="#fff" />
+              </View>
+            </Marker>
+          )}
+          {routeCoords.length > 0 ? (
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor={Colors.primary}
+              strokeWidth={4}
+            />
+          ) : activeTrip.pickupLatitude && activeTrip.dropoffLatitude && (
+            <Polyline
+              coordinates={[
+                { latitude: activeTrip.pickupLatitude, longitude: activeTrip.pickupLongitude! },
+                { latitude: activeTrip.dropoffLatitude, longitude: activeTrip.dropoffLongitude! },
+              ]}
+              strokeColor={Colors.primary}
+              strokeWidth={3}
+              lineDashPattern={[6, 4]}
+            />
+          )}
+        </MapView>
+
+        {/* SOS Emergency Button Overlay */}
+        <Pressable 
+          style={[styles.sosOverlayBtn, { top: insets.top + 16 }]}
+          onPress={() => Linking.openURL('tel:112')}
+        >
+          <Ionicons name="shield-checkmark" size={20} color="#FFF" />
+          <Text style={styles.sosOverlayText}>SOS</Text>
+        </Pressable>
+
+        {/* Dashcam Record Ride Overlay */}
+        <Pressable 
+          style={[styles.dashcamOverlayBtn, { top: insets.top + 16 }]}
+          onPress={() => setShowDashcam(true)}
+        >
+          <Ionicons name="videocam-outline" size={20} color="#FFF" />
+          <Text style={styles.sosOverlayText}>Record</Text>
+        </Pressable>
+      </View>
+
+      {/* Main Details wrapped in ScrollView for small screens (Redmi, etc.) to prevent overflow */}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Status Card */}
+        <View style={[styles.card, { borderColor: currentColor, borderWidth: 1.5 }]}>
+          <View style={styles.statusHeader}>
+            {activeTrip.status === "searching" ? (
+              <ActivityIndicator size="small" color={currentColor} />
+            ) : (
+              <View style={[styles.statusIcon, { backgroundColor: `${currentColor}22` }]}>
+                <Ionicons
+                  name={statusSteps[currentStepIndex]?.icon ?? "radio-button-on"}
+                  size={20}
+                  color={currentColor}
+                />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.statusBig, { color: currentColor }]}>
+                {statusHeaders[activeTrip.status] ?? activeTrip.status.toUpperCase()}
+              </Text>
+              <Text style={styles.statusDesc}>{currentDesc}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Driver info — only when confirmed+ */}
+        {activeTrip.status !== "searching" && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Driver Details</Text>
+            <View style={styles.driverRow}>
+              <View style={styles.driverAvatar}>
+                {activeTrip.driverAvatar ? (
+                  <Image source={{ uri: activeTrip.driverAvatar }} style={{ width: "100%", height: "100%", borderRadius: 22 }} />
+                ) : (
+                  <Ionicons name="person" size={24} color={Colors.primary} />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.driverName}>{activeTrip.driver || "Assigned Driver"}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#FEF3C7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                    <Ionicons name="star" size={10} color="#D97706" />
+                    <Text style={{ fontSize: 10, fontWeight: "800", color: "#D97706", marginLeft: 2 }}>4.8</Text>
+                  </View>
+                </View>
+                <Text style={styles.driverMeta} numberOfLines={1}>{activeTrip.car}</Text>
+                {activeTrip.driverPhone ? (
+                  <Pressable onPress={() => Linking.openURL(`tel:${activeTrip.driverPhone}`)}>
+                    <Text style={[styles.driverMeta, { fontWeight: "bold", marginTop: 4, color: Colors.primary }]}>📞 {activeTrip.driverPhone}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <Pressable style={styles.mapBtn} onPress={() => openDirectionsInMaps(activeTrip.dropoff)}>
+                <Ionicons name="navigate" size={18} color={Colors.primary} />
+              </Pressable>
+            </View>
+
+            {/* Vehicle Number Plate — prominent badge */}
+            <View style={styles.plateRow}>
+              <Ionicons name="car-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.plateLabel}>Number Plate</Text>
+              <View style={styles.plateBadge}>
+                <Text style={styles.plateText}>
+                  {activeTrip.plate && activeTrip.plate !== "—" ? activeTrip.plate : "Awaiting plate info"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.fareRow}>
+              <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {formatDuration(activeTrip.duration)}</Text>
+            </View>
+
+            <View style={styles.fareRow}>
+              <Ionicons name="location-outline" size={16} color={Colors.textSecondary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fareText} numberOfLines={1}>Destination: {activeTrip.dropoff}</Text>
+              </View>
+              {activeTrip.status !== "completed" && activeTrip.status !== "cancelled" && (
+                 <Pressable onPress={() => navigation.navigate("LocationPicker", { mode: "dropoff", editRideId: activeTrip.id })}>
+                   <Text style={{ color: Colors.primary, fontSize: Typography.small, fontWeight: "700" }}>Edit</Text>
+                 </Pressable>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* PIN Verification UI - Only show when waiting for driver */}
+        {activeTrip.status !== "completed" && activeTrip.status !== "cancelled" && activeTrip.verificationPin && (
+          <View style={[styles.card, { alignItems: "center", backgroundColor: "#F8FAFC", paddingVertical: Spacing.lg }]}>
+            <Text style={{ fontSize: Typography.body, fontWeight: "800", color: Colors.textPrimary }}>Your Ride PIN</Text>
+            <View style={{ flexDirection: "row", gap: 12, marginVertical: Spacing.md }}>
+              {activeTrip.verificationPin.split('').map((digit, i) => (
+                <View key={i} style={styles.pinDigitBox}>
+                  <Text style={styles.pinDigitText}>{digit}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={{ textAlign: "center", fontSize: Typography.small, color: Colors.textSecondary, paddingHorizontal: Spacing.md }}>
+              Share this PIN with your driver only when you are ready to begin your ride.
+            </Text>
+          </View>
+        )}
+
+        {/* Fare summary */}
+        {activeTrip.status === "searching" && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Ride Summary</Text>
+            <View style={styles.fareRow}>
+              <Ionicons name="car-sport-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.fareText}>{activeTrip.rideTitle}</Text>
+            </View>
+            <View style={styles.fareRow}>
+              <Ionicons name="cash-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.fareText}>${activeTrip.price} · {activeTrip.distance} · {formatDuration(activeTrip.duration)}</Text>
+            </View>
+            <View style={styles.fareRow}>
+              <Ionicons name="card-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.fareText}>{activeTrip.paymentMethod}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Progress timeline */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Trip Progress</Text>
+          <View style={styles.timeline}>
+            {statusSteps.map((step, i) => {
+              const isDone = currentStepIndex > i;
+              const isActive = currentStepIndex === i;
+              const color = isActive ? currentColor : isDone ? "#10B981" : Colors.border;
+              return (
+                <View key={step.key} style={styles.timelineItem}>
+                  <View style={[styles.timelineDot, { backgroundColor: color }]}>
+                    {isDone && <Ionicons name="checkmark" size={10} color="#fff" />}
+                    {isActive && activeTrip.status === "searching" && (
+                      <ActivityIndicator size="small" color="#fff" style={{ transform: [{ scale: 0.5 }] }} />
+                    )}
+                  </View>
+                  <Text style={[styles.timelineLabel, { color: isActive ? currentColor : isDone ? Colors.textPrimary : Colors.textSecondary }]}>
+                    {step.label}
+                  </Text>
+                  {i < statusSteps.length - 1 && <View style={[styles.timelineConnector, { backgroundColor: isDone ? "#10B981" : Colors.border }]} />}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Actions */}
+        {activeTrip.status !== "completed" && activeTrip.status !== "cancelled" && (
+          <AppButton title="Cancel Ride" onPress={handleCancel} variant="secondary" />
+        )}
+
+        {activeTrip.status !== "cancelled" && activeTrip.status !== "completed" && activeTrip.status !== "searching" && (
+          <View style={{ gap: Spacing.sm }}>
+            <AppButton
+              title="Chat with driver"
+              onPress={() => navigation.navigate("Chat", { rideId: activeTrip.id })}
+            />
+            <AppButton
+              title={isSharing ? "Stop Sharing Live Ride" : "Share Live Ride"}
+              onPress={handleShareRide}
+              variant="secondary"
+            />
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Colors.background },
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    padding: Spacing.xl,
+    backgroundColor: Colors.background,
+  },
+  mapCard: {
+    height: 260,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  map: { flex: 1 },
+  scroll: { padding: 16, gap: 12, paddingBottom: 32 },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 10,
+  },
+  statusHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  statusIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  statusBig: { fontSize: Typography.body, fontWeight: "800", letterSpacing: 0.2 },
+  statusDesc: { color: Colors.textSecondary, fontSize: Typography.small, marginTop: 1 },
+  sectionTitle: { color: Colors.textPrimary, fontSize: Typography.body, fontWeight: "800" },
+  driverRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  driverAvatar: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: "#FFF3D9",
+    alignItems: "center", justifyContent: "center",
+  },
+  driverName: { color: Colors.textPrimary, fontWeight: "700", fontSize: Typography.small },
+  driverMeta: { color: Colors.textSecondary, fontSize: Typography.small, marginTop: 1 },
+  mapBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: "#FFF3D9",
+    alignItems: "center", justifyContent: "center",
+  },
+  fareRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  fareText: { color: Colors.textSecondary, fontSize: Typography.small },
+  plateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  plateLabel: {
+    color: Colors.textSecondary,
+    fontSize: Typography.small,
+    flex: 1,
+  },
+  plateBadge: {
+    backgroundColor: "#FBBF24",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 2,
+    borderColor: "#92400E",
+  },
+  plateText: {
+    color: "#1C1917",
+    fontWeight: "900",
+    fontSize: 14,
+    letterSpacing: 2,
+    fontFamily: "monospace",
+  },
+  title: { color: Colors.textPrimary, fontSize: Typography.heading, fontWeight: "900" },
+  subtitle: { color: Colors.textSecondary, fontSize: Typography.body, textAlign: "center" },
+  timeline: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginTop: 4 },
+  timelineItem: { alignItems: "center", flex: 1, position: "relative" },
+  timelineDot: {
+    width: 22, height: 22, borderRadius: 11,
+    alignItems: "center", justifyContent: "center",
+  },
+  timelineLabel: { fontSize: 8, fontWeight: "700", textAlign: "center", marginTop: 3 },
+  timelineConnector: {
+    position: "absolute",
+    top: 10,
+    left: "50%",
+    width: "100%",
+    height: 2,
+    zIndex: -1,
+  },
+  carMarker: {
+    backgroundColor: Colors.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinDigitBox: {
+    width: 48,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinDigitText: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: Colors.textPrimary,
+  },
+  sosOverlayBtn: {
+    position: "absolute",
+    top: Spacing.md,
+    right: Spacing.md,
+    backgroundColor: "#EF4444",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  dashcamOverlayBtn: {
+    position: "absolute",
+    top: Spacing.md,
+    left: Spacing.md,
+    backgroundColor: "#3B82F6",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  sosOverlayText: {
+    color: "#FFF",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+});

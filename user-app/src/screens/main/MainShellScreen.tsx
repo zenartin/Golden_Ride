@@ -1,0 +1,150 @@
+import React, { useMemo, useState } from "react";
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, BackHandler } from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
+import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
+
+import BottomShellBar from "../../components/BottomShellBar";
+import { Colors } from "../../theme";
+import HomeScreen from "./HomeScreen";
+import TripsScreen from "./TripsScreen";
+import WalletScreen from "./WalletScreen";
+import ProfileScreen from "./ProfileScreen";
+import { FamilyDashboardScreen } from "../../features/family/screens/FamilyDashboardScreen";
+import { MainStackParamList } from "../../navigation/MainNavigator";
+
+type Props = NativeStackScreenProps<MainStackParamList, "Shell">;
+type TabKey = "Home" | "Trips" | "Family" | "Wallet" | "Profile";
+
+export default function MainShellScreen({ navigation, route }: Props) {
+  const [tab, setTab] = useState<TabKey>(((route.params as any)?.tab as TabKey) || "Home");
+  React.useEffect(() => {
+    const t = (route.params as any)?.tab as TabKey | undefined;
+    if (t) setTab(t);
+  }, [(route.params as any)?.tab]);
+  const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      // Add a timeout to prevent the app from hanging if the permission prompt is blocked
+      const permissionPromise = Location.requestForegroundPermissionsAsync();
+      const timeoutPromise = new Promise<any>((resolve) => 
+        setTimeout(() => resolve({ status: "timeout" }), 3000)
+      );
+      
+      const { status } = await Promise.race([permissionPromise, timeoutPromise]);
+      if (isMounted) {
+        setHasLocationPermission(status === "granted");
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (tab !== "Home") {
+          setTab("Home");
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [tab])
+  );
+
+  const content = useMemo(() => {
+    if (tab === "Trips") return <TripsScreen navigation={navigation} />;
+    if (tab === "Family") return <FamilyDashboardScreen />;
+    if (tab === "Wallet") return <WalletScreen />;
+    if (tab === "Profile") return <ProfileScreen navigation={navigation} />;
+    return <HomeScreen navigation={navigation} route={route} openTab={setTab} />;
+  }, [navigation, route, tab]);
+
+  if (hasLocationPermission === null) {
+    return (
+      <View style={styles.centerLoader}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (hasLocationPermission === false) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Ionicons name="location" size={80} color={Colors.primary} />
+        <Text style={styles.permissionTitle}>Location Access Required</Text>
+        <Text style={styles.permissionDesc}>
+          We need your location to find rides around you and track your journey. 
+          Please enable location permissions to use the app.
+        </Text>
+        <TouchableOpacity
+          style={styles.permissionBtn}
+          onPress={async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            setHasLocationPermission(status === "granted");
+          }}
+        >
+          <Text style={styles.permissionBtnText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.wrap}>
+      <View style={{ flex: 1 }}>
+        {content}
+      </View>
+      <BottomShellBar activeTab={tab} onTabPress={setTab} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { flex: 1, backgroundColor: Colors.background },
+  centerLoader: { flex: 1, justifyContent: "center", alignItems: "center" },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+    backgroundColor: Colors.background,
+  },
+  permissionTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: Colors.textPrimary,
+    marginTop: 24,
+    textAlign: "center",
+  },
+  permissionDesc: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    marginTop: 12,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  permissionBtn: {
+    marginTop: 32,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  permissionBtnText: {
+    color: Colors.white,
+    fontWeight: "800",
+    fontSize: 16,
+  },
+});

@@ -1,0 +1,14 @@
+feat: major feature updates and bug fixes
+
+- Add Date of Birth field to EditProfile screen
+- Fix ringtone deduplication for repeated ride requests
+- Implement Stripe off-session payment charging on ride booking
+- Remove payment breakdown cards from EarningsScreen and TripDetailScreen
+- Fix duration formatting (65 min -> 1 hr 5 min) in TripsScreen
+- Fix KeyboardAvoidingView on PIN/auth screens for Android
+- Add chatNotifier for push notification support
+- Add stripe_service.py with off-session card charging helpers
+- Fix ride serialization to include awaiting_payment status
+- Update axios API URL with /api suffix and HTTPS support
+- Fix USD/dollar currency display throughout driver app
+- Fix chat screen keyboard avoidance on Android

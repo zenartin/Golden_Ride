@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Golden Ride — Your Ride, Our Priority</title>
+  <meta name="description" content="Golden Ride – premium on-demand taxi service. Book in seconds, ride in style. Transparent USD pricing, real-time tracking." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Outfit',sans-serif;background:#03030c;color:#f0f0f0;overflow-x:hidden}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:#03030c}
+    ::-webkit-scrollbar-thumb{background:#D4A520;border-radius:3px}
+    :root{
+      --gold:#D4A520;--gold-light:#FFD700;--gold-glow:rgba(212,165,32,.35);
+      --bg:#03030c;--bg2:#060614;--border:rgba(212,165,32,.18);--glass:rgba(255,255,255,.035);
+    }
+    /* ── NAV ── */
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:1000;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:16px 6%;transition:all .4s;
+    }
+    nav.scrolled{
+      background:rgba(3,3,12,.9);backdrop-filter:blur(24px);
+      border-bottom:1px solid var(--border);padding:12px 6%;
+    }
+    .logo{display:flex;align-items:center;gap:0;text-decoration:none}
+    .logo img{height:56px;width:auto;object-fit:contain;filter:drop-shadow(0 0 12px rgba(212,165,32,.5))}
+    .nav-links{display:flex;align-items:center;gap:34px;list-style:none}
+    .nav-links a{color:#bbb;text-decoration:none;font-size:.95rem;font-weight:500;transition:color .3s}
+    .nav-links a:hover{color:var(--gold-light)}
+    .nav-cta{
+      background:linear-gradient(135deg,var(--gold),var(--gold-light))!important;
+      color:#000!important;font-weight:800!important;
+      padding:11px 28px!important;border-radius:50px;
+      box-shadow:0 0 22px var(--gold-glow);
+      transition:transform .3s,box-shadow .3s!important;
+    }
+    .nav-cta:hover{transform:translateY(-2px);box-shadow:0 0 40px var(--gold-glow)!important}
+    
+    /* ── HERO ── */
+    #hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
+    .hero-glow{
+      position:absolute;inset:0;z-index:0;
+      background:
+        radial-gradient(ellipse 65% 80% at 18% 52%,rgba(212,165,32,.08) 0%,transparent 70%),
+        radial-gradient(ellipse 38% 55% at 82% 40%,rgba(212,165,32,.05) 0%,transparent 60%);
+    }
+    .hero-content{position:relative;z-index:2;padding:148px 6% 90px;max-width:650px}
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(212,165,32,.1);border:1px solid rgba(212,165,32,.3);
+      color:var(--gold-light);font-size:.74rem;font-weight:700;
+      padding:7px 18px;border-radius:50px;margin-bottom:26px;
+      letter-spacing:1.5px;text-transform:uppercase;
+    }
+    h1{font-size:clamp(2.9rem,5.3vw,5.2rem);font-weight:900;line-height:1.06;margin-bottom:24px;letter-spacing:-1.5px; position:relative; z-index:3;}
+    .g{
+      background:linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 55%,#e07c00 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .hero-sub{font-size:1.1rem;color:#999;line-height:1.78;margin-bottom:42px;max-width:490px; position:relative; z-index:3;}
+    .hero-btns{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:58px; position:relative; z-index:3;}
+    
+    /* Hero Image */
+    .hero-img-container {
+      position: absolute;
+      top: 50%;
+      right: -5%;
+      transform: translateY(-50%);
+      width: 65%;
+      max-width: 1100px;
+      z-index: 1;
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .hero-img-container img {
+      width: 100%;
+      height: auto;
+      mix-blend-mode: screen;
+      mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+      filter: drop-shadow(0 20px 40px rgba(212,165,32,0.15));
+    }
+
+    @keyframes float {
+      0% { transform: translateY(-50%) translateX(0); }
+      50% { transform: translateY(-52%) translateX(-15px); }
+      100% { transform: translateY(-50%) translateX(0); }
+    }
+
+    .btn-gold{
+      display:inline-flex;align-items:center;gap:9px;
+      background:linear-gradient(135deg,var(--gold),var(--gold-light));
+      color:#000;font-weight:800;font-size:1rem;
+      padding:17px 38px;border-radius:50px;text-decoration:none;
+      box-shadow:0 6px 32px var(--gold-glow);transition:transform .3s,box-shadow .3s;
+    }
+    .btn-gold:hover{transform:translateY(-4px);box-shadow:0 16px 48px var(--gold-glow)}
+    .btn-outline{
+      display:inline-flex;align-items:center;gap:9px;
+      border:1px solid rgba(212,165,32,.42);color:var(--gold-light);
+      font-weight:600;font-size:1rem;
+      padding:17px 38px;border-radius:50px;text-decoration:none;transition:all .3s;
+    }
+    .btn-outline:hover{background:rgba(212,165,32,.1);border-color:var(--gold);transform:translateY(-4px)}
+    .hero-stats{display:flex;gap:44px;flex-wrap:wrap; position:relative; z-index:3;}
+    .hs-num{
+      font-size:2rem;font-weight:900;line-height:1;
+      background:linear-gradient(135deg,var(--gold-light),var(--gold));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .hs-lbl{font-size:.76rem;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+    .scroll-hint{position:absolute;bottom:34px;left:6%;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px}
+    .scroll-hint span{font-size:.72rem;color:#444;letter-spacing:2px;text-transform:uppercase}
+    .scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--gold),transparent);animation:sp 2s infinite}
+    @keyframes sp{0%,100%{opacity:.3;transform:scaleY(.7) translateY(-6px)}50%{opacity:1;transform:scaleY(1) translateY(0)}}
+    
+    /* ── FEATURES ── */
+    #features{background:var(--bg2);padding:108px 6%;position:relative;overflow:hidden}
+    #features::before{
+      content:'';position:absolute;top:-100px;left:-80px;
+      width:520px;height:520px;border-radius:50%;
+      background:radial-gradient(circle,rgba(212,165,32,.05),transparent 70%);pointer-events:none;
+    }
+    .sec-tag{font-size:.72rem;font-weight:800;letter-spacing:3.5px;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+    .sec-h{font-size:clamp(2rem,3.5vw,3.1rem);font-weight:900;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+    .sec-p{font-size:1rem;color:#777;max-width:500px;line-height:1.78}
+    .f-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:24px;margin-top:58px}
+    .fc{
+      background:var(--glass);border:1px solid var(--border);
+      border-radius:26px;padding:36px 30px;position:relative;overflow:hidden;
+      transition:transform .4s,border-color .4s;
+      opacity:0;transform:translateY(40px);
+    }
+    .fc.vis{opacity:1;transform:translateY(0)}
+    .fc::after{
+      content:'';position:absolute;inset:0;border-radius:26px;
+      background:linear-gradient(135deg,rgba(212,165,32,.07),transparent);
+      opacity:0;transition:opacity .4s;
+    }
+    .fc:hover{transform:translateY(-10px);border-color:rgba(212,165,32,.5)}
+    .fc:hover::after{opacity:1}
+    .fc-icon{
+      width:60px;height:60px;border-radius:16px;font-size:1.8rem;
+      background:linear-gradient(135deg,rgba(212,165,32,.17),rgba(212,165,32,.04));
+      border:1px solid rgba(212,165,32,.26);
+      display:flex;align-items:center;justify-content:center;margin-bottom:24px;
+    }
+    .fc-t{font-size:1.18rem;font-weight:800;margin-bottom:10px}
+    .fc-d{font-size:.92rem;color:#777;line-height:1.75}
+    
+    /* ── HOW IT WORKS ── */
+    #how{padding:108px 6%}
+    .how-inner{max-width:740px;margin:58px auto 0}
+    .hs{
+      display:flex;gap:32px;align-items:flex-start;
+      padding-bottom:50px;position:relative;
+      opacity:0;transform:translateX(-32px);transition:opacity .6s,transform .6s;
+    }
+    .hs.vis{opacity:1;transform:translateX(0)}
+    .hs:not(:last-child)::after{
+      content:'';position:absolute;left:30px;top:64px;bottom:0;
+      width:2px;background:linear-gradient(to bottom,var(--gold),transparent);
+    }
+    .hn{
+      width:62px;height:62px;min-width:62px;border-radius:50%;
+      background:linear-gradient(135deg,var(--gold),var(--gold-light));
+      color:#000;font-size:1.45rem;font-weight:900;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 28px var(--gold-glow);flex-shrink:0;
+    }
+    .ht{font-size:1.24rem;font-weight:800;margin-bottom:10px}
+    .hd{font-size:.93rem;color:#777;line-height:1.78}
+    
+    /* ── STATS ── */
+    #stats{
+      padding:78px 6%;
+      border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+      background:linear-gradient(135deg,rgba(212,165,32,.06),rgba(212,165,32,.02));
+    }
+    .st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:38px;text-align:center}
+    .si{opacity:0;transform:translateY(30px);transition:all .6s}
+    .si.vis{opacity:1;transform:translateY(0)}
+    .sn{
+      font-size:clamp(2.4rem,4vw,3.5rem);font-weight:900;line-height:1;
+      background:linear-gradient(135deg,var(--gold-light),var(--gold));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;
+    }
+    .sl{font-size:.8rem;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:2px}
+    
+    /* ── REVIEWS ── */
+    #reviews{background:var(--bg2);padding:108px 6%}
+    .rv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-top:56px}
+    .rc{
+      background:var(--glass);border:1px solid var(--border);
+      border-radius:22px;padding:30px 26px;
+      opacity:0;transform:translateY(34px);transition:all .5s;
+    }
+    .rc.vis{opacity:1;transform:translateY(0)}
+    .stars{color:var(--gold-light);font-size:1rem;margin-bottom:14px;letter-spacing:2px}
+    .rt{font-size:.93rem;color:#ccc;line-height:1.78;margin-bottom:22px;font-style:italic}
+    .ra{display:flex;align-items:center;gap:12px}
+    .rav{
+      width:42px;height:42px;border-radius:50%;
+      background:linear-gradient(135deg,var(--gold),var(--gold-light));
+      display:flex;align-items:center;justify-content:center;
+      font-size:1rem;font-weight:800;color:#000;
+    }
+    .ran{font-weight:700;font-size:.92rem}
+    .ral{font-size:.78rem;color:#666}
+    
+    /* ── DOWNLOAD ── */
+    #download{padding:108px 6%;text-align:center}
+    .dl-card{
+      max-width:710px;margin:0 auto;
+      background:var(--glass);border:1px solid var(--border);
+      border-radius:36px;padding:70px 50px;position:relative;overflow:hidden;
+    }
+    .dl-card::before{
+      content:'';position:absolute;top:-55%;left:-55%;width:210%;height:210%;
+      background:radial-gradient(circle,rgba(212,165,32,.06),transparent 55%);pointer-events:none;
+    }
+    .dl-logo{height:90px;width:auto;margin:0 auto 26px;display:block;filter:drop-shadow(0 0 20px rgba(212,165,32,.6))}
+    .dl-h{font-size:clamp(1.9rem,3.2vw,2.7rem);font-weight:900;margin-bottom:14px;line-height:1.2}
+    .dl-p{font-size:1rem;color:#777;margin-bottom:42px;line-height:1.78}
+    .sb-row{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+    .sb{
+      display:flex;align-items:center;gap:12px;
+      background:#fff;color:#000;font-weight:700;
+      padding:14px 28px;border-radius:14px;text-decoration:none;
+      min-width:190px;transition:transform .3s,box-shadow .3s;
+    }
+    .sb:hover{transform:translateY(-5px);box-shadow:0 14px 40px rgba(255,255,255,.14)}
+    .sb-icon{font-size:2.1rem}
+    .sb-sub{font-size:.67rem;opacity:.65;font-weight:600}
+    .sb-name{font-size:1.1rem;font-weight:900}
+    
+    /* ── FOOTER ── */
+    footer{background:var(--bg);border-top:1px solid var(--border);padding:66px 6% 28px}
+    .ft{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:42px;margin-bottom:52px}
+    .fb{max-width:280px}
+    .fb img{height:64px;width:auto;filter:drop-shadow(0 0 10px rgba(212,165,32,.4))}
+    .fb-d{font-size:.86rem;color:#4a4a4a;line-height:1.75;margin-top:12px}
+    .fl-t{font-size:.7rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+    .fl{list-style:none;display:flex;flex-direction:column;gap:10px}
+    .fl a{color:#555;text-decoration:none;font-size:.88rem;transition:color .3s}
+    .fl a:hover{color:var(--gold-light)}
+    .fb-bot{
+      border-top:1px solid rgba(255,255,255,.05);padding-top:24px;
+      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
+    }
+    .fc-{font-size:.82rem;color:#3a3a3a}
+    .soc{display:flex;gap:10px}
+    .sc{
+      width:38px;height:38px;border-radius:10px;
+      background:var(--glass);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;
+      font-size:.9rem;text-decoration:none;transition:all .3s;
+    }
+    .sc:hover{background:rgba(212,165,32,.12);border-color:var(--gold);transform:translateY(-3px)}
+    
+    @media(max-width:1024px){
+      .hero-img-container { width: 85%; right: -15%; }
+    }
+    @media(max-width:840px){
+      .hero-img-container{width:120%; right: -10%; top:auto; bottom:-10%; transform:none; opacity: 0.6; animation:none; mix-blend-mode: screen;}
+      .hero-content{padding:118px 6% 65px}
+      .nav-links{display:none}
+      #features,#how,#reviews,#download,#stats{padding:70px 6%}
+      .dl-card{padding:42px 24px}
+    }
+  </style>
+</head>
+<body>
+<!-- NAV -->
+<nav id="nav">
+  <a href="#hero" class="logo">
+    <img src="assets/logo.png" alt="Golden Ride Logo" id="nav-logo-img" />
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#reviews">Reviews</a></li>
+    <li><a href="#download" class="nav-cta">Get the App</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  
+  <div class="hero-img-container">
+    <img src="assets/hero_car.jpg" alt="Golden Ride Luxury Taxi" />
+  </div>
+
+  <div class="hero-content">
+    <div class="badge">✦ &nbsp;Premium Taxi Platform</div>
+    <h1>Ride <span class="g">Golden</span><br/>Every Single Time</h1>
+    <p class="hero-sub">
+      On-demand premium taxi service that matches you with a verified driver in under 60 seconds.
+      Transparent USD fares, real-time tracking, and a ride worth remembering.
+    </p>
+    <div class="hero-btns">
+      <a href="#download" class="btn-gold">🚀&nbsp; Book a Ride</a>
+      <a href="#how"      class="btn-outline">How It Works →</a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="hs-num">50K+</div><div class="hs-lbl">Drivers</div></div>
+      <div><div class="hs-num">5M+</div><div class="hs-lbl">Rides</div></div>
+      <div><div class="hs-num">4.9 ★</div><div class="hs-lbl">Rating</div></div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="sec-tag">Why Golden Ride</div>
+  <h2 class="sec-h">Built for the modern<br/>city commuter</h2>
+  <p class="sec-p">Everything you need for a seamless, premium ride — packed into one powerful app.</p>
+  <div class="f-grid">
+    <div class="fc" data-a><div class="fc-icon">🛡️</div><div class="fc-t">Safety First</div><p class="fc-d">Real-time GPS tracking, background-verified drivers, and 24/7 emergency support — you're always protected.</p></div>
+    <div class="fc" data-a><div class="fc-icon">⚡</div><div class="fc-t">Instant Matching</div><p class="fc-d">Matched to the closest driver in under 60 seconds. Watch them arrive live on the map with precise ETA.</p></div>
+    <div class="fc" data-a><div class="fc-icon">💰</div><div class="fc-t">Transparent Pricing</div><p class="fc-d">Know your exact fare in USD before you book. Mile-based pricing, zero surge surprises, no hidden fees — ever.</p></div>
+    <div class="fc" data-a><div class="fc-icon">🚘</div><div class="fc-t">Premium Vehicles</div><p class="fc-d">Choose Hatchback, Sedan, or XUV. Every vehicle is inspected, spotlessly clean, and air-conditioned.</p></div>
+    <div class="fc" data-a><div class="fc-icon">📍</div><div class="fc-t">Live Ride Tracking</div><p class="fc-d">Share your live trip link with family. Know your driver's exact location from pickup to drop-off.</p></div>
+    <div class="fc" data-a><div class="fc-icon">💳</div><div class="fc-t">Seamless Payments</div><p class="fc-d">Pay via Stripe, credit card, or in-app wallet. Auto-charge on arrival, full receipts always accessible.</p></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div style="text-align:center">
+    <div class="sec-tag">Simple Process</div>
+    <h2 class="sec-h">Riding is as easy as 1—2—3</h2>
+    <p class="sec-p" style="margin:0 auto">From booking to your destination in three effortless steps.</p>
+  </div>
+  <div class="how-inner">
+    <div class="hs" data-al>
+      <div class="hn">1</div>
+      <div><div class="ht">Set Your Destination</div><p class="hd">Open Golden Ride, pin your pickup and drop-off. Our smart routing engine instantly calculates your route and shows a transparent fixed fare in USD before you confirm.</p></div>
+    </div>
+    <div class="hs" data-al>
+      <div class="hn">2</div>
+      <div><div class="ht">Get Matched Instantly</div><p class="hd">Our dispatch AI connects you with the nearest verified driver in seconds. Track them live on the map as they head to you — no guessing, no waiting in the dark.</p></div>
+    </div>
+    <div class="hs" data-al>
+      <div class="hn">3</div>
+      <div><div class="ht">Enjoy Your Golden Ride</div><p class="hd">Sit back in a clean, premium vehicle and arrive in style. Payment is automatic on arrival. Rate your driver in 5 seconds and receive a digital receipt instantly.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats">
+  <div class="st-grid">
+    <div class="si" data-a><div class="sn">50K+</div><div class="sl">Active Drivers</div></div>
+    <div class="si" data-a><div class="sn">200+</div><div class="sl">Cities</div></div>
+    <div class="si" data-a><div class="sn">5M+</div><div class="sl">Rides Completed</div></div>
+    <div class="si" data-a><div class="sn">4.9★</div><div class="sl">Avg. Rating</div></div>
+    <div class="si" data-a><div class="sn">99%</div><div class="sl">On-Time Rate</div></div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews">
+  <div class="sec-tag">Passenger Stories</div>
+  <h2 class="sec-h">Loved by millions of riders</h2>
+  <p class="sec-p">Real words from real passengers who ride Golden every day.</p>
+  <div class="rv-grid">
+    <div class="rc" data-a>
+      <div class="stars">★★★★★</div>
+      <p class="rt">"Booked in under 30 seconds and the driver was there in 4 minutes. The car was immaculate. Best taxi experience I've ever had — period."</p>
+      <div class="ra"><div class="rav">A</div><div><div class="ran">Alex M.</div><div class="ral">New York, USA</div></div></div>
+    </div>
+    <div class="rc" data-a>
+      <div class="stars">★★★★★</div>
+      <p class="rt">"I love that the price is locked before I confirm. No surge, no surprises. I use Golden Ride every single day for my commute — it's reliable and affordable."</p>
+      <div class="ra"><div class="rav">S</div><div><div class="ran">Sarah K.</div><div class="ral">Chicago, USA</div></div></div>
+    </div>
+    <div class="rc" data-a>
+      <div class="stars">★★★★★</div>
+      <p class="rt">"The live tracking is incredible. My family can always see where I am. The drivers are professional and the cars are spotless every single time. 10/10."</p>
+      <div class="ra"><div class="rav">J</div><div><div class="ran">James T.</div><div class="ral">Houston, USA</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="dl-card">
+    <img src="assets/logo.png" alt="Golden Ride" class="dl-logo" />
+    <h2 class="dl-h">Ready to Ride <span class="g">Golden?</span></h2>
+    <p class="dl-p">Download the Golden Ride app and experience premium,<br/>transparent taxi service. Your first ride is waiting.</p>
+    <div class="sb-row">
+      <a href="#" class="sb" id="ios-btn">
+        <span class="sb-icon">🍎</span>
+        <div><div class="sb-sub">Download on the</div><div class="sb-name">App Store</div></div>
+      </a>
+      <a href="#" class="sb" id="android-btn">
+        <span class="sb-icon">▶</span>
+        <div><div class="sb-sub">Get it on</div><div class="sb-name">Google Play</div></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft">
+    <div class="fb">
+      <img src="assets/logo.png" alt="Golden Ride" />
+      <p class="fb-d">Premium on-demand taxi service. Get there safely, comfortably, and right on time — every single time.</p>
+    </div>
+    <div>
+      <div class="fl-t">Product</div>
+      <ul class="fl">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#download">Download App</a></li>
+        <li><a href="#">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="fl-t">Company</div>
+      <ul class="fl">
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Press</a></li>
+        <li><a href="#">Blog</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="fl-t">Support</div>
+      <ul class="fl">
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Safety</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="fb-bot">
+    <span class="fc-">© 2025 Golden Ride Inc. — Your Ride, Our Priority.</span>
+    <div class="soc">
+      <a href="#" class="sc">𝕏</a>
+      <a href="#" class="sc">f</a>
+      <a href="#" class="sc">in</a>
+      <a href="#" class="sc">▶</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* SCROLL ANIMATIONS */
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scrollY>40));
+
+const io=new IntersectionObserver((entries)=>{
+  entries.forEach((e,i)=>{
+    if(e.isIntersecting) setTimeout(()=>e.target.classList.add('vis'),i*85);
+  });
+},{threshold:.12});
+document.querySelectorAll('[data-a],[data-al]').forEach(el=>io.observe(el));
+
+/* COUNTER ANIMATION */
+const cio=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const el=e.target, txt=el.textContent;
+    const num=parseFloat(txt.replace(/[^0-9.]/g,''));
+    const suf=txt.replace(/[\d.]/g,'');
+    if(isNaN(num))return;
+    let cur=0; const step=num/60;
+    const tick=setInterval(()=>{
+      cur=Math.min(cur+step,num);
+      el.textContent=(num%1===0?Math.round(cur):cur.toFixed(1))+suf;
+      if(cur>=num)clearInterval(tick);
+    },22);
+    cio.unobserve(el);
+  });
+},{threshold:.5});
+document.querySelectorAll('.sn,.hs-num').forEach(el=>cio.observe(el));
+</script>
+</body>
+</html>

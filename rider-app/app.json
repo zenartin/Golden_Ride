@@ -1,0 +1,80 @@
+{
+  "expo": {
+    "name": "Golden Ride",
+    "slug": "rider-app",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0e0e18"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.goldenride.user",
+      "appleTeamId": "5X8DU7KFPK",
+      "buildNumber": "18",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Golden Ride needs your location to show nearby drivers and navigate.",
+        "NSLocationAlwaysUsageDescription": "Golden Ride needs your location to track your active ride.",
+        "NSCameraUsageDescription": "Golden Ride needs camera access for your profile photo.",
+        "NSPhotoLibraryUsageDescription": "Golden Ride needs photo library access for your profile photo.",
+        "NSMicrophoneUsageDescription": "Golden Ride needs microphone access for audio features."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyDbdW16zZqPVpdurydxr3VOXwHn3j85Dz4"
+      }
+    },
+    "android": {
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0e0e18"
+      },
+      "package": "com.goldenride.user",
+      "versionCode": 12,
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDbdW16zZqPVpdurydxr3VOXwHn3j85Dz4"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-location",
+      "expo-image-picker",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          },
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34
+          }
+        }
+      ]
+    ],
+    "owner": "nandagopalzenartins-team",
+    "extra": {
+      "eas": {
+        "projectId": "3a18c724-c922-4e49-b123-de18a09f9476"
+      }
+    }
+  }
+}

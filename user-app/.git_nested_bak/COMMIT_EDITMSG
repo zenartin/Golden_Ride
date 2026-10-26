@@ -1,0 +1,15 @@
+feat: major feature updates and bug fixes
+
+- Add card collection step at registration (Stripe integration)
+- Fix USD/dollar currency display throughout user app
+- Fix chat screen keyboard avoidance on Android
+- Add chatNotifier for push notification support
+- Add formatDuration utility (65 min -> 1 hr 5 min)
+- Fix trip duration formatting in TripsScreen
+- Update API URL with /api suffix and HTTPS support
+- Fix map/location improvements in HomeScreen
+- Add payment gating: block new rides if unpaid ride exists
+- Fix websocket completion notification with USD fare
+- Safe-area gap fix above nav bar in MainShellScreen
+- Update RideOptionCard with USD pricing
+- Improve bottom navigation bar styling

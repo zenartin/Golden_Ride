@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Follow My Ride - Golden Ride</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Tailwind CSS for rapid styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        #map { height: 60vh; width: 100%; z-index: 1; }
+        .details-panel { height: 40vh; overflow-y: auto; z-index: 10; background: white; border-top-left-radius: 20px; border-top-right-radius: 20px; margin-top: -20px; position: relative; padding: 20px; box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .status-badge { padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+        .status-inprogress { background: #D1FAE5; color: #065F46; }
+        .status-completed { background: #E0E7FF; color: #3730A3; }
+        .status-cancelled { background: #FEE2E2; color: #991B1B; }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col">
+
+    <div id="map"></div>
+
+    <div class="details-panel flex-1">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-black text-gray-900">Follow My Ride</h1>
+            <span id="statusBadge" class="status-badge bg-gray-200 text-gray-700">Loading...</span>
+        </div>
+
+        <div class="bg-gray-50 rounded-xl p-4 mb-4 border border-gray-100">
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg mr-3" id="driverInitial">?</div>
+                <div>
+                    <p class="font-bold text-gray-900" id="driverName">Waiting for driver</p>
+                    <p class="text-sm text-gray-700 mt-0.5 font-medium" id="driverPhone"></p>
+                    <p class="text-xs text-gray-500 mt-0.5" id="vehicleInfo">Vehicle details pending</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex relative">
+                <div class="w-4 h-4 rounded-full bg-green-500 mt-1 z-10 border-2 border-white shadow-sm"></div>
+                <div class="absolute left-2 top-4 bottom-[-16px] w-0.5 bg-gray-300 z-0"></div>
+                <div class="ml-4 flex-1">
+                    <p class="text-xs font-bold text-gray-500 uppercase">Pickup</p>
+                    <p class="text-sm font-medium text-gray-900 mt-1" id="pickupText">Loading...</p>
+                </div>
+            </div>
+            <div class="flex relative">
+                <div class="w-4 h-4 rounded-full bg-blue-600 mt-1 z-10 border-2 border-white shadow-sm"></div>
+                <div class="ml-4 flex-1">
+                    <p class="text-xs font-bold text-gray-500 uppercase">Dropoff</p>
+                    <p class="text-sm font-medium text-gray-900 mt-1" id="dropoffText">Loading...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6 text-center text-xs text-gray-400">
+            Powered by Golden Ride Safety
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const token = window.location.pathname.split('/').pop();
+        const apiUrl = `/api/share/track/${token}`;
+
+        let map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let pickupMarker, dropoffMarker, driverMarker, routeLine;
+        let routeLatLngs = [];
+
+        // Custom Icons
+        const pickupIcon = L.divIcon({ className: 'custom-icon', html: '<div style="background:#10B981;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>', iconSize: [14, 14] });
+        const dropoffIcon = L.divIcon({ className: 'custom-icon', html: '<div style="background:#2563EB;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>', iconSize: [14, 14] });
+        const carIcon = L.divIcon({ className: 'custom-icon', html: '<div style="background:#111827;width:24px;height:24px;border-radius:50%;border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.4);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg></div>', iconSize: [24, 24] });
+
+        async function fetchTripData() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    if (response.status === 403 || response.status === 404) {
+                        document.body.innerHTML = '<div style="height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:sans-serif;color:#4B5563;background:#F3F4F6;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:16px;color:#9CA3AF;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><h2 style="margin:0;font-size:20px;font-weight:700;color:#111827;">Link Expired or Invalid</h2><p style="margin-top:8px;font-size:14px;">This trip sharing session has ended.</p></div>';
+                        return;
+                    }
+                    throw new Error('Network error');
+                }
+                const data = await response.json();
+                updateUI(data);
+                updateMap(data);
+                
+                // Stop polling if trip is completed or cancelled
+                if (data.status === 'completed' || data.status === 'cancelled') {
+                    clearInterval(pollInterval);
+                }
+            } catch (err) {
+                console.error("Failed to fetch trip data", err);
+            }
+        }
+
+        function updateUI(data) {
+            document.getElementById('pickupText').textContent = data.pickup || 'Loading...';
+            document.getElementById('dropoffText').textContent = data.dropoff || 'Loading...';
+            
+            const badge = document.getElementById('statusBadge');
+            badge.className = 'status-badge'; // reset
+            if (data.status === 'started' || data.status === 'arrived') {
+                badge.textContent = 'In Progress';
+                badge.classList.add('status-inprogress');
+            } else if (data.status === 'completed') {
+                badge.textContent = 'Completed';
+                badge.classList.add('status-completed');
+            } else if (data.status === 'cancelled') {
+                badge.textContent = 'Cancelled';
+                badge.classList.add('status-cancelled');
+            } else {
+                badge.textContent = 'Pending';
+                badge.classList.add('bg-gray-200', 'text-gray-700');
+            }
+
+            if (data.driver_name) {
+                document.getElementById('driverName').textContent = data.driver_name + (data.driver_rating ? ` (★ ${data.driver_rating})` : '');
+                document.getElementById('driverInitial').textContent = data.driver_name.charAt(0).toUpperCase();
+                
+                if (data.driver_phone) {
+                    document.getElementById('driverPhone').textContent = "📞 " + data.driver_phone;
+                }
+                
+                document.getElementById('vehicleInfo').textContent = `🚗 ${data.vehicle_model} • ${data.vehicle_plate}`;
+            }
+        }
+
+        function updateMap(data) {
+            let bounds = [];
+
+            if (data.pickup_latitude && !pickupMarker) {
+                pickupMarker = L.marker([data.pickup_latitude, data.pickup_longitude], {icon: pickupIcon}).addTo(map);
+            }
+            if (data.pickup_latitude) bounds.push([data.pickup_latitude, data.pickup_longitude]);
+
+            if (data.dropoff_latitude && !dropoffMarker) {
+                dropoffMarker = L.marker([data.dropoff_latitude, data.dropoff_longitude], {icon: dropoffIcon}).addTo(map);
+            }
+            if (data.dropoff_latitude) bounds.push([data.dropoff_latitude, data.dropoff_longitude]);
+
+            // Draw route history
+            if (data.route_history && data.route_history.length > 0) {
+                routeLatLngs = data.route_history.map(pt => [pt.latitude, pt.longitude]);
+                if (!routeLine) {
+                    routeLine = L.polyline(routeLatLngs, {color: '#0ea5e9', weight: 4, opacity: 0.8}).addTo(map);
+                } else {
+                    routeLine.setLatLngs(routeLatLngs);
+                }
+            }
+
+            // Update car marker
+            if (data.current_latitude) {
+                if (!driverMarker) {
+                    driverMarker = L.marker([data.current_latitude, data.current_longitude], {icon: carIcon}).addTo(map);
+                } else {
+                    driverMarker.setLatLng([data.current_latitude, data.current_longitude]);
+                }
+                bounds.push([data.current_latitude, data.current_longitude]);
+                
+                // Add current pos to route line if we have one
+                if (routeLine) {
+                    routeLine.addLatLng([data.current_latitude, data.current_longitude]);
+                }
+            }
+
+            if (bounds.length > 0 && !window.hasFittedBounds) {
+                map.fitBounds(bounds, { padding: [40, 40] });
+                window.hasFittedBounds = true;
+            }
+        }
+
+        // Initial fetch and set polling
+        fetchTripData();
+        const pollInterval = setInterval(fetchTripData, 5000);
+    </script>
+</body>
+</html>

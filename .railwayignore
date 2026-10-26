@@ -1,0 +1,13 @@
+railway.toml
+driver-app/backend/.env
+driver-app/backend/venv/
+driver-app/backend/golden_ride.db
+driver-app/backend/tunnel_reclaimer.js
+driver-app/backend/uploads/
+driver-app/backend/__pycache__/
+driver-app/backend/**/__pycache__/
+driver-app/backend/**/*.pyc
+driver-app/node_modules/
+user-app/node_modules/
+*.db
+*.sqlite

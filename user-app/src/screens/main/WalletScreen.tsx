@@ -1,0 +1,181 @@
+import React, { useEffect, useMemo } from "react";
+import { Pressable, Text, View, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+
+import SectionHeader from "../../components/SectionHeader";
+import { useRideStore } from "../../store/rideStore";
+import { useAuthStore } from "../../store/authStore";
+import { Colors, Spacing, Typography } from "../../theme";
+
+const topUps = [200, 500, 1000];
+
+export default function WalletScreen() {
+  const navigation = useNavigation<any>();
+  const balance = useRideStore((state) => state.walletBalance);
+  const transactions = useRideStore((state) => state.transactions);
+  const topUpWallet = useRideStore((state) => state.topUpWallet);
+  const refreshWallet = useRideStore((state) => state.refreshWallet);
+  const user = useAuthStore((s) => s.user);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    refreshWallet().catch(() => undefined);
+  }, [refreshWallet]);
+
+  const handleRedeem = () => {
+    Alert.prompt(
+      "Redeem Gift Card",
+      "Enter your gift card code:",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Redeem", 
+          onPress: async (code) => {
+            if (!code) return;
+            try {
+              await useRideStore.getState().redeemGiftCard(code.toUpperCase());
+              Alert.alert("Success", "Gift card redeemed! Funds added to wallet.");
+            } catch (e: any) {
+              Alert.alert("Error", "Invalid or already redeemed gift card.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const recent = useMemo(() => transactions, [transactions]);
+
+  return (
+    <View style={styles.root}>
+      {/* Premium Header with Notch spacing */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={styles.headerTitle}>Transaction History</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Balance Card */}
+        <View style={styles.balanceCard}>
+          <Text style={styles.kicker}>Available Balance</Text>
+          <Text style={styles.balance}>${balance.toFixed(2)}</Text>
+          <Text style={styles.note}>Use your wallet balance to seamlessly pay for your rides without adding a card.</Text>
+        </View>
+
+        {/* Gift Cards Row */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <TouchableOpacity 
+            style={[styles.topUpButton, { backgroundColor: "#DBEAFE" }]} 
+            // @ts-ignore
+            onPress={() => useAuthStore.getState().user && navigation.navigate("GiftCards")}
+          >
+            <Ionicons name="gift-outline" size={20} color="#2563EB" />
+            <Text style={[styles.topUpText, { color: "#2563EB" }]}>Buy Gift Card</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.topUpButton, { backgroundColor: "#FCE7F3" }]} 
+            onPress={handleRedeem}
+          >
+            <Ionicons name="scan-outline" size={20} color="#DB2777" />
+            <Text style={[styles.topUpText, { color: "#DB2777" }]}>Redeem Code</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Transactions History Card */}
+        <View style={styles.card}>
+          <SectionHeader title="Transactions" />
+          <View style={{ gap: 10 }}>
+            {recent.length > 0 ? (
+              recent.map((tx) => (
+                <View key={tx.id} style={styles.txRow}>
+                  <View style={styles.txIcon}>
+                    <Ionicons
+                      name={tx.type === "credit" ? "add-circle-outline" : "remove-circle-outline"}
+                      size={18}
+                      color={tx.type === "credit" ? "#10B981" : "#EF4444"}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.txTitle}>{tx.title}</Text>
+                    <Text style={styles.txMeta}>{tx.date.slice(0, 10)}</Text>
+                  </View>
+                  <Text style={[styles.txAmount, { color: tx.type === "credit" ? "#10B981" : "#EF4444" }]}>
+                    {tx.type === "credit" ? "+$" : "-$"}{tx.amount}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.empty}>No transactions recorded yet.</Text>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Colors.background },
+  header: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  headerTitle: {
+    fontSize: Typography.heading,
+    fontWeight: "900",
+    color: Colors.textPrimary,
+  },
+  scroll: {
+    padding: Spacing.lg,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  balanceCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    padding: Spacing.lg,
+    gap: 8,
+  },
+  kicker: { color: Colors.white, fontSize: Typography.caption, fontWeight: "800", textTransform: "uppercase" },
+  balance: { color: Colors.white, fontSize: Typography.hero, fontWeight: "900" },
+  note: { color: "#FFF6E5", fontSize: Typography.body },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 12,
+  },
+  topUpRow: { flexDirection: "row", gap: 10 },
+  topUpButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF3D9",
+    flexDirection: "row",
+    gap: 6,
+  },
+  topUpText: { color: Colors.textPrimary, fontSize: 14, fontWeight: "800" },
+  txRow: { flexDirection: "row", gap: 10, alignItems: "center" },
+  txIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: Colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  txTitle: { color: Colors.textPrimary, fontSize: Typography.body, fontWeight: "700" },
+  txMeta: { color: Colors.textSecondary, fontSize: Typography.small },
+  txAmount: { fontSize: Typography.body, fontWeight: "800" },
+  empty: { color: Colors.textSecondary, fontSize: Typography.body, textAlign: "center" },
+});

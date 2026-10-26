@@ -1,0 +1,11 @@
+0000000000000000000000000000000000000000 875eda5edfb537ce5cf97f6cffe6a8b8013f9388 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1790656781 +0530	branch: Created from HEAD
+875eda5edfb537ce5cf97f6cffe6a8b8013f9388 e48461fef905e7cda904f6c16358f0bbb4ea8ea6 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791054265 +0530	commit: feat: Family MVP features
+e48461fef905e7cda904f6c16358f0bbb4ea8ea6 e48461fef905e7cda904f6c16358f0bbb4ea8ea6 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791054766 +0530	Branch: renamed refs/heads/stable-version to refs/heads/main
+e48461fef905e7cda904f6c16358f0bbb4ea8ea6 e48461fef905e7cda904f6c16358f0bbb4ea8ea6 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791054771 +0530	Branch: renamed refs/heads/main to refs/heads/main
+e48461fef905e7cda904f6c16358f0bbb4ea8ea6 8920adcba201a37b859ef71338cff337ea93ac7a Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791130505 +0530	commit: Fix bugs
+8920adcba201a37b859ef71338cff337ea93ac7a e2c6bf0c9b9765f9ba687e5c8ddfea8770127e83 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791136008 +0530	commit: fix builds
+e2c6bf0c9b9765f9ba687e5c8ddfea8770127e83 6f45518b03bbfb8009eb1c9322f2a0a2217f1f38 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791174887 +0530	commit: Remove native directories to allow Expo CNG
+6f45518b03bbfb8009eb1c9322f2a0a2217f1f38 9b5ff526a9ddda5b4f4990c6a6be793c302a5ede Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791175553 +0530	commit: fix packages
+9b5ff526a9ddda5b4f4990c6a6be793c302a5ede 52d15231aefa07c1431ff47d5730fb908e10bd36 Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791178185 +0530	commit: Fix Android build configs
+52d15231aefa07c1431ff47d5730fb908e10bd36 c18873219eac230631a0b85cde273d75c5e887cc Nanda Gopal <nandagopal@apples-MacBook-Pro.local> 1791180035 +0530	commit: Fix Android kotlin version
+c18873219eac230631a0b85cde273d75c5e887cc 6c85890f06522f8b1950ad201f4796f81e27e428 Golden Ride Dev <golden.ride.dev@gmail.com> 1792686684 +0530	commit: feat: major feature updates and bug fixes
