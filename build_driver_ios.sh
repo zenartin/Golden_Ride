@@ -30,7 +30,7 @@ xcodebuild -workspace "$ROOT_DIR/driver-app/ios/GoldenRideDriver.xcworkspace" \
   CODE_SIGN_STYLE="Manual" \
   CODE_SIGN_IDENTITY="Apple Distribution" \
   PROVISIONING_PROFILE_SPECIFIER="Golden Ride Driver AppStore 2026" \
-  CURRENT_PROJECT_VERSION="9" \
+  CURRENT_PROJECT_VERSION="10" \
   MARKETING_VERSION="1.0.4" \
   OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
   archive

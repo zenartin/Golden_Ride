@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.goldenride.user",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "config": {
@@ -30,7 +30,7 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "versionCode": 7
+      "versionCode": 8
     },
     "web": {
       "favicon": "./favicon.png"
