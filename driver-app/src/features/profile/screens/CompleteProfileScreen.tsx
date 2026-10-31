@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DatePickerField from "../../../components/inputs/DatePickerField";
 import { useAuthStore } from "../../../store/authStore";
 import { Colors, Spacing, Typography } from "../../../theme";
 import apiClient from "../../../api/axios";
@@ -76,19 +76,6 @@ export default function CompleteProfileScreen({ navigation }: any) {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowPicker(Platform.OS === 'ios');
-    if (selectedDate && pickerField) {
-      if (pickerField === 'card_expiry') {
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const year = String(selectedDate.getFullYear()).slice(2);
-        handleChange(pickerField, `${month}/${year}`);
-      } else {
-        const formattedDate = selectedDate.toISOString().split('T')[0];
-        handleChange(pickerField, formattedDate);
-      }
-    }
-  };
 
   const pickImage = async (type: 'front' | 'back' | 'vehicle' | 'insurance') => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -381,14 +368,15 @@ export default function CompleteProfileScreen({ navigation }: any) {
           </TouchableOpacity>
 
         </ScrollView>
-        {showPicker && (
-          <DateTimePicker
-            value={pickerField && (form as any)[pickerField] ? new Date((form as any)[pickerField]) : new Date()}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-          />
-        )}
+        <DatePickerField
+          visible={showPicker}
+          value={pickerField ? (form as any)[pickerField] : null}
+          defaultDate={pickerField === "date_of_birth" ? new Date(1990, 0, 1) : new Date()}
+          maximumDate={pickerField === "date_of_birth" ? new Date() : undefined}
+          minimumDate={pickerField && pickerField !== "date_of_birth" ? new Date() : undefined}
+          onConfirm={(value) => pickerField && handleChange(pickerField, value)}
+          onClose={() => setShowPicker(false)}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

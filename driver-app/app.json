@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.goldenridedriver",
-      "buildNumber": "10",
+      "buildNumber": "12",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio",

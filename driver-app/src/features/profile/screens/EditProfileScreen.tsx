@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Platform } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DatePickerField from "../../../components/inputs/DatePickerField";
 import {
   View,
   Text,
@@ -207,18 +207,14 @@ export default function EditProfileScreen({ navigation }: any) {
                 />
               </View>
             </TouchableOpacity>
-            {showDobPicker && (
-              <DateTimePicker
-                value={dob ? new Date(dob) : new Date(1990, 0, 1)}
-                mode="date"
-                maximumDate={new Date()}
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_e: any, d?: Date) => {
-                  setShowDobPicker(Platform.OS === "ios");
-                  if (d) setDob(d.toISOString().split("T")[0]);
-                }}
-              />
-            )}
+            <DatePickerField
+              visible={showDobPicker}
+              value={dob}
+              defaultDate={new Date(1990, 0, 1)}
+              maximumDate={new Date()}
+              onConfirm={setDob}
+              onClose={() => setShowDobPicker(false)}
+            />
             <AppInput
               label="City"
               leftIcon="location-outline"
