@@ -51,29 +51,6 @@ class DispatchService:
             "ride": ride_payload
         }
 
-    @classmethod
-    async def notify_destination_changed(cls, db: Session, ride: Ride):
-        logger.info(f"Notifying destination change for ride {ride.id}")
-        ride_payload = cls._serialize_ride(ride)
-        message = {
-            "type": "destination_changed",
-            "ride": ride_payload
-        }
-        
-        # Send WebSocket message if assigned driver is online
-        if ride.driver_id:
-            await manager.send_to_driver(ride.driver_id, message)
-            
-            # Optionally send FCM push
-            tokens = DeviceTokenRepository.get_tokens_by_driver(db, ride.driver_id)
-            if tokens:
-                FCMService.send_multicast_notification(
-                    tokens=tokens,
-                    title="Destination Updated",
-                    body="The rider has changed their destination.",
-                    data={"type": "destination_changed", "ride_id": str(ride.id)}
-                )
-
         drivers = (
             db.query(Driver)
             .filter(Driver.is_online == True)
@@ -173,6 +150,29 @@ class DispatchService:
             else:
                 # Completely offline driver (no WebSocket, no active push tokens)
                 logger.info(f"Driver {driver.id} is completely offline. Ride request saved in DB.")
+
+    @classmethod
+    async def notify_destination_changed(cls, db: Session, ride: Ride):
+        logger.info(f"Notifying destination change for ride {ride.id}")
+        ride_payload = cls._serialize_ride(ride)
+        message = {
+            "type": "destination_changed",
+            "ride": ride_payload
+        }
+        
+        # Send WebSocket message if assigned driver is online
+        if ride.driver_id:
+            await manager.send_to_driver(ride.driver_id, message)
+            
+            # Optionally send FCM push
+            tokens = DeviceTokenRepository.get_tokens_by_driver(db, ride.driver_id)
+            if tokens:
+                FCMService.send_multicast_notification(
+                    tokens=tokens,
+                    title="Destination Updated",
+                    body="The rider has changed their destination.",
+                    data={"type": "destination_changed", "ride_id": str(ride.id)}
+                )
 
     @classmethod
     async def notify_ride_accepted(cls, db: Session, ride: Ride, accepted_driver_id: int):
