@@ -14,6 +14,11 @@ export interface UserProfile {
   card_expiry?: string;
   card_cvv?: string;
   card_holder?: string;
+  home_address?: string;
+  date_of_birth?: string;
+  card_last4?: string;
+  card_brand?: string;
+  wallet_balance?: number;
 }
 
 interface AuthState {
@@ -29,7 +34,7 @@ interface AuthState {
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
   fetchProfile: () => Promise<void>;
-  updateProfile: (name: string, email: string, phone: string) => Promise<boolean>;
+  updateProfile: (name: string, email: string, phone: string, homeAddress?: string, dateOfBirth?: string) => Promise<boolean>;
   updateCard: (payload: { card_number: string; card_expiry: string; card_cvv: string; card_holder: string }) => Promise<boolean>;
   uploadAvatar: (uri: string) => Promise<boolean>;
   removeAvatar: () => Promise<boolean>;
@@ -77,6 +82,11 @@ export const useAuthStore = create<AuthState>()(
               phone: profile.phone,
               avatar: profile.avatar,
               card_number: profile.card_number,
+              card_last4: profile.card_last4,
+              card_brand: profile.card_brand,
+              wallet_balance: profile.wallet_balance,
+              home_address: profile.home_address,
+              date_of_birth: profile.date_of_birth,
               card_expiry: profile.card_expiry,
               card_cvv: profile.card_cvv,
               card_holder: profile.card_holder,
@@ -218,6 +228,11 @@ export const useAuthStore = create<AuthState>()(
               phone: profile.phone,
               avatar: profile.avatar,
               card_number: profile.card_number,
+              card_last4: profile.card_last4,
+              card_brand: profile.card_brand,
+              wallet_balance: profile.wallet_balance,
+              home_address: profile.home_address,
+              date_of_birth: profile.date_of_birth,
               card_expiry: profile.card_expiry,
               card_cvv: profile.card_cvv,
               card_holder: profile.card_holder,
@@ -230,11 +245,11 @@ export const useAuthStore = create<AuthState>()(
           }
         }
       },
-      updateProfile: async (name, email, phone) => {
+      updateProfile: async (name, email, phone, homeAddress, dateOfBirth) => {
         try {
           const updated = await apiRequest<any>(API_ENDPOINTS.UPDATE_PROFILE, {
             method: "PUT",
-            body: { name, email, phone },
+            body: { name, email, phone, home_address: homeAddress, date_of_birth: dateOfBirth },
           });
           set((state) => ({
             user: state.user ? {
@@ -243,6 +258,8 @@ export const useAuthStore = create<AuthState>()(
               email: updated.email,
               phone: updated.phone,
               avatar: updated.avatar,
+              home_address: updated.home_address,
+              date_of_birth: updated.date_of_birth,
             } : null,
             error: null,
           }));
@@ -262,6 +279,11 @@ export const useAuthStore = create<AuthState>()(
             user: state.user ? {
               ...state.user,
               card_number: updated.card_number,
+              card_last4: updated.card_last4,
+              card_brand: updated.card_brand,
+              wallet_balance: updated.wallet_balance,
+              home_address: updated.home_address,
+              date_of_birth: updated.date_of_birth,
               card_expiry: updated.card_expiry,
               card_cvv: updated.card_cvv,
               card_holder: updated.card_holder,

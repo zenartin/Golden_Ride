@@ -1,4 +1,4 @@
-import { BASE_URL } from "../api/client";
+import { BASE_URL, apiRequest } from "../api/client";
 import { useRideStore } from "../store/rideStore";
 import { navigate } from "../navigation/navigationRef";
 import { Alert } from "react-native";
@@ -64,6 +64,20 @@ export function connectUserWebSocket(userId: number, token: string) {
           useRideStore.getState().fetchMessages?.(Number(m.ride_id ?? msg.ride_id)).catch?.(() => {});
           import("./chatNotifier").then(({ notifyIncomingMessage }) => notifyIncomingMessage(m)).catch(() => {});
         }
+      }
+      else if (msg.type === "destination_change_request") {
+        const respond = (accept: boolean) =>
+          apiRequest(`/user/rides/${msg.ride_id}/destination-response`, { method: "POST", body: { accept } })
+            .then(() => useRideStore.getState().refreshActiveTrip())
+            .catch((err: any) => Alert.alert("Could not update trip", err?.message || "Please try again."));
+        Alert.alert(
+          "Confirm new drop-off",
+          `Your driver suggested changing the drop-off to ${msg.dropoff}. Your fare will be recalculated.`,
+          [
+            { text: "Decline", style: "cancel", onPress: () => respond(false) },
+            { text: "Accept", onPress: () => respond(true) },
+          ]
+        );
       }
       else if (msg.type === "ride_expired") {
         setActiveTripStatus("cancelled");

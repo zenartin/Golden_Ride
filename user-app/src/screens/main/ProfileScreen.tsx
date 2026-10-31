@@ -247,7 +247,16 @@ export default function ProfileScreen({ navigation }: Props) {
           </Pressable>
 
           <View style={styles.separator} />
-          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Content", { slug: "support", title: "Help & Support" })}>
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Settings")}>
+            <View style={[styles.iconWrap, { backgroundColor: "#F1F5F9" }]}>
+              <Ionicons name="settings-outline" size={20} color="#475569" />
+            </View>
+            <Text style={[styles.menuLabel, { flex: 1 }]}>Settings</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+          </Pressable>
+
+          <View style={styles.separator} />
+          <Pressable style={styles.menuItem} onPress={() => navigation.navigate("Help")}>
             <View style={[styles.iconWrap, { backgroundColor: "#FFFBEB" }]}>
               <Ionicons name="help-circle-outline" size={20} color="#F59E0B" />
             </View>

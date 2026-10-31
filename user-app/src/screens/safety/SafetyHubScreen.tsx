@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState } from "react";
+import { Alert, View, Text, StyleSheet, ScrollView, TextInput } from "react-native";
+import { apiRequest } from "../../api/client";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, Spacing, Typography } from "../../theme";
 import { EmergencyCallButton } from "../../components/safety/EmergencyCallButton";
@@ -8,8 +9,32 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
+const CHECKLIST = [
+  "The license plate matches the app",
+  "The driver matches the photo and name",
+  "The car model and color match",
+  "You shared your 4-digit PIN only once in the right car",
+  "Your seat belt is on",
+];
+
 export const SafetyHubScreen = () => {
   const navigation = useNavigation<any>();
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [incident, setIncident] = useState("");
+
+  const sendIncident = async () => {
+    if (!incident.trim()) {
+      Alert.alert("Missing details", "Please describe what happened.");
+      return;
+    }
+    try {
+      await apiRequest("/rider/safety/alert", { method: "POST", body: { kind: "incident", message: incident.trim() } });
+      setIncident("");
+      Alert.alert("Report submitted", "Our safety team will review it.");
+    } catch {
+      Alert.alert("Could not submit", "Please try again. If you are in danger, call 911.");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -47,12 +72,42 @@ export const SafetyHubScreen = () => {
           
           <ShareLocationButton />
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Safety Checklist</Text>
+          <Text style={styles.sectionDesc}>Before you get in the car:</Text>
+          {CHECKLIST.map((item) => (
+            <TouchableOpacity key={item} style={styles.checkRow} onPress={() => setChecked((c) => ({ ...c, [item]: !c[item] }))}>
+              <Ionicons name={checked[item] ? "checkbox" : "square-outline"} size={22} color={Colors.primary} />
+              <Text style={styles.checkText}>{item}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Report an Incident</Text>
+          <Text style={styles.sectionDesc}>Tell our safety team what happened.</Text>
+          <TextInput
+            style={styles.incidentInput}
+            placeholder="Describe what happened"
+            placeholderTextColor={Colors.textMuted}
+            multiline
+            value={incident}
+            onChangeText={setIncident}
+          />
+          <TouchableOpacity style={styles.contactsBtn} onPress={sendIncident}>
+            <Text style={styles.contactsBtnText}>Submit Report</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  checkRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  checkText: { flex: 1, color: Colors.textPrimary },
+  incidentInput: { borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, minHeight: 90, color: Colors.textPrimary, marginTop: 8 },
   container: {
     flex: 1,
     backgroundColor: Colors.background,

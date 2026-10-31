@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Text, View, StyleSheet } from "react-native";
+import { Alert, Share, Text, View, StyleSheet } from "react-native";
+import MapView, { Marker, Polyline } from "react-native-maps";
+import { apiRequest } from "../../api/client";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import AppButton from "../../components/AppButton";
@@ -49,6 +51,15 @@ export default function TripDetailScreen({ route, navigation }: Props) {
     );
   }
 
+  const shareReceipt = async () => {
+    try {
+      const receipt = await apiRequest<{ text: string }>(`/user/rides/${trip.id}/receipt`);
+      await Share.share({ message: receipt.text, title: "Golden Ride receipt" });
+    } catch (e: any) {
+      Alert.alert("Receipt unavailable", e?.message || "Please try again.");
+    }
+  };
+
   const openRoute = async () => {
     await openDirectionsInMaps(trip.dropoff);
   };
@@ -75,6 +86,34 @@ export default function TripDetailScreen({ route, navigation }: Props) {
         <Text style={styles.meta}>Status: {trip.status}</Text>
       </View>
 
+      {trip.pickupLatitude && trip.pickupLongitude && trip.dropoffLatitude && trip.dropoffLongitude ? (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: (trip.pickupLatitude + trip.dropoffLatitude) / 2,
+            longitude: (trip.pickupLongitude + trip.dropoffLongitude) / 2,
+            latitudeDelta: Math.abs(trip.pickupLatitude - trip.dropoffLatitude) * 1.8 + 0.01,
+            longitudeDelta: Math.abs(trip.pickupLongitude - trip.dropoffLongitude) * 1.8 + 0.01,
+          }}
+        >
+          <Marker coordinate={{ latitude: trip.pickupLatitude, longitude: trip.pickupLongitude }} pinColor="green" />
+          <Marker coordinate={{ latitude: trip.dropoffLatitude, longitude: trip.dropoffLongitude }} />
+          <Polyline
+            coordinates={[
+              { latitude: trip.pickupLatitude, longitude: trip.pickupLongitude },
+              { latitude: trip.dropoffLatitude, longitude: trip.dropoffLongitude },
+            ]}
+            strokeColor={Colors.primary}
+            strokeWidth={3}
+          />
+        </MapView>
+      ) : null}
+      {trip.status === "completed" ? (
+        <>
+          <AppButton title="Get Receipt" onPress={shareReceipt} />
+          <AppButton title="Rate Driver" variant="secondary" onPress={() => (navigation as any).navigate("Rating", { tripId: trip.id })} />
+        </>
+      ) : null}
       <AppButton title="Open route" onPress={openRoute} />
       <AppButton title="Back to trips" onPress={() => (navigation as any).reset({ index: 0, routes: [{ name: "Shell", params: { tab: "Trips", screen: "Trips" } }] })} variant="secondary" />
     </View>
@@ -82,6 +121,7 @@ export default function TripDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  map: { height: 180, borderRadius: 20 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: Colors.background, padding: Spacing.xl },
   card: {
     backgroundColor: Colors.surface,

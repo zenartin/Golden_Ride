@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BASE_URL } from "../api/axios";
 import { useRideStore, matchesDriverPreferences } from "../store/rideStore";
 import * as Notifications from "expo-notifications";
@@ -21,6 +22,13 @@ let playToken = 0;
 const alertedRequestIds = new Set<string>();
 
 let ringingId: string | null = null;
+
+export const RINGTONE_VOLUME_KEY = "ringtone_volume";
+
+async function getRingtoneVolume(): Promise<number> {
+  const saved = Number(await AsyncStorage.getItem(RINGTONE_VOLUME_KEY).catch(() => null));
+  return saved > 0 && saved <= 1 ? saved : 1.0;
+}
 
 export async function playRingtone(requestId?: string | number) {
   if (requestId !== undefined && requestId !== null) {
@@ -48,7 +56,7 @@ export async function playRingtone(requestId?: string | number) {
 
     const { sound } = await Audio.Sound.createAsync(
       require('../../assets/sounds/trip_request_melodic.wav'),
-      { isLooping: true, shouldPlay: false, volume: 1.0 }
+      { isLooping: true, shouldPlay: false, volume: await getRingtoneVolume() }
     );
 
     // If stopRingtone / another play was called while loading, abort.
@@ -200,6 +208,16 @@ export function connectDriverWebSocket(driverId: number, token: string) {
         if (activeRide && activeRide.id === msg.ride_id) {
           setActiveRide({ ...activeRide, status: msg.status });
         }
+      }
+      else if (msg.type === "destination_mode_ended") {
+        const authStore = useAuthStore.getState();
+        if (authStore.driver) {
+          useAuthStore.setState({ driver: { ...authStore.driver, destination_mode_active: false } });
+        }
+        Alert.alert("Destination reached", "Destination mode is now off.");
+      }
+      else if (msg.type === "destination_change_declined") {
+        Alert.alert("Drop-off unchanged", "The rider declined the new drop-off.");
       }
       else if (msg.type === "destination_changed") {
         const activeRide = useRideStore.getState().activeRide;

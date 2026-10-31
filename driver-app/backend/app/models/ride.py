@@ -49,6 +49,11 @@ class Ride(Base):
     verification_attempts = Column(Integer, default=0, nullable=False)
     verification_verified_at = Column(DateTime, nullable=True)
 
+    # Drop-off change proposed by the driver, waiting for the rider to confirm
+    pending_dropoff = Column(String, nullable=True)
+    pending_dropoff_latitude = Column(Float, nullable=True)
+    pending_dropoff_longitude = Column(Float, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     # SQLite doesn't support onupdate natively — we update manually in routers
     updated_at = Column(DateTime, default=datetime.utcnow)
@@ -104,7 +109,9 @@ class Withdrawal(Base):
     id = Column(Integer, primary_key=True, index=True)
     driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
     amount = Column(Float, nullable=False)
-    status = Column(String, default="pending")  # pending, completed
+    status = Column(String, default="pending")  # pending, completed, failed
+    method = Column(String, default="standard")  # standard, instant
+    stripe_payout_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     driver = relationship("Driver", back_populates="withdrawals")

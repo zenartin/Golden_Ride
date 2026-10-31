@@ -1,3 +1,4 @@
+import { playRingtone, stopRingtone, RINGTONE_VOLUME_KEY } from "../../../services/websocket";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -65,6 +66,20 @@ const SECTIONS: { title: string; items: SettingRow[] }[] = [
 export default function SettingsScreen({ navigation }: any) {
   const { settings, fetchSettings, updateSettings } = useAppStore();
   const [customUrl, setCustomUrl] = useState("");
+  const [ringVolume, setRingVolume] = useState(1);
+
+  useEffect(() => {
+    AsyncStorage.getItem(RINGTONE_VOLUME_KEY).then((v) => {
+      if (Number(v) > 0) setRingVolume(Number(v));
+    });
+  }, []);
+
+  const changeRingVolume = async (volume: number) => {
+    setRingVolume(volume);
+    await AsyncStorage.setItem(RINGTONE_VOLUME_KEY, String(volume));
+    await playRingtone(`preview-${Date.now()}`);
+    setTimeout(() => stopRingtone().catch(() => {}), 1500);
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -100,6 +115,21 @@ export default function SettingsScreen({ navigation }: any) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Trip Request Ringtone</Text>
+          <View style={[styles.card, { flexDirection: "row", gap: 8, padding: 12 }]}>
+            {([["Low", 0.3], ["Medium", 0.6], ["High", 1]] as const).map(([label, volume]) => (
+              <TouchableOpacity
+                key={label}
+                style={{ flex: 1, padding: 10, borderRadius: 10, alignItems: "center", backgroundColor: ringVolume === volume ? Colors.primary : Colors.background }}
+                onPress={() => changeRingVolume(volume)}
+              >
+                <Text style={{ fontWeight: "700", color: ringVolume === volume ? Colors.white : Colors.textPrimary }}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {SECTIONS.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>

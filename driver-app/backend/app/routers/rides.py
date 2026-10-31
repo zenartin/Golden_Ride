@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -164,6 +165,8 @@ def update_coordinates(
         db.add(trip_loc)
         
     db.commit()
+    from app.services.ride_service import end_destination_mode_on_arrival
+    end_destination_mode_on_arrival(db, current_driver)
     return {"status": "success", "message": "Location updated"}
 
 @router.post("/{ride_id}/status", response_model=RideResponse)
@@ -198,6 +201,42 @@ def get_ride_history(
         Ride.status.in_(["completed", "cancelled", "declined", "arrived", "started", "accepted", "awaiting_payment"])
     ).order_by(Ride.created_at.desc()).all()
     return rides
+
+
+class DestinationChangeRequest(BaseModel):
+    dropoff: str
+    dropoff_latitude: float
+    dropoff_longitude: float
+
+
+@router.post("/{ride_id}/destination-request")
+async def request_destination_change(
+    ride_id: int,
+    payload: DestinationChangeRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    db: Session = Depends(get_db)
+):
+    """Driver proposes a new drop-off; it only applies once the rider confirms."""
+    from app.services.dispatch_service import _notify_rider
+    from app.websocket.manager import manager
+
+    ride = db.query(Ride).filter(Ride.id == ride_id, Ride.driver_id == current_driver.id).first()
+    if not ride:
+        raise HTTPException(status_code=404, detail="Ride not found or not assigned to you")
+    if ride.status not in ["accepted", "arrived", "started"]:
+        raise HTTPException(status_code=400, detail="Cannot change destination for this ride status")
+
+    ride.pending_dropoff = payload.dropoff
+    ride.pending_dropoff_latitude = payload.dropoff_latitude
+    ride.pending_dropoff_longitude = payload.dropoff_longitude
+    db.commit()
+    _notify_rider(db, ride, "Confirm new drop-off", f"Your driver suggested changing the drop-off to {payload.dropoff}.")
+    await manager.send_to_user(ride.user_id, {
+        "type": "destination_change_request",
+        "ride_id": ride.id,
+        "dropoff": payload.dropoff,
+    })
+    return {"status": "pending_rider_confirmation"}
 
 
 @router.post("/{ride_id}/confirm-cash")

@@ -15,8 +15,8 @@ export const EmergencyCallButton = () => {
         <Ionicons name="call" size={28} color={Colors.white} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.title}>Call 112</Text>
-        <Text style={styles.subtitle}>National Emergency Number</Text>
+        <Text style={styles.title}>Call 911</Text>
+        <Text style={styles.subtitle}>US emergency services</Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors.white} />
     </TouchableOpacity>

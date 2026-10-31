@@ -59,7 +59,9 @@ export default function RegisterScreen({ navigation }: any) {
     setLoading(false);
     if (!ok) {
       Alert.alert("Register failed", error || "Please fill every field.");
+      return;
     }
+    Alert.alert("Application received", "Your details were submitted. Add a card to start booking rides.");
   };
 
   return (

@@ -10,6 +10,7 @@ import RidesList from './pages/RidesList';
 import StripeDashboard from './pages/StripeDashboard';
 import Reports from './pages/Reports';
 import SettingsPage from './pages/Settings';
+import SafetyPage from './pages/Safety';
 import Payouts from './pages/Payouts';
 import Login from './pages/Login';
 import CouponsList from './pages/CouponsList';
@@ -36,6 +37,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="coupons" element={<CouponsList />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="safety" element={<SafetyPage />} />
             {/* Catch-all: redirect unknown paths to dashboard */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

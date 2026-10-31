@@ -15,7 +15,7 @@ class User(Base):
     phone = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     avatar = Column(String, nullable=True)
-    wallet_balance = Column(Float, default=1780.0)
+    wallet_balance = Column(Float, default=0.0)
     rating = Column(Float, default=4.8)
     country = Column(String, default="USA")
     is_active = Column(Boolean, default=True)
@@ -29,6 +29,7 @@ class User(Base):
     card_holder = Column(String, nullable=True)
     home_address = Column(String, nullable=True)
     date_of_birth = Column(String, nullable=True)  # YYYY-MM-DD
+    settings_json = Column(String, nullable=True)  # notification and privacy preferences
     created_at = Column(DateTime, default=datetime.utcnow)
 
     rides = relationship("Ride", back_populates="user")

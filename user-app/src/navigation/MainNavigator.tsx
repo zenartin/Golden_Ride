@@ -15,6 +15,9 @@ import PaymentMethodsScreen from "../screens/settings/PaymentMethodsScreen";
 import PaymentScreen from "../screens/main/PaymentScreen";
 import RatingScreen from "../screens/main/RatingScreen";
 import GiftCardsScreen from "../screens/main/GiftCardsScreen";
+import NotificationsScreen from "../screens/main/NotificationsScreen";
+import HelpScreen from "../screens/main/HelpScreen";
+import SettingsScreen from "../screens/settings/SettingsScreen";
 import { SafetyHubScreen } from "../screens/safety/SafetyHubScreen";
 import { EmergencyContactsScreen } from "../screens/safety/EmergencyContactsScreen";
 import { FamilyDashboardScreen } from "../features/family/screens/FamilyDashboardScreen";
@@ -38,6 +41,9 @@ export type MainStackParamList = {
   FamilyDashboard: undefined;
   InviteFamilyMember: undefined;
   GiftCards: undefined;
+  Notifications: undefined;
+  Help: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -65,6 +71,9 @@ export default function MainNavigator() {
       <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen as any} />
       <Stack.Screen name="InviteFamilyMember" component={InviteMembersScreen as any} />
       <Stack.Screen name="Rating" component={RatingScreen} options={{ animation: "slide_from_bottom" }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="Help" component={HelpScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="GiftCards" component={GiftCardsScreen} options={{ animation: "slide_from_right" }} />
     </Stack.Navigator>
   );

@@ -12,6 +12,7 @@ from app.database import engine, Base, SessionLocal
 from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth, payments, razorpay, rider, safety, share, family, recordings
 from app.websocket.manager import manager
 from app.repositories.driver_repository import DriverRepository
+from app.services.ride_service import end_destination_mode_on_arrival
 from app.exceptions import register_exception_handlers
 from app.models.user import User
 from app.models.driver import Driver
@@ -91,6 +92,9 @@ def ensure_local_schema_compatibility():
             "paid_at": "TIMESTAMP",
             "payment_status": "VARCHAR DEFAULT 'unpaid'",
             "stripe_payment_intent_id": "VARCHAR",
+            "pending_dropoff": "VARCHAR",
+            "pending_dropoff_latitude": "FLOAT",
+            "pending_dropoff_longitude": "FLOAT",
         }
         missing = [(name, sql_type) for name, sql_type in required_columns.items() if name not in existing]
         if missing:
@@ -98,12 +102,21 @@ def ensure_local_schema_compatibility():
                 for name, sql_type in missing:
                     connection.execute(text(f"ALTER TABLE rides ADD COLUMN {name} {sql_type}"))
 
+    # --- withdrawals table ---
+    if "withdrawals" in table_names:
+        existing_withdrawals = {column["name"] for column in inspector.get_columns("withdrawals")}
+        with engine.begin() as connection:
+            for name, sql_type in {"method": "VARCHAR DEFAULT 'standard'", "stripe_payout_id": "VARCHAR"}.items():
+                if name not in existing_withdrawals:
+                    connection.execute(text(f"ALTER TABLE withdrawals ADD COLUMN {name} {sql_type}"))
+
     # --- users table ---
     if "users" in table_names:
         existing_users = {column["name"] for column in inspector.get_columns("users")}
         required_user_columns = {
             "home_address": "VARCHAR",
             "date_of_birth": "VARCHAR",
+            "settings_json": "VARCHAR",
         }
         missing_users = [(n, t) for n, t in required_user_columns.items() if n not in existing_users]
         if missing_users:
@@ -125,6 +138,8 @@ def ensure_local_schema_compatibility():
             "country": "VARCHAR DEFAULT 'USA'",
             "date_of_birth": "VARCHAR",
             "residential_address": "VARCHAR",
+            "stripe_account_id": "VARCHAR",
+            "external_dashcam": "VARCHAR",
         }
         missing_drivers = [(name, sql_type) for name, sql_type in required_driver_columns.items() if name not in existing_drivers]
         if missing_drivers:
@@ -323,6 +338,8 @@ async def websocket_driver_endpoint(websocket: WebSocket, driver_id: int):
                             driver = DriverRepository.get_by_id(db, driver_id)
                             if driver:
                                 DriverRepository.update_location(db, driver, lat, lng)
+                                if end_destination_mode_on_arrival(db, driver):
+                                    await websocket.send_text(json.dumps({"type": "destination_mode_ended"}))
                         finally:
                             db.close()
             except Exception as e:

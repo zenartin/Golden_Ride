@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Car, Map, Settings, FileText, LogOut, CreditCard, Wallet, Tag } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Users, Car, Map, Settings, FileText, LogOut, CreditCard, Wallet, Tag } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 export default function Sidebar() {
@@ -21,6 +21,7 @@ export default function Sidebar() {
     { icon: <CreditCard size={20} />, label: 'Payments', path: '/stripe' },
     { icon: <Tag size={20} />, label: 'Coupons', path: '/coupons' },
     { icon: <FileText size={20} />, label: 'Reports', path: '/reports' },
+    { icon: <ShieldAlert size={20} />, label: 'Safety', path: '/safety' },
     { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
   ];
 

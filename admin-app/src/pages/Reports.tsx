@@ -45,6 +45,22 @@ export default function Reports() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    if (!data) return;
+    const rows = data.timeline.map((t: any) =>
+      `<tr><td>${t.label}</td><td>${t.rides}</td><td>$${t.gross}</td><td>$${t.admin}</td><td>$${t.driver}</td></tr>`
+    ).join('');
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<title>Golden Ride report (${period})</title>
+      <style>body{font-family:sans-serif}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;text-align:left}</style>
+      <h1>Golden Ride ${period} report</h1>
+      <table><tr><th>Period</th><th>Rides</th><th>Gross (USD)</th><th>Admin (USD)</th><th>Driver (USD)</th></tr>${rows}</table>`);
+    win.document.close();
+    win.focus();
+    win.print(); // the browser's print dialog offers Save as PDF
+  };
+
   const s = data?.summary;
   const cards = s ? [
     { title: 'Gross Revenue', value: money(s.gross_revenue), icon: <DollarSign size={22} />, color: '#059669', bg: 'rgba(5,150,105,0.1)' },
@@ -71,6 +87,9 @@ export default function Reports() {
           <button id="report-refresh" style={styles.btn} onClick={load}><RefreshCw size={14} /> Refresh</button>
           <button id="report-export" style={{ ...styles.btn, ...styles.btnPrimary }} onClick={exportCsv} disabled={!data}>
             <Download size={14} /> Export CSV
+          </button>
+          <button id="report-export-pdf" style={{ ...styles.btn, ...styles.btnPrimary }} onClick={exportPdf}>
+            <Download size={14} /> Export PDF
           </button>
         </div>
       </div>

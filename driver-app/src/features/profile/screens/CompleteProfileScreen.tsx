@@ -192,10 +192,6 @@ export default function CompleteProfileScreen({ navigation }: any) {
     },
     {
       id: 3, title: "4. Banking & Payouts", fields: [
-        { key: "upi_id", label: "UPI ID (India Payouts)", placeholder: "e.g. name@ybl" },
-        { key: "card_number", label: "Card Number (USA Stripe Payouts)", placeholder: "0000 0000 0000 0000" },
-        { key: "card_expiry", label: "Card Expiry", placeholder: "MM/YY", type: "date" },
-        { key: "card_cvv", label: "Card CVV", placeholder: "123" },
         { key: "bank_name", label: "Bank Name", placeholder: "e.g. Chase Bank" },
         { key: "account_number", label: "Account Number", placeholder: "..." },
         { key: "routing_number", label: "Routing Number", placeholder: "..." },

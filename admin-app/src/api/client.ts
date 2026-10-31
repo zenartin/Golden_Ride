@@ -157,3 +157,18 @@ export const deleteCoupon = async (id: number) => {
   const { data } = await apiClient.delete(`/admin/coupons/${id}`);
   return data;
 };
+
+export const getSafetyAlerts = async () => {
+  const { data } = await apiClient.get('/admin/safety-alerts');
+  return data;
+};
+
+export const resolveSafetyAlert = async (id: number) => {
+  const { data } = await apiClient.post(`/admin/safety-alerts/${id}/resolve`);
+  return data;
+};
+
+export const getRecordings = async () => {
+  const { data } = await apiClient.get('/recordings/admin');
+  return data;
+};

@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -42,6 +43,7 @@ def update_profile(
     if payload.phone is not None: current_driver.phone = payload.phone
     if payload.date_of_birth is not None: current_driver.date_of_birth = payload.date_of_birth
     if payload.residential_address is not None: current_driver.residential_address = payload.residential_address
+    if payload.external_dashcam is not None: current_driver.external_dashcam = payload.external_dashcam
     if payload.accepted_ride_classes is not None: current_driver.accepted_ride_classes = payload.accepted_ride_classes
     if payload.radius_filter is not None: current_driver.radius_filter = payload.radius_filter
 
@@ -391,6 +393,60 @@ def request_withdrawal(
     db.commit()
     db.refresh(withdraw_req)
     return withdraw_req
+
+class CashOutRequest(BaseModel):
+    amount: Optional[float] = None  # whole balance when omitted
+
+
+@router.get("/payout/status")
+def payout_status(current_driver: Driver = Depends(get_current_driver)):
+    from app.services import stripe_service
+    return stripe_service.connect_status(current_driver)
+
+
+@router.post("/payout/connect")
+def payout_connect(current_driver: Driver = Depends(get_current_driver), db: Session = Depends(get_db)):
+    """Start Stripe-hosted onboarding where the driver adds a US debit card."""
+    from app.services import stripe_service
+    try:
+        url = stripe_service.connect_account_link(db, current_driver, "https://www.golden-ride.com")
+    except Exception:
+        raise HTTPException(status_code=502, detail="Could not start debit card setup. Please try again.")
+    return {"url": url}
+
+
+@router.post("/payout/instant", response_model=WithdrawalOut)
+def payout_instant(
+    payload: CashOutRequest,
+    current_driver: Driver = Depends(get_current_driver),
+    db: Session = Depends(get_db)
+):
+    from app.services import stripe_service
+    amount = round(payload.amount if payload.amount is not None else (current_driver.balance or 0.0), 2)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="You have no balance to cash out")
+    if (current_driver.balance or 0.0) < amount:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+    if not stripe_service.connect_status(current_driver)["instant_available"]:
+        raise HTTPException(status_code=400, detail="Add an eligible US debit card before cashing out")
+
+    current_driver.balance -= amount
+    withdrawal = Withdrawal(driver_id=current_driver.id, amount=amount, status="pending", method="instant")
+    db.add(withdrawal)
+    db.commit()
+    db.refresh(withdrawal)
+    try:
+        withdrawal.stripe_payout_id = stripe_service.instant_payout(current_driver, amount, withdrawal.id)
+        withdrawal.status = "completed"
+        db.commit()
+    except stripe_service.PaymentError as e:
+        current_driver.balance += amount
+        withdrawal.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=400, detail=str(e))
+    db.refresh(withdrawal)
+    return withdrawal
+
 
 # Settings Mocks (could be expanded to columns on Driver table if required)
 _mock_settings = {

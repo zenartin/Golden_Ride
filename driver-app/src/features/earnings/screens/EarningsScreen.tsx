@@ -8,6 +8,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   TouchableWithoutFeedback,
 } from "react-native";
@@ -67,6 +68,41 @@ export default function EarningsScreen() {
     } finally {
       setRefreshing(false);
       setLoading(false);
+    }
+  };
+
+  const handleCashOut = async () => {
+    try {
+      const { data: status } = await apiClient.get("/driver/payout/status");
+      if (!status.instant_available) {
+        const { data: link } = await apiClient.post("/driver/payout/connect");
+        if (link.url) {
+          await Linking.openURL(link.url);
+          return;
+        }
+      }
+      const amount = data?.available_balance ?? 0;
+      if (amount <= 0) {
+        Alert.alert("Nothing to cash out", "Your balance is $0.00.");
+        return;
+      }
+      Alert.alert("Instant Cash Out", `Send $${amount.toFixed(2)} to your debit card now?`, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Cash Out",
+          onPress: async () => {
+            try {
+              await apiClient.post("/driver/payout/instant", {});
+              Alert.alert("Cash out sent", "Your money is on its way to your debit card.");
+              await fetchEarnings(true);
+            } catch (err: any) {
+              Alert.alert("Cash out failed", err.response?.data?.detail || "Please try again.");
+            }
+          },
+        },
+      ]);
+    } catch (err: any) {
+      Alert.alert("Error", err.response?.data?.detail || "Could not start cash out.");
     }
   };
 
@@ -156,6 +192,10 @@ export default function EarningsScreen() {
             </Modal>
           </View>
           
+          <TouchableOpacity style={[styles.withdrawBtn, { backgroundColor: Colors.success }]} onPress={handleCashOut}>
+            <Ionicons name="flash" size={16} color={Colors.white} />
+            <Text style={styles.withdrawText}>Instant Cash Out</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.withdrawBtn} onPress={handleSettle}>
             <Ionicons name="cash-outline" size={16} color={Colors.white} />
             <Text style={styles.withdrawText}>Settle Balance</Text>

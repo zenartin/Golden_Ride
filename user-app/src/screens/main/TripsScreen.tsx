@@ -37,6 +37,7 @@ export default function TripsScreen({ navigation }: Props) {
   const { history, activeTrip, refreshActiveTrip, refreshHistory } = useRideStore();
   const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<"all" | TripStatus>("all");
+  const [range, setRange] = useState<"all" | "7" | "30">("all");
   const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -52,7 +53,10 @@ export default function TripsScreen({ navigation }: Props) {
   }, []);
 
   const allTrips = activeTrip ? [activeTrip, ...history.filter((t) => t.id !== activeTrip.id)] : history;
-  const filtered = filter === "all" ? allTrips : allTrips.filter((t) => t.status === filter);
+  const rangeStart = range === "all" ? 0 : Date.now() - Number(range) * 24 * 60 * 60 * 1000;
+  const filtered = (filter === "all" ? allTrips : allTrips.filter((t) => t.status === filter)).filter(
+    (t) => !rangeStart || new Date(t.createdAt).getTime() >= rangeStart
+  );
 
   const completedCount = allTrips.filter((t) => t.status === "completed").length;
   const cancelledCount = allTrips.filter((t) => t.status === "cancelled").length;
@@ -80,6 +84,19 @@ export default function TripsScreen({ navigation }: Props) {
             <Text style={[styles.summaryValue, { color: s.color }]}>{s.value}</Text>
             <Text style={styles.summaryLabel}>{s.label}</Text>
           </View>
+        ))}
+      </View>
+
+      {/* Date range */}
+      <View style={styles.filterRow}>
+        {([["all", "Any time"], ["7", "Last 7 days"], ["30", "Last 30 days"]] as const).map(([key, label]) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.filterTab, range === key && styles.filterTabActive]}
+            onPress={() => setRange(key)}
+          >
+            <Text style={[styles.filterText, range === key && styles.filterTextActive]}>{label}</Text>
+          </TouchableOpacity>
         ))}
       </View>
 

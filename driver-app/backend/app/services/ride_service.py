@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
@@ -14,6 +15,24 @@ from app.services.dispatch_service import DispatchService
 from app.services import stripe_service
 from app.utils.pin import generate_ride_pin, hash_ride_pin
 from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAcceptedError
+from app.utils.helpers import calculate_distance_haversine
+
+# How close to their set destination a driver must be for destination mode to switch off
+DESTINATION_ARRIVAL_KM = 0.5
+
+
+def end_destination_mode_on_arrival(db: Session, driver: Driver) -> bool:
+    """Switch destination mode off once the driver reaches their destination. Returns True if it did."""
+    if not (driver.destination_mode_active and driver.destination_lat and driver.destination_lng
+            and driver.latitude and driver.longitude):
+        return False
+    if calculate_distance_haversine(driver.latitude, driver.longitude, driver.destination_lat, driver.destination_lng) > DESTINATION_ARRIVAL_KM:
+        return False
+    driver.destination_mode_active = False
+    db.add(driver)
+    db.commit()
+    return True
+
 
 logger = logging.getLogger("app")
 
@@ -177,14 +196,15 @@ class RideService:
         ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
         db.commit()
 
-        # Take the fare now; a failed charge must never reach a driver.
+        # Hold the fare now; a declined card must never reach a driver.
         if pays_by_card:
             try:
                 ride.stripe_payment_intent_id = stripe_service.charge_for_ride(db, user, ride)
+                ride.payment_status = "authorized"
+                db.commit()
             except stripe_service.PaymentError:
                 RideRepository.update_status(db, ride, "cancelled", cancellation_reason="Payment failed")
                 raise
-            ride = cls.mark_ride_paid(db, ride)
 
         if scheduled_time:
             # We don't have celery, so we will use asyncio for the POC
@@ -260,6 +280,9 @@ class RideService:
 
     @classmethod
     async def accept_ride(cls, db: Session, ride_id: int, driver_id: int) -> Ride:
+        driver = DriverRepository.get_by_id(db, driver_id)
+        if not driver or not driver.is_approved:
+            raise Exception("Your account has not been approved by an administrator yet.")
         # Row-level locking accept operation
         ride = RideRepository.accept_ride(db, ride_id, driver_id)
         
@@ -319,6 +342,8 @@ class RideService:
             raise Exception("Unauthorized driver for this ride")
         if ride.status != "arrived":
             raise Exception(f"Cannot start ride from status: {ride.status}")
+        if ride.verification_pin_hash and not ride.verification_verified_at:
+            raise Exception("Please verify the rider's PIN before starting the trip")
 
         updated_ride = RideRepository.update_status(db, ride, "started")
         await DispatchService.notify_ride_status_update(db, updated_ride)
@@ -338,6 +363,10 @@ class RideService:
         updated_ride = RideRepository.update_status(db, ride, "awaiting_payment", actual_fare=ride.fare_amount)
         if (ride.payment_method or "").lower() == "wallet" or ride.payment_status == "paid":
             updated_ride = cls.mark_ride_paid(db, updated_ride)
+        elif ride.payment_status == "authorized":
+            # If capture fails the ride stays 'awaiting_payment' so the rider can pay manually.
+            if stripe_service.capture_ride(updated_ride):
+                updated_ride = cls.mark_ride_paid(db, updated_ride, payment_method="card")
         elif (ride.payment_method or "").lower() not in ("cash", "cod"):
             updated_ride = cls.charge_saved_card(db, updated_ride)
         await DispatchService.notify_ride_status_update(db, updated_ride)
@@ -380,21 +409,39 @@ class RideService:
 
     @classmethod
     def _refund_card_payment(cls, db: Session, ride: Ride) -> None:
-        """Give back a card fare taken at booking when the ride won't happen."""
-        if ride.payment_status != "paid" or not ride.stripe_payment_intent_id:
+        """Release the booking hold, or refund a captured fare, when the ride won't happen."""
+        if not ride.stripe_payment_intent_id:
             return
-        refunded = stripe_service.refund_ride(ride)
-        ride.payment_status = "refunded" if refunded else "refund_failed"
+        if ride.payment_status == "authorized":
+            ride.payment_status = "released" if stripe_service.release_hold(ride) else "release_failed"
+        elif ride.payment_status == "paid":
+            ride.payment_status = "refunded" if stripe_service.refund_ride(ride) else "refund_failed"
+        else:
+            return
         db.add(ride)
         db.commit()
 
     @classmethod
     def change_card_fare(cls, db: Session, ride: Ride, user: User, new_fare: float) -> None:
-        """Keep a prepaid card ride's payment equal to its new fare. A rise charges the
-        full new fare first and then refunds the old charge, so one ride only ever has
-        one live charge. Raises PaymentError (fare untouched) if the new charge fails."""
+        """Keep a card ride's hold or payment equal to its new fare. Raises PaymentError
+        (fare untouched) if the card won't cover the new fare."""
         old_fare = ride.fare_amount
-        if ride.payment_status != "paid" or not ride.stripe_payment_intent_id or new_fare == old_fare:
+        if not ride.stripe_payment_intent_id or new_fare == old_fare:
+            return
+        if ride.payment_status == "authorized":
+            old_intent = ride.stripe_payment_intent_id
+            ride.fare_amount = new_fare
+            try:
+                ride.stripe_payment_intent_id = stripe_service.charge_for_ride(
+                    db, user, ride, idempotency_key=f"ride-{ride.id}-hold-{uuid.uuid4().hex}"
+                )
+            except stripe_service.PaymentError:
+                ride.fare_amount = old_fare
+                raise
+            if not stripe_service.release_hold(ride, old_intent):
+                logger.error(f"Ride {ride.id}: new hold placed but old hold {old_intent} not released")
+            return
+        if ride.payment_status != "paid":
             return
         if new_fare < old_fare:
             if not stripe_service.refund_ride(ride, amount=old_fare - new_fare):

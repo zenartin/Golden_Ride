@@ -547,3 +547,27 @@ def delete_coupon(coupon_id: int, current_admin: Admin = Depends(get_current_adm
     db.delete(coupon)
     db.commit()
     return {"status": "success", "message": "Coupon deleted"}
+
+
+@router.get("/safety-alerts")
+def list_safety_alerts(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    from app.models.rider_features import SafetyAlert
+
+    rows = db.query(SafetyAlert).order_by(SafetyAlert.created_at.desc()).limit(200).all()
+    return [{
+        "id": a.id, "actor_role": a.actor_role, "actor_id": a.actor_id, "ride_id": a.ride_id, "kind": a.kind,
+        "message": a.message, "latitude": a.latitude, "longitude": a.longitude, "status": a.status,
+        "created_at": a.created_at.isoformat(),
+    } for a in rows]
+
+
+@router.post("/safety-alerts/{alert_id}/resolve")
+def resolve_safety_alert(alert_id: int, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    from app.models.rider_features import SafetyAlert
+
+    alert = db.query(SafetyAlert).filter(SafetyAlert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    alert.status = "resolved"
+    db.commit()
+    return {"status": "success"}

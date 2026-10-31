@@ -23,6 +23,8 @@ class Driver(Base):
     country = Column(String, default="USA")
     date_of_birth = Column(String, nullable=True)
     residential_address = Column(String, nullable=True)
+    stripe_account_id = Column(String, nullable=True)  # Stripe Connect account for cash out
+    external_dashcam = Column(String, nullable=True)  # registered dashcam make/model
     destination_mode_active = Column(Boolean, default=False)
     destination_lat = Column(Float, nullable=True)
     destination_lng = Column(Float, nullable=True)

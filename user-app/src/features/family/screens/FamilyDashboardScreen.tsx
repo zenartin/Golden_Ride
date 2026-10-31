@@ -30,6 +30,19 @@ export const FamilyDashboardScreen = () => {
     Alert.alert('Copied', `Coupon ${code} copied. Paste it when booking a ride.`);
   };
 
+  const [trips, setTrips] = useState<any[]>([]);
+
+  const fetchFamilyTrips = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/family/trips`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTrips(response.data);
+    } catch {
+      setTrips([]);
+    }
+  };
+
   const fetchFamily = async () => {
     try {
       const response = await axios.get(`${BASE_URL}/family/me`, {
@@ -48,6 +61,7 @@ export const FamilyDashboardScreen = () => {
   };
 
   useEffect(() => {
+    fetchFamilyTrips();
     fetchFamily();
     fetchCoupons();
   }, []);
@@ -122,6 +136,15 @@ export const FamilyDashboardScreen = () => {
           </View>
         )}
         ListFooterComponent={() => (
+          <>
+          {trips.length > 0 && <Text style={{ fontWeight: "800", marginHorizontal: 16, marginTop: 16 }}>Family trips</Text>}
+          {trips.map((t) => (
+            <View key={t.id} style={{ marginHorizontal: 16, marginTop: 8, padding: 12, backgroundColor: "#fff", borderRadius: 12 }}>
+              <Text style={{ fontWeight: "700" }}>{t.member}: {t.fare}</Text>
+              <Text style={{ color: "#6B7280" }}>{t.from_location} to {t.to_location}</Text>
+              <Text style={{ color: "#6B7280", textTransform: "capitalize" }}>{t.status} · {new Date(t.created_at).toLocaleDateString()}</Text>
+            </View>
+          ))}
           <View style={styles.couponSection}>
             <Text style={styles.sectionTitle}>Family Coupons</Text>
             {coupons.map((c) => (
@@ -147,6 +170,7 @@ export const FamilyDashboardScreen = () => {
               </View>
             ))}
           </View>
+          </>
         )}
       />
     </View>

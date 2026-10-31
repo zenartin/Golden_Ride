@@ -1,3 +1,4 @@
+import { apiRequest } from "../../api/client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -53,6 +54,13 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
   const [locating, setLocating] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [saved, setSaved] = useState<{ id: number; label: string; address: string; latitude?: number; longitude?: number }[]>([]);
+
+  useEffect(() => {
+    apiRequest<typeof saved>("/rider/addresses")
+      .then((rows) => setSaved(rows.filter((a) => a.latitude && a.longitude)))
+      .catch(() => undefined);
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -189,6 +197,24 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
         </Pressable>
       </View>
 
+      {/* Saved addresses */}
+      {saved.length > 0 && results.length === 0 && !selected && (
+        <View style={styles.savedRow}>
+          {saved.map((a) => (
+            <Pressable
+              key={a.id}
+              style={styles.savedChip}
+              onPress={() =>
+                selectPlace({ placeId: `saved-${a.id}`, displayName: a.address, shortName: a.label, lat: a.latitude!, lon: a.longitude!, type: "saved" })
+              }
+            >
+              <Ionicons name="bookmark" size={14} color={Colors.primary} />
+              <Text style={styles.savedChipText}>{a.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {/* Autocomplete results */}
       {results.length > 0 && (
         <View style={styles.resultsCard}>
@@ -259,6 +285,9 @@ export default function LocationPickerScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  savedRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, paddingVertical: 8, backgroundColor: Colors.surface },
+  savedChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: Colors.border },
+  savedChipText: { color: Colors.textPrimary, fontWeight: "700" },
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row",

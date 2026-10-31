@@ -67,7 +67,8 @@ export interface GiftCard {
   id: number;
   code: string;
   amount: number;
-  is_redeemed: boolean;
+  balance: number;
+  status: "active" | "redeemed";
   created_at: string;
 }
 

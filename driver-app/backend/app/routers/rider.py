@@ -7,7 +7,8 @@ from datetime import datetime
 from app.database import get_db
 from app.models.user import User
 from app.models.ride import Ride
-from app.utils.security import get_current_user
+from app.models.rider_features import RiderNotification, SafetyAlert, SavedAddress, SupportTicket
+from app.utils.security import get_current_actor, get_current_user
 
 router = APIRouter(prefix="/rider", tags=["rider"])
 
@@ -73,215 +74,153 @@ def rate_ride(
     return {"status": "success", "message": "Rating submitted successfully"}
 
 # 2. Safety Hub & SOS
+def _alert_out(alert: SafetyAlert) -> dict:
+    return {"id": alert.id, "kind": alert.kind, "status": alert.status, "created_at": alert.created_at.isoformat()}
+
+
 class SOSRequest(BaseModel):
+    ride_id: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    message: Optional[str] = None
+    kind: str = "silent"  # sos, silent, incident
+
+
+@router.post("/safety/alert")
+def create_safety_alert(
+    payload: SOSRequest,
+    actor: dict = Depends(get_current_actor),
+    db: Session = Depends(get_db),
+):
+    """Silent distress alert or incident report, for rider or driver. Appears in the admin Safety page."""
+    if payload.kind not in ("sos", "silent", "incident"):
+        raise HTTPException(status_code=400, detail="Unknown alert type")
+    alert = SafetyAlert(
+        actor_role=actor["role"], actor_id=actor["id"], ride_id=payload.ride_id, kind=payload.kind,
+        message=payload.message, latitude=payload.latitude, longitude=payload.longitude,
+    )
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+    return _alert_out(alert)
+
+
+# Saved addresses
+class AddressRequest(BaseModel):
+    label: str
+    address: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
-@router.post("/safety/sos")
-def trigger_sos(
-    payload: SOSRequest,
-    current_user: User = Depends(get_current_user)
-):
-    return {
-        "status": "success",
-        "message": "Emergency SOS triggered! Local emergency response team and your trusted contacts have been alerted."
-    }
 
-class TrustedContactRequest(BaseModel):
-    name: str
-    phone: str
-    relation: Optional[str] = "Family"
+def _address_out(a: SavedAddress) -> dict:
+    return {"id": a.id, "label": a.label, "address": a.address, "latitude": a.latitude, "longitude": a.longitude}
 
-_mock_contacts = []
-
-@router.get("/safety/trusted-contacts")
-def get_trusted_contacts(current_user: User = Depends(get_current_user)):
-    return _mock_contacts
-
-@router.post("/safety/trusted-contacts")
-def add_trusted_contact(
-    payload: TrustedContactRequest,
-    current_user: User = Depends(get_current_user)
-):
-    contact = {
-        "id": len(_mock_contacts) + 1,
-        "name": payload.name,
-        "phone": payload.phone,
-        "relation": payload.relation
-    }
-    _mock_contacts.append(contact)
-    return contact
-
-@router.post("/safety/share-trip")
-def share_trip(current_user: User = Depends(get_current_user)):
-    return {
-        "status": "success",
-        "share_url": f"https://golden-ride.com/track/{current_user.id}"
-    }
-
-# 3. Saved Addresses
-class AddressRequest(BaseModel):
-    title: str
-    address: str
-    latitude: float
-    longitude: float
-
-_mock_addresses = [
-    {"id": 1, "title": "Home", "address": "123 Main St, New York, NY", "latitude": 40.7128, "longitude": -74.0060},
-    {"id": 2, "title": "Work", "address": "456 Tech Ave, New York, NY", "latitude": 40.7589, "longitude": -73.9851}
-]
 
 @router.get("/addresses")
-def get_addresses(current_user: User = Depends(get_current_user)):
-    return _mock_addresses
+def get_addresses(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.query(SavedAddress).filter(SavedAddress.user_id == current_user.id).order_by(SavedAddress.created_at).all()
+    return [_address_out(a) for a in rows]
+
 
 @router.post("/addresses")
-def add_address(payload: AddressRequest, current_user: User = Depends(get_current_user)):
-    addr = {
-        "id": len(_mock_addresses) + 1,
-        "title": payload.title,
-        "address": payload.address,
-        "latitude": payload.latitude,
-        "longitude": payload.longitude
-    }
-    _mock_addresses.append(addr)
-    return addr
+def add_address(payload: AddressRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = SavedAddress(user_id=current_user.id, **payload.model_dump())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _address_out(row)
 
-@router.delete("/addresses/{id}")
-def delete_address(id: int, current_user: User = Depends(get_current_user)):
-    global _mock_addresses
-    _mock_addresses = [a for a in _mock_addresses if a["id"] != id]
+
+@router.put("/addresses/{address_id}")
+def edit_address(address_id: int, payload: AddressRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = db.query(SavedAddress).filter(SavedAddress.id == address_id, SavedAddress.user_id == current_user.id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Address not found")
+    for key, value in payload.model_dump().items():
+        setattr(row, key, value)
+    db.commit()
+    db.refresh(row)
+    return _address_out(row)
+
+
+@router.delete("/addresses/{address_id}")
+def delete_address(address_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = db.query(SavedAddress).filter(SavedAddress.id == address_id, SavedAddress.user_id == current_user.id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Address not found")
+    db.delete(row)
+    db.commit()
     return {"status": "success"}
 
-# 4. Notifications
-_mock_notifications = [
-    {"id": 1, "title": "Welcome to Golden Ride!", "message": "Enjoy $10 off your first trip using code WELCOME10.", "read": False, "created_at": datetime.utcnow().isoformat()},
-    {"id": 2, "title": "Safety Tip", "message": "Always check vehicle plate number before boarding.", "read": True, "created_at": datetime.utcnow().isoformat()}
-]
+
+# Notifications
+def _notification_out(n: RiderNotification) -> dict:
+    return {"id": n.id, "category": n.category, "title": n.title, "body": n.body, "ride_id": n.ride_id,
+            "is_read": n.is_read, "created_at": n.created_at.isoformat()}
+
 
 @router.get("/notifications")
-def get_notifications(current_user: User = Depends(get_current_user)):
-    return _mock_notifications
+def get_notifications(category: Optional[str] = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    query = db.query(RiderNotification).filter(RiderNotification.user_id == current_user.id)
+    if category:
+        query = query.filter(RiderNotification.category == category)
+    return [_notification_out(n) for n in query.order_by(RiderNotification.created_at.desc()).limit(100).all()]
 
-@router.post("/notifications/{id}/read")
-def mark_notification_read(id: int, current_user: User = Depends(get_current_user)):
-    for n in _mock_notifications:
-        if n["id"] == id:
-            n["read"] = True
-    return {"status": "success"}
 
 @router.post("/notifications/read-all")
-def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
-    for n in _mock_notifications:
-        n["read"] = True
+def read_all_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.query(RiderNotification).filter(RiderNotification.user_id == current_user.id).update({"is_read": True})
+    db.commit()
     return {"status": "success"}
 
-# 5. Family Accounts
-_mock_family = []
 
-class FamilyMemberRequest(BaseModel):
-    name: str
-    phone: str
-    relation: str
-
-@router.get("/family")
-def get_family_members(current_user: User = Depends(get_current_user)):
-    return _mock_family
-
-@router.post("/family")
-def add_family_member(payload: FamilyMemberRequest, current_user: User = Depends(get_current_user)):
-    member = {
-        "id": len(_mock_family) + 1,
-        "name": payload.name,
-        "phone": payload.phone,
-        "relation": payload.relation
-    }
-    _mock_family.append(member)
-    return member
-
-@router.delete("/family/{id}")
-def delete_family_member(id: int, current_user: User = Depends(get_current_user)):
-    global _mock_family
-    _mock_family = [f for f in _mock_family if f["id"] != id]
+@router.post("/notifications/{notification_id}/read")
+def read_notification(notification_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = db.query(RiderNotification).filter(RiderNotification.id == notification_id, RiderNotification.user_id == current_user.id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    row.is_read = True
+    db.commit()
     return {"status": "success"}
 
-# 6. Gift Cards
-_mock_gift_cards = [
-    {"id": 1, "code": "GOLDEN-GIFT-50", "amount": 50.0, "redeemed": False}
-]
 
-class GiftCardPurchaseRequest(BaseModel):
-    amount: float
-    recipient_email: str
-
-class GiftCardRedeemRequest(BaseModel):
-    code: str
-
-@router.get("/gift-cards")
-def get_gift_cards(current_user: User = Depends(get_current_user)):
-    return _mock_gift_cards
-
-@router.post("/gift-cards/purchase")
-def purchase_gift_card(payload: GiftCardPurchaseRequest, current_user: User = Depends(get_current_user)):
-    import uuid
-    code = f"GOLDEN-{uuid.uuid4().hex[:6].upper()}"
-    card = {"id": len(_mock_gift_cards) + 1, "code": code, "amount": payload.amount, "redeemed": False}
-    _mock_gift_cards.append(card)
-    return card
-
-@router.post("/gift-cards/redeem")
-def redeem_gift_card(
-    payload: GiftCardRedeemRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    code = payload.code.strip().upper()
-    for card in _mock_gift_cards:
-        if card["code"] == code and not card["redeemed"]:
-            card["redeemed"] = True
-            current_user.wallet_balance += card["amount"]
-            db.add(current_user)
-            db.commit()
-            return {"status": "success", "amount": card["amount"], "wallet_balance": current_user.wallet_balance}
-    raise HTTPException(status_code=400, detail="Invalid or already redeemed gift card code")
-
-@router.get("/gift-cards/balance/{code}")
-def get_gift_card_balance(code: str, current_user: User = Depends(get_current_user)):
-    for card in _mock_gift_cards:
-        if card["code"] == code.strip().upper():
-            return {"code": card["code"], "amount": card["amount"], "redeemed": card["redeemed"]}
-    raise HTTPException(status_code=404, detail="Gift card not found")
-
-# 7. Support & FAQs
+# Support
 _faqs = [
-    {"question": "How do I request a ride?", "answer": "Set your pickup and dropoff locations, select your ride class, and tap Book Ride."},
-    {"question": "What payment methods are supported?", "answer": "We accept Credit/Debit Cards, Wallet Balance, and Cash."},
-    {"question": "How do cancellation fees work?", "answer": "Cancellations within 2 minutes of driver assignment are free."}
+    {"question": "How do I request a ride?", "answer": "Choose your pickup and drop-off, pick a ride type, then confirm. Your card is checked when you book."},
+    {"question": "When is my card charged?", "answer": "We place a hold on your card when you book and charge it when the trip ends. If the trip is cancelled the hold is released."},
+    {"question": "Which payment methods are supported?", "answer": "Credit and debit cards through Stripe, plus your Golden Ride wallet, which you can top up with gift cards."},
+    {"question": "What is the ride PIN?", "answer": "A 4-digit code shown when your driver is assigned. Share it with the driver only when you are in the right car."},
+    {"question": "How do I report a safety issue?", "answer": "Open the Safety Hub from your profile or during a trip. In an emergency, call 911."},
 ]
+
 
 @router.get("/support/faqs")
 def get_faqs():
     return _faqs
 
-_support_tickets = []
 
 class TicketCreateRequest(BaseModel):
     subject: str
     message: str
 
+
+def _ticket_out(t: SupportTicket) -> dict:
+    return {"id": t.id, "subject": t.subject, "message": t.message, "status": t.status, "created_at": t.created_at.isoformat()}
+
+
 @router.get("/support/tickets")
-def get_support_tickets(current_user: User = Depends(get_current_user)):
-    return _support_tickets
+def get_support_tickets(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.query(SupportTicket).filter(SupportTicket.user_id == current_user.id).order_by(SupportTicket.created_at.desc()).all()
+    return [_ticket_out(t) for t in rows]
+
 
 @router.post("/support/ticket")
-def create_support_ticket(payload: TicketCreateRequest, current_user: User = Depends(get_current_user)):
-    import uuid
-    ticket = {
-        "id": f"TICK-{uuid.uuid4().hex[:6].upper()}",
-        "subject": payload.subject,
-        "message": payload.message,
-        "status": "open",
-        "created_at": datetime.utcnow().isoformat()
-    }
-    _support_tickets.append(ticket)
-    return ticket
+def create_support_ticket(payload: TicketCreateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not payload.subject.strip() or not payload.message.strip():
+        raise HTTPException(status_code=400, detail="Please enter a subject and a message")
+    row = SupportTicket(user_id=current_user.id, subject=payload.subject.strip(), message=payload.message.strip())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _ticket_out(row)

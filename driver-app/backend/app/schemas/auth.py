@@ -61,3 +61,5 @@ class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    home_address: Optional[str] = None
+    date_of_birth: Optional[str] = None

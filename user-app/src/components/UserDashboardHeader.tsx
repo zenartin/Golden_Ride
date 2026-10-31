@@ -1,9 +1,10 @@
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View, Alert } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuthStore } from "../store/authStore";
+import { navigate } from "../navigation/navigationRef";
 import { BASE_URL } from "../api/client";
 import { Colors, Spacing, Typography } from "../theme";
 
@@ -36,7 +37,7 @@ export default function UserDashboardHeader({ activeTab, onProfilePress }: Props
         <Pressable 
           style={styles.iconButton} 
           onPress={() => {
-            Alert.alert("Notifications", "You have no new notifications.");
+            navigate("Notifications");
           }}
         >
           <Ionicons name="notifications-outline" size={22} color={Colors.black} />

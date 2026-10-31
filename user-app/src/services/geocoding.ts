@@ -14,8 +14,38 @@ export interface GeocodedPlace {
 
 const BASE_URL = "https://photon.komoot.io"; // Much faster OSM geocoder
 
+const GOOGLE_PLACES_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY;
+
+async function searchGooglePlaces(query: string, limit: number, bias?: { lat: number; lon: number }): Promise<GeocodedPlace[]> {
+  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": GOOGLE_PLACES_KEY as string,
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.primaryType",
+    },
+    body: JSON.stringify({
+      textQuery: query.trim(),
+      maxResultCount: limit,
+      regionCode: "US",
+      ...(bias ? { locationBias: { circle: { center: { latitude: bias.lat, longitude: bias.lon }, radius: 50000 } } } : {}),
+    }),
+  });
+  if (!response.ok) throw new Error(`Places search failed: ${response.status}`);
+  const data = await response.json();
+  return (data.places ?? []).map((p: any) => ({
+    placeId: p.id,
+    displayName: p.formattedAddress,
+    shortName: p.displayName?.text ?? p.formattedAddress,
+    lat: p.location.latitude,
+    lon: p.location.longitude,
+    type: p.primaryType ?? "place",
+  }));
+}
+
 export async function searchPlaces(query: string, limit = 6, bias?: { lat: number; lon: number }): Promise<GeocodedPlace[]> {
   if (!query.trim() || query.trim().length < 2) return [];
+  if (GOOGLE_PLACES_KEY) return searchGooglePlaces(query, limit, bias);
   const params = new URLSearchParams({
     q: query.trim(),
     limit: String(limit),

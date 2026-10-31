@@ -15,7 +15,7 @@ export default function EarningsCard() {
       <View style={styles.topRow}>
         <View>
           <Text style={styles.title}>Today's Earnings</Text>
-          <Text style={styles.amount}>₹2,450.00</Text>
+          <Text style={styles.amount}>$2,450.00</Text>
           <Text style={styles.subtitle}>8 Trips Completed</Text>
         </View>
         <Text style={styles.detail}>View Details</Text>

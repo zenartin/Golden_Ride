@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
+  Share,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography } from "../../../theme";
 import { useRideStore } from "../../../store/rideStore";
 import { useAuthStore } from "../../../store/authStore";
-import apiClient from "../../../api/axios";
+import apiClient, { BASE_URL } from "../../../api/axios";
+import SosModal from "../../../components/safety/SosModal";
+import { DashcamOverlay } from "../../../components/DashcamOverlay";
+import EditDropoffModal from "../components/EditDropoffModal";
 import { openDirectionsInMaps } from "../../../utils/openMaps";
 import { getCurrentDeviceLocation } from "../../../utils/deviceLocation";
 import { getRoutePolyline } from "../../../utils/routing";
@@ -45,6 +49,9 @@ export default function ActiveRideScreen({ navigation, route }: any) {
   const rideId = route?.params?.rideId;
   
   const [pin, setPin] = useState("");
+  const [showSos, setShowSos] = useState(false);
+  const [showDashcam, setShowDashcam] = useState(false);
+  const [showEditDropoff, setShowEditDropoff] = useState(false);
   const pinInputRef = useRef<TextInput>(null);
   
   const mapRef = useRef<MapView>(null);
@@ -264,8 +271,17 @@ export default function ActiveRideScreen({ navigation, route }: any) {
     }
   };
 
-  const handleSOS = () => {
-    Linking.openURL('tel:112');
+  const handleSOS = () => setShowSos(true);
+
+  const shareTrip = async () => {
+    try {
+      const res = await apiClient.post(`/share/rides/${RIDE.id}`);
+      await Share.share({
+        message: `Follow my Golden Ride trip live: ${BASE_URL.replace("/api", "")}/track/${res.data.token}`,
+      });
+    } catch (err: any) {
+      Alert.alert("Could not share", err?.response?.data?.detail || "Please try again.");
+    }
   };
 
   const pickupRegion = {
@@ -333,6 +349,10 @@ export default function ActiveRideScreen({ navigation, route }: any) {
         {/* SOS */}
         <TouchableOpacity style={[styles.sosBtn, { top: insets.top + 8 }]} onPress={handleSOS}>
           <Text style={styles.sosText}>SOS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.recordBtn, { top: insets.top + 56 }]} onPress={() => setShowDashcam(true)}>
+          <Ionicons name="videocam-outline" size={16} color={Colors.white} />
+          <Text style={styles.sosText}>Record</Text>
         </TouchableOpacity>
 
         {/* Back */}
@@ -521,6 +541,17 @@ export default function ActiveRideScreen({ navigation, route }: any) {
             </View>
           )}
 
+          <View style={styles.tripTools}>
+            <TouchableOpacity style={styles.toolBtn} onPress={shareTrip}>
+              <Ionicons name="share-social-outline" size={18} color={Colors.primary} />
+              <Text style={styles.toolText}>Follow My Ride</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolBtn} onPress={() => setShowEditDropoff(true)}>
+              <Ionicons name="create-outline" size={18} color={Colors.primary} />
+              <Text style={styles.toolText}>Change Drop-off</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* CTA Action Button */}
           <TouchableOpacity 
             style={[
@@ -569,6 +600,9 @@ export default function ActiveRideScreen({ navigation, route }: any) {
           )}
         </ScrollView>
       </View>
+      <SosModal visible={showSos} rideId={RIDE.id} onClose={() => setShowSos(false)} />
+      <EditDropoffModal visible={showEditDropoff} rideId={RIDE.id} onClose={() => setShowEditDropoff(false)} />
+      {showDashcam && <DashcamOverlay rideId={RIDE.id} onClose={() => setShowDashcam(false)} />}
     </View>
   );
 }
@@ -582,6 +616,16 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   map: { flex: 1 },
+  recordBtn: {
+    position: "absolute", right: Spacing.lg, flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#1F2937", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, zIndex: 10,
+  },
+  tripTools: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  toolBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+  },
+  toolText: { color: Colors.textPrimary, fontWeight: "700", fontSize: Typography.small },
   sosBtn: {
     position: "absolute", right: Spacing.lg,
     backgroundColor: Colors.error, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20,

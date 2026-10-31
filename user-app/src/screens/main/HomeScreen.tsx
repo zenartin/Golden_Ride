@@ -165,6 +165,9 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
   }, [activeTrip?.status]);
 
   const [paymentMethod, setPaymentMethod] = useState<string>("Stripe");
+  const authUser = useAuthStore((state) => state.user) as any;
+  const wallet = authUser;
+  const cardLabel = authUser?.card_last4 ? `${(authUser.card_brand || "Card").toUpperCase()} •••• ${authUser.card_last4}` : "Credit or debit card";
   const [upiId, setUpiId] = useState("");
   const [tempUpiId, setTempUpiId] = useState("");
   const [cardDetails, setCardDetails] = useState({ number: "", expiry: "", cvv: "", name: "" });
@@ -411,7 +414,7 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
               </View>
 
               {/* Payment Method Selector Row */}
-              <View style={[styles.paymentSelector, { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border }]}>
+              <Pressable onPress={() => setShowPaymentModal(true)} style={[styles.paymentSelector, { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border }]}>
                 <View style={[styles.paymentSelectorLeft, { flex: 1 }]}>
                   <View style={[styles.paymentBadge, { backgroundColor: "#635BFF" + "1A" }]}>
                     <Ionicons name="card" size={20} color="#635BFF" />
@@ -419,11 +422,12 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   <View style={{ flex: 1, paddingRight: 10 }}>
                     <Text style={styles.paymentMethodTitle}>Payment Method</Text>
                     <Text style={styles.paymentMethodValue} numberOfLines={1}>
-                      Stripe
+                      {paymentMethod === "Wallet" ? `Wallet ($${(wallet?.wallet_balance ?? 0).toFixed(2)})` : cardLabel}
                     </Text>
                   </View>
                 </View>
-              </View>
+                <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+              </Pressable>
 
               {bookError ? <Text style={[styles.errorText, { marginTop: 12 }]}>{bookError}</Text> : null}
 
@@ -526,19 +530,22 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
             <View style={{ gap: 12, paddingVertical: 10 }}>
 
 
-              <Pressable
-                style={[styles.optionRow, paymentMethod === "Razorpay" && styles.optionRowSelected]}
-                onPress={() => { setPaymentMethod("Razorpay"); setShowPaymentModal(false); }}
-              >
-                <View style={[styles.paymentBadge, { backgroundColor: "#02042B" + "1A" }]}>
-                  <Ionicons name="flash-outline" size={22} color="#02042B" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionName}>Razorpay (Cards / UPI)</Text>
-                  <Text style={styles.optionSub}>Fast & secure payments</Text>
-                </View>
-                {paymentMethod === "Razorpay" && <Ionicons name="checkmark-circle" size={20} color="#02042B" />}
-              </Pressable>
+              {([["Stripe", cardLabel, "Charged when your trip ends", "card-outline"], ["Wallet", `Wallet ($${(wallet?.wallet_balance ?? 0).toFixed(2)})`, "Includes redeemed gift cards", "wallet-outline"]] as const).map(([id, name, sub, icon]) => (
+                <Pressable
+                  key={id}
+                  style={[styles.optionRow, paymentMethod === id && styles.optionRowSelected]}
+                  onPress={() => { setPaymentMethod(id); setShowPaymentModal(false); }}
+                >
+                  <View style={[styles.paymentBadge, { backgroundColor: "#02042B" + "1A" }]}>
+                    <Ionicons name={icon} size={22} color="#02042B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.optionName}>{name}</Text>
+                    <Text style={styles.optionSub}>{sub}</Text>
+                  </View>
+                  {paymentMethod === id && <Ionicons name="checkmark-circle" size={20} color="#02042B" />}
+                </Pressable>
+              ))}
             </View>
           </View>
         </Pressable>

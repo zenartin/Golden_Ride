@@ -171,13 +171,9 @@ export default function RideOptionCard({
         <Pressable 
           style={styles.priceContainer}
           onPress={() => {
-            const base = (option.price * 0.4).toFixed(2);
-            const dist = (option.price * 0.4).toFixed(2);
-            const tax = (option.price * 0.2).toFixed(2);
-            
             Alert.alert(
               "Fare Breakdown",
-              `Base Fare: ${symbol}${base}\nDistance & Time: ${symbol}${dist}\nTaxes & Fees: ${symbol}${tax}\n\nTotal Fare: ${symbol}${Number(option.price).toFixed(2)}`,
+              `Estimated total: ${symbol}${Number(option.price).toFixed(2)}\n\nBase fare: $1.50\nDistance: $0.55 per km\nTime: $0.15 per minute\nBooking fee: $1.50\nMinimum fare: $4.00\n\nRide type adjusts these rates. A hold is placed on your card at booking and charged when the trip ends.`,
               [{ text: "OK" }]
             );
           }}
@@ -212,11 +208,6 @@ export default function RideOptionCard({
         <View style={styles.metaChip}>
           <Ionicons name="snow-outline" size={13} color="#3B82F6" />
           <Text style={[styles.metaText, { color: "#3B82F6" }]}>AC</Text>
-        </View>
-        {/* Cash accepted chip */}
-        <View style={styles.metaChip}>
-          <Ionicons name="cash-outline" size={13} color={Colors.textSecondary} />
-          <Text style={styles.metaText}>Cash</Text>
         </View>
       </View>
     </Pressable>

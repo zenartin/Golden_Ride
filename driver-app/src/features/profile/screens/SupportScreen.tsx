@@ -19,7 +19,7 @@ const FAQ = [
   { q: "How are fares calculated?", a: "Fares are based on base rate + per km rate + surge multiplier when active." },
   { q: "When will I receive my payout?", a: "Payouts are processed daily and credited within 24 hours to your bank account." },
   { q: "How do I update my vehicle details?", a: "Go to Profile → My Vehicle and tap on Edit to update your vehicle information." },
-  { q: "What happens if a rider cancels?", a: "If the rider cancels after you arrive, you receive a cancellation fee of ₹30-50." },
+  { q: "What happens if a rider cancels?", a: "If the rider cancels after you arrive, you receive a cancellation fee of $30-50." },
 ];
 
 const CONTACT = [

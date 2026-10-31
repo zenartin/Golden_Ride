@@ -34,7 +34,7 @@ export async function shareCurrentLocation() {
 }
 
 export const callEmergencyServices = async () => {
-  const phoneUrl = "tel:112";
+  const phoneUrl = "tel:911";
 
   try {
     const supported = await Linking.canOpenURL(phoneUrl);
@@ -44,13 +44,13 @@ export const callEmergencyServices = async () => {
     } else {
       Alert.alert(
         "Unable to make a call",
-        "Please dial 112 directly from your phone."
+        "Please dial 911 directly from your phone."
       );
     }
   } catch {
     Alert.alert(
       "Unable to make a call",
-      "Please dial 112 directly from your phone."
+      "Please dial 911 directly from your phone."
     );
   }
 };

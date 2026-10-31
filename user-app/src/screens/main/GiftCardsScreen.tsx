@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Clipboard } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Clipboard, TextInput } from "react-native";
+import { apiRequest } from "../../api/client";
+import { useAuthStore } from "../../store/authStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -19,6 +21,29 @@ export default function GiftCardsScreen() {
   
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [code, setCode] = useState("");
+  const redeemGiftCard = useRideStore((state) => state.redeemGiftCard);
+  const fetchProfile = useAuthStore((state) => state.fetchProfile);
+
+  const redeem = async () => {
+    try {
+      await redeemGiftCard(code.trim());
+      await fetchProfile();
+      setCode("");
+      Alert.alert("Redeemed", "The value was added to your wallet. Choose Wallet when you book a ride.");
+    } catch (e: any) {
+      Alert.alert("Could not redeem", e?.message || "Please check the code.");
+    }
+  };
+
+  const checkBalance = async () => {
+    try {
+      const card = await apiRequest<{ balance: number }>(`/user/giftcards/balance/${encodeURIComponent(code.trim())}`);
+      Alert.alert("Gift card balance", `$${card.balance.toFixed(2)}`);
+    } catch (e: any) {
+      Alert.alert("Not found", e?.message || "Please check the code.");
+    }
+  };
 
   useEffect(() => {
     fetchGiftCards().finally(() => setLoading(false));
@@ -83,6 +108,24 @@ export default function GiftCardsScreen() {
           ))}
         </View>
 
+        <SectionHeader title="Redeem or Check a Gift Card" />
+        <TextInput
+          style={styles.redeemInput}
+          placeholder="Enter gift card code"
+          placeholderTextColor={Colors.textSecondary}
+          autoCapitalize="characters"
+          value={code}
+          onChangeText={setCode}
+        />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <TouchableOpacity style={styles.redeemBtn} onPress={redeem}>
+            <Text style={styles.redeemBtnText}>Redeem to Wallet</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.redeemBtn} onPress={checkBalance}>
+            <Text style={styles.redeemBtnText}>Check Balance</Text>
+          </TouchableOpacity>
+        </View>
+
         <SectionHeader title="Your Purchased Cards" />
         {loading ? (
           <ActivityIndicator size="small" color={Colors.primary} />
@@ -93,11 +136,11 @@ export default function GiftCardsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.gcAmount}>${gc.amount.toFixed(2)}</Text>
                   <Text style={styles.gcCode} selectable>{gc.code}</Text>
-                  <Text style={[styles.gcStatus, { color: gc.is_redeemed ? Colors.textSecondary : "#10B981" }]}>
-                    {gc.is_redeemed ? "Redeemed" : "Active"}
+                  <Text style={[styles.gcStatus, { color: gc.status === "redeemed" ? Colors.textSecondary : "#10B981" }]}>
+                    {gc.status === "redeemed" ? "Redeemed" : "Active"}
                   </Text>
                 </View>
-                {!gc.is_redeemed && (
+                {gc.status !== "redeemed" && (
                   <TouchableOpacity style={styles.copyBtn} onPress={() => handleCopy(gc.code)}>
                     <Ionicons name="copy-outline" size={20} color={Colors.primary} />
                   </TouchableOpacity>
@@ -114,6 +157,9 @@ export default function GiftCardsScreen() {
 }
 
 const styles = StyleSheet.create({
+  redeemInput: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 12, color: Colors.textPrimary, marginBottom: 10 },
+  redeemBtn: { flex: 1, padding: 12, borderRadius: 12, backgroundColor: Colors.primary, alignItems: "center" },
+  redeemBtnText: { color: Colors.white, fontWeight: "700" },
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row",

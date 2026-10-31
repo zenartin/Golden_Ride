@@ -14,7 +14,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.goldenridedriver",
-      "buildNumber": "10"
+      "buildNumber": "10",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio",
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "config": {
@@ -66,6 +72,14 @@
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0"
           }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Golden Ride Driver to use your camera to record your trip.",
+          "microphonePermission": "Allow Golden Ride Driver to use your microphone while recording your trip.",
+          "recordAudioAndroid": true
         }
       ]
     ],

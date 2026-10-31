@@ -27,9 +27,40 @@ export default function PaymentMethodsScreen() {
   const [complete, setComplete] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [cards, setCards] = useState<SavedCard[]>([]);
+  const loadCards = () => apiRequest<SavedCard[]>("/user/cards").then(setCards).catch(() => undefined);
+
   useEffect(() => {
     fetchProfile();
+    loadCards();
   }, []);
+
+  const makeDefault = async (card: SavedCard) => {
+    try {
+      await apiRequest(`/user/cards/${card.id}/default`, { method: "POST" });
+      await Promise.all([fetchProfile(), loadCards()]);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Could not change your default card.");
+    }
+  };
+
+  const removeCard = (card: SavedCard) => {
+    Alert.alert("Remove card?", `Remove the card ending in ${card.last4}?`, [
+      { text: "Keep", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await apiRequest(`/user/cards/${card.id}`, { method: "DELETE" });
+            await Promise.all([fetchProfile(), loadCards()]);
+          } catch (e: any) {
+            Alert.alert("Error", e?.message || "Could not remove this card.");
+          }
+        },
+      },
+    ]);
+  };
 
   const handleSave = async () => {
     if (!complete) {
@@ -52,7 +83,7 @@ export default function PaymentMethodsScreen() {
       const pmId = setupIntent?.paymentMethodId;
       if (!pmId) throw new Error("Card could not be verified.");
       await apiRequest("/user/card/save", { method: "POST", body: { payment_method_id: pmId } });
-      await fetchProfile();
+      await Promise.all([fetchProfile(), loadCards()]);
       Alert.alert("Success", "Your card was saved securely.");
       if (navigation.canGoBack()) navigation.goBack();
       else (navigation as any).navigate("Shell");
@@ -95,12 +126,27 @@ export default function PaymentMethodsScreen() {
 
         <Text style={styles.info}>
           {savedLast4
-            ? "Enter a new card below to replace your saved card."
+            ? "Add another card below, or choose which saved card to use."
             : "Add a credit or debit card. Your fare is charged to this card automatically."}
         </Text>
 
+        {cards.map((card) => (
+          <View key={card.id} style={styles.savedRow}>
+            <Ionicons name="card-outline" size={22} color={Colors.primary} />
+            <Text style={styles.savedText}>{(card.brand || "card").toUpperCase()} •••• {card.last4}</Text>
+            {card.is_default ? (
+              <Text style={styles.defaultTag}>Default</Text>
+            ) : (
+              <TouchableOpacity onPress={() => makeDefault(card)}><Text style={styles.makeDefault}>Set default</Text></TouchableOpacity>
+            )}
+            <TouchableOpacity accessibilityLabel={`Remove card ending in ${card.last4}`} onPress={() => removeCard(card)}>
+              <Ionicons name="trash-outline" size={18} color={Colors.error} />
+            </TouchableOpacity>
+          </View>
+        ))}
+
         <View style={styles.form}>
-          <Text style={styles.label}>Card</Text>
+          <Text style={styles.label}>{savedLast4 ? "Add a card" : "Card"}</Text>
           <CardField
             postalCodeEnabled={false}
             placeholders={{ number: "4242 4242 4242 4242" }}
@@ -118,7 +164,13 @@ export default function PaymentMethodsScreen() {
   );
 }
 
+type SavedCard = { id: number; brand?: string; last4?: string; is_default: boolean };
+
 const styles = StyleSheet.create({
+  savedRow: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.surface, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 8 },
+  savedText: { flex: 1, fontWeight: "700", color: Colors.textPrimary },
+  defaultTag: { color: Colors.success, fontWeight: "700" },
+  makeDefault: { color: Colors.primary, fontWeight: "700" },
   root: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row",

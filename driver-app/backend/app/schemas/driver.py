@@ -83,6 +83,7 @@ class DriverProfileUpdateRequest(BaseModel):
     phone: Optional[str] = None
     date_of_birth: Optional[str] = None
     residential_address: Optional[str] = None
+    external_dashcam: Optional[str] = None
     accepted_ride_classes: Optional[str] = None
     radius_filter: Optional[int] = None
 
@@ -181,6 +182,7 @@ class WithdrawalOut(BaseModel):
     id: int
     amount: float
     status: str
+    method: Optional[str] = "standard"
     created_at: datetime
 
     class Config:

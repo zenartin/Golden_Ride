@@ -21,8 +21,9 @@ async def start_sharing(
     current_user: dict = Depends(get_current_actor),
     db: Session = Depends(get_db)
 ):
-    # Verify the ride belongs to the user
-    ride = db.query(Ride).filter(Ride.id == ride_id, Ride.user_id == current_user["id"]).first()
+    # Verify the ride belongs to the rider or driver asking to share it
+    owner_column = Ride.driver_id if current_user["role"] == "driver" else Ride.user_id
+    ride = db.query(Ride).filter(Ride.id == ride_id, owner_column == current_user["id"]).first()
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found or not yours to share")
 
@@ -90,6 +91,9 @@ async def get_public_trip(
     ride = db.query(Ride).filter(Ride.id == share.ride_id).first()
     if not ride:
         raise HTTPException(status_code=404, detail="Ride no longer exists")
+
+    if ride.status in ("completed", "cancelled", "expired", "declined"):
+        raise HTTPException(status_code=403, detail="This trip has ended")
         
     # Get latest driver details if assigned
     driver_name = None

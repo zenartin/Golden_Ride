@@ -23,6 +23,8 @@ class RideResponse(BaseModel):
     fare: str
     fare_amount: float
     payment_method: str
+    payment_status: Optional[str] = None
+    pending_dropoff: Optional[str] = None
     pickup_eta: str
     status: str  # pending, accepted, arrived, started, completed, declined, cancelled
     coupon_code: Optional[str] = None

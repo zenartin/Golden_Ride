@@ -13,6 +13,21 @@ from app.utils.helpers import calculate_distance, is_ride_eligible_for_destinati
 
 logger = logging.getLogger("app")
 
+def _notify_rider(db: Session, ride: Ride, title: str, body: str) -> None:
+    """Save a trip entry in the rider's notification list."""
+    from app.models.rider_features import RiderNotification
+    if ride.user_id:
+        db.add(RiderNotification(user_id=ride.user_id, category="trip", title=title, body=body, ride_id=ride.id))
+        db.commit()
+
+
+_STATUS_NOTIFICATIONS = {
+    "arrived": ("Driver arrived", "Your driver is at the pickup location."),
+    "started": ("Trip started", "You are on your way."),
+    "completed": ("Trip completed", "Thanks for riding. Your receipt is in your trip history."),
+    "awaiting_payment": ("Payment needed", "Your trip has ended, but the card payment did not go through."),
+}
+
 class DispatchService:
     @staticmethod
     def _serialize_ride(ride: Ride) -> Dict[str, Any]:
@@ -177,6 +192,7 @@ class DispatchService:
     @classmethod
     async def notify_ride_accepted(cls, db: Session, ride: Ride, accepted_driver_id: int):
         logger.info(f"Notifying that ride {ride.id} was accepted by driver {accepted_driver_id}")
+        _notify_rider(db, ride, "Ride accepted", "A driver is heading to your pickup.")
         
         # 1. Update all other offered assignments for this ride to "expired"
         db.query(RideAssignment).filter(
@@ -218,6 +234,7 @@ class DispatchService:
     @classmethod
     async def notify_ride_expired(cls, db: Session, ride: Ride):
         logger.info(f"Notifying that ride {ride.id} has expired")
+        _notify_rider(db, ride, "No driver found", "No driver accepted your ride, so your card was not charged.")
         
         # 1. Update assignments to expired
         RideAssignmentRepository.expire_assignments(db, ride.id)
@@ -244,6 +261,7 @@ class DispatchService:
     @classmethod
     async def notify_ride_cancelled(cls, db: Session, ride: Ride):
         logger.info(f"Notifying that ride {ride.id} was cancelled by user")
+        _notify_rider(db, ride, "Trip cancelled", "Your trip was cancelled and your card will not be charged.")
         
         # 1. Update assignments to expired
         RideAssignmentRepository.expire_assignments(db, ride.id)
@@ -270,6 +288,8 @@ class DispatchService:
     @classmethod
     async def notify_ride_status_update(cls, db: Session, ride: Ride):
         logger.info(f"Notifying status change for ride {ride.id}: {ride.status}")
+        if ride.status in _STATUS_NOTIFICATIONS:
+            _notify_rider(db, ride, *_STATUS_NOTIFICATIONS[ride.status])
         
         # Notify user about status change
         user_message = {

@@ -161,3 +161,20 @@ def remove_member(
     db.delete(member_to_remove)
     db.commit()
     return None
+
+
+@router.get("/trips")
+def family_trips(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Recent trips of the family, visible to the group organizer only."""
+    from app.models.ride import Ride
+
+    group = db.query(FamilyGroup).filter(FamilyGroup.organizer_user_id == current_user.id).first()
+    if not group:
+        return []
+    members = db.query(FamilyMember).filter(FamilyMember.family_group_id == group.id, FamilyMember.status == "active").all()
+    names = {u.id: u.name for u in db.query(User).filter(User.id.in_([m.user_id for m in members])).all()}
+    rides = db.query(Ride).filter(Ride.user_id.in_(list(names))).order_by(Ride.created_at.desc()).limit(50).all()
+    return [{
+        "id": r.id, "member": names.get(r.user_id), "from_location": r.from_location, "to_location": r.to_location,
+        "status": r.status, "fare": r.fare, "created_at": r.created_at.isoformat(),
+    } for r in rides]

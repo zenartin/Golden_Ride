@@ -23,7 +23,7 @@ def get_notifications(
     if not notifications:
         mock_notifs = [
             Notification(driver_id=current_driver.id, title="Documents Verified! 🔓", message="Your registration documents are approved. You're ready to start driving!", type="info"),
-            Notification(driver_id=current_driver.id, title="Weekly Incentive Bonus 💰", message="Complete 30 trips this week to get an extra ₹1,500 bonus.", type="earning"),
+            Notification(driver_id=current_driver.id, title="Weekly Incentive Bonus 💰", message="Complete 30 trips this week to get an extra $1,500 bonus.", type="earning"),
             Notification(driver_id=current_driver.id, title="Update Available 📱", message="App version v1.2.0 is out with improved GPS tracker accuracy.", type="announcement"),
         ]
         db.add_all(mock_notifs)

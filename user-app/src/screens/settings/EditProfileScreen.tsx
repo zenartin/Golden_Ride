@@ -18,6 +18,8 @@ export default function EditProfileScreen() {
 
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [homeAddress, setHomeAddress] = useState(user?.home_address || "");
+  const [dob, setDob] = useState(user?.date_of_birth || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [saving, setSaving] = useState(false);
 
@@ -35,7 +37,12 @@ export default function EditProfileScreen() {
       return;
     }
     setSaving(true);
-    const success = await updateProfile(name, email, phone);
+    if (dob.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(dob.trim())) {
+      setSaving(false);
+      Alert.alert("Invalid Date of Birth", "Please enter your date of birth as YYYY-MM-DD.");
+      return;
+    }
+    const success = await updateProfile(name, email, phone, homeAddress.trim(), dob.trim());
     setSaving(false);
     if (success) {
       Alert.alert("Success", "Your profile has been updated.");
@@ -140,6 +147,18 @@ export default function EditProfileScreen() {
               onChangeText={setPhone}
               placeholder="Your phone number"
               keyboardType="phone-pad"
+            />
+            <AppInput
+              label="Home Address"
+              value={homeAddress}
+              onChangeText={setHomeAddress}
+              placeholder="Street, city, state, ZIP"
+            />
+            <AppInput
+              label="Date of Birth"
+              value={dob}
+              onChangeText={setDob}
+              placeholder="YYYY-MM-DD"
             />
           </View>
 

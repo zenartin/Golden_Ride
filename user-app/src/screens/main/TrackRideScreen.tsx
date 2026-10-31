@@ -1,3 +1,4 @@
+import SosModal from "../../components/safety/SosModal";
 import React, { useEffect, useRef, useState } from "react";
 import { formatDuration } from "../../utils/formatDuration";
 import { ActivityIndicator, Alert, Pressable, Text, View, StyleSheet, ScrollView, Linking, Image, Share } from "react-native";
@@ -141,6 +142,7 @@ export default function TrackRideScreen({ navigation }: Props) {
 
   const [isSharing, setIsSharing] = useState(false);
   const [shareToken, setShareToken] = useState<string | null>(null);
+  const [showSos, setShowSos] = useState(false);
 
   const handleShareRide = async () => {
     if (!activeTrip) return;
@@ -259,11 +261,13 @@ export default function TrackRideScreen({ navigation }: Props) {
         {/* SOS Emergency Button Overlay */}
         <Pressable 
           style={[styles.sosOverlayBtn, { top: insets.top + 16 }]}
-          onPress={() => Linking.openURL('tel:112')}
+          onPress={() => setShowSos(true)}
         >
           <Ionicons name="shield-checkmark" size={20} color="#FFF" />
           <Text style={styles.sosOverlayText}>SOS</Text>
         </Pressable>
+
+        <SosModal visible={showSos} rideId={activeTrip?.id} onClose={() => setShowSos(false)} />
 
         {/* Dashcam Record Ride Overlay */}
         <Pressable 
