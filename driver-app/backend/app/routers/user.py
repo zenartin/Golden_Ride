@@ -344,10 +344,8 @@ async def get_ride_options(payload: RideEstimateRequest, current_user: User = De
         distance_km = max(2.1, min(30.0, (seed % 25) + 3.0))
         duration_min = max(5, round(distance_km * 3))
         
-    # Use coordinates to determine currency
-    currency = "INR"
-    if payload.pickup_latitude is not None and payload.pickup_longitude is not None:
-        currency = RideService.detect_currency(payload.pickup_latitude, payload.pickup_longitude)
+    # Same currency rule as booking, so the quote matches the fare charged
+    currency = RideService.detect_currency(payload.pickup_latitude, payload.pickup_longitude)
 
     options = _build_options_from_route(distance_km, duration_min, currency)
     return RideEstimateResponse(options=options)
@@ -471,6 +469,8 @@ async def update_destination(
     if ride.status not in ["pending", "accepted", "arrived", "started"]:
         raise HTTPException(status_code=400, detail="Cannot change destination for this ride status")
         
+    from app.services import stripe_service
+
     ride.to_location = payload.dropoff
     if payload.dropoff_latitude and payload.dropoff_longitude:
         ride.dropoff_latitude = payload.dropoff_latitude
@@ -492,11 +492,16 @@ async def update_destination(
                 # Deduct original discount if any
                 if ride.discount_amount:
                     discounted_fare = max(0.0, fare_amount - ride.discount_amount)
+                    RideService.change_card_fare(db, ride, current_user, discounted_fare)
                     ride.fare_amount = discounted_fare
                     ride.fare = f"₹{int(discounted_fare)}" if currency == "INR" else f"${discounted_fare:.2f}"
                 else:
+                    RideService.change_card_fare(db, ride, current_user, fare_amount)
                     ride.fare_amount = fare_amount
                     ride.fare = fare_str
+            except stripe_service.PaymentError as e:
+                db.rollback()
+                raise HTTPException(status_code=400, detail=str(e))
             except Exception as e:
                 pass # Silent fallback if OSRM fails
     
@@ -505,7 +510,11 @@ async def update_destination(
     
     # Notify Driver if assigned
     if ride.driver_id:
-        await DispatchService.notify_destination_changed(db, ride)
+        # The change and any card adjustment are already saved; a failed notify must not report an error
+        try:
+            await DispatchService.notify_destination_changed(db, ride)
+        except Exception as e:
+            print(f"Destination notify failed for ride {ride.id}: {e}")
         
     return _serialize_ride(ride)
 

@@ -11,6 +11,7 @@ from app.repositories.driver_repository import DriverRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.ride_assignment_repository import RideAssignmentRepository
 from app.services.dispatch_service import DispatchService
+from app.services import stripe_service
 from app.utils.pin import generate_ride_pin, hash_ride_pin
 from app.exceptions import RideNotFoundError, RideExpiredError, RideAlreadyAcceptedError
 
@@ -22,6 +23,9 @@ class RideService:
     
     # India rates (INR) — Lyft algorithm adapted for India: Base ₹40, ₹15/km, ₹2/min, ₹10 fee
     INR_BASE_RATES = {"base": 40.0, "per_km": 15.0, "per_min": 2.0, "booking_fee": 10.0, "min_fare": 50.0}
+
+    # Paid some other way, so these never touch the saved card at booking
+    NON_CARD_METHODS = ("wallet", "cash", "cod", "razorpay")
 
     # Class multipliers (matching frontend estimates)
     CLASS_MULTIPLIERS = {
@@ -81,9 +85,14 @@ class RideService:
         # Detect region/currency from pickup coordinates
         currency = cls.detect_currency(pickup_latitude, pickup_longitude)
 
+        pays_by_card = (payment_method or "").lower() not in cls.NON_CARD_METHODS
+        if pays_by_card and not user.stripe_payment_method_id:
+            raise stripe_service.PaymentError("Please add a credit or debit card before booking a ride.")
+
+        from app.utils.helpers import get_osrm_route, format_duration
+
         # Get real road distance & duration via OSRM (free, no API key)
         if pickup_latitude and pickup_longitude and dropoff_latitude and dropoff_longitude:
-            from app.utils.helpers import get_osrm_route, format_duration
             route = get_osrm_route(pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude)
             distance_val = route["distance_km"]
             duration_min = route["duration_min"]
@@ -168,6 +177,15 @@ class RideService:
         ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
         db.commit()
 
+        # Take the fare now; a failed charge must never reach a driver.
+        if pays_by_card:
+            try:
+                ride.stripe_payment_intent_id = stripe_service.charge_for_ride(db, user, ride)
+            except stripe_service.PaymentError:
+                RideRepository.update_status(db, ride, "cancelled", cancellation_reason="Payment failed")
+                raise
+            ride = cls.mark_ride_paid(db, ride)
+
         if scheduled_time:
             # We don't have celery, so we will use asyncio for the POC
             # Dispatch 15 mins before (or immediately if time < 15 mins away)
@@ -230,6 +248,7 @@ class RideService:
                 ride.status = "expired"
                 ride.updated_at = datetime.utcnow()
                 db.commit()
+                cls._refund_card_payment(db, ride)
                 
                 # Notify driver WebSocket/FCM and user WebSocket
                 await DispatchService.notify_ride_expired(db, ride)
@@ -360,6 +379,40 @@ class RideService:
         return ride
 
     @classmethod
+    def _refund_card_payment(cls, db: Session, ride: Ride) -> None:
+        """Give back a card fare taken at booking when the ride won't happen."""
+        if ride.payment_status != "paid" or not ride.stripe_payment_intent_id:
+            return
+        refunded = stripe_service.refund_ride(ride)
+        ride.payment_status = "refunded" if refunded else "refund_failed"
+        db.add(ride)
+        db.commit()
+
+    @classmethod
+    def change_card_fare(cls, db: Session, ride: Ride, user: User, new_fare: float) -> None:
+        """Keep a prepaid card ride's payment equal to its new fare. A rise charges the
+        full new fare first and then refunds the old charge, so one ride only ever has
+        one live charge. Raises PaymentError (fare untouched) if the new charge fails."""
+        old_fare = ride.fare_amount
+        if ride.payment_status != "paid" or not ride.stripe_payment_intent_id or new_fare == old_fare:
+            return
+        if new_fare < old_fare:
+            if not stripe_service.refund_ride(ride, amount=old_fare - new_fare):
+                logger.error(f"Ride {ride.id}: could not refund {old_fare - new_fare:.2f} after fare drop")
+            return
+        ride.fare_amount = new_fare
+        try:
+            new_intent = stripe_service.charge_for_ride(
+                db, user, ride, idempotency_key=f"ride-{ride.id}-fare-{int(round(new_fare * 100))}"
+            )
+        except stripe_service.PaymentError:
+            ride.fare_amount = old_fare
+            raise
+        if not stripe_service.refund_ride(ride):
+            logger.error(f"Ride {ride.id}: charged new fare but could not refund {ride.stripe_payment_intent_id}")
+        ride.stripe_payment_intent_id = new_intent
+
+    @classmethod
     def mark_ride_paid(cls, db: Session, ride: Ride, payment_method: str = None) -> Ride:
         """Single source of truth: flag ride as paid; finalize to 'completed' if trip ended.
         Credits driver earnings exactly once (on first transition to paid)."""
@@ -370,16 +423,16 @@ class RideService:
         ride.payment_status = "paid"
         if first_time:
             ride.paid_at = _dt.utcnow()
-        if ride.status in ("awaiting_payment", "started", "completed"):
-            if ride.status != "completed" and ride.driver_id and first_time:
+        if ride.status == "awaiting_payment":
+            # Credit on trip end, not on payment: card fares are paid long before the trip ends.
+            if ride.driver_id:
                 driver = DriverRepository.get_by_id(db, ride.driver_id)
                 if driver:
                     driver.balance = (driver.balance or 0.0) + round((ride.actual_fare or ride.fare_amount) * 0.80, 2)
                     db.add(driver)
-            if ride.status == "awaiting_payment":
-                ride.status = "completed"
-                if not ride.completed_at:
-                    ride.completed_at = _dt.utcnow()
+            ride.status = "completed"
+            if not ride.completed_at:
+                ride.completed_at = _dt.utcnow()
         ride.updated_at = _dt.utcnow()
         db.add(ride)
         db.commit()
@@ -411,6 +464,7 @@ class RideService:
                 db.add(user)
                 db.commit()
 
+        cls._refund_card_payment(db, ride)
         updated_ride = RideRepository.update_status(db, ride, "cancelled", cancellation_reason=cancellation_reason)
         await DispatchService.notify_ride_cancelled(db, updated_ride)
         return updated_ride
@@ -440,6 +494,7 @@ class RideService:
                 db.add(user)
                 db.commit()
 
+        cls._refund_card_payment(db, ride)
         updated_ride = RideRepository.update_status(db, ride, "cancelled", cancellation_reason=cancellation_reason)
         await DispatchService.notify_ride_cancelled(db, updated_ride)
         return updated_ride

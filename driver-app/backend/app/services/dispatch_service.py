@@ -62,13 +62,13 @@ class DispatchService:
         
         # Send WebSocket message if assigned driver is online
         if ride.driver_id:
-            await manager.send_personal_message(message, ride.driver_id)
+            await manager.send_to_driver(ride.driver_id, message)
             
             # Optionally send FCM push
-            token_record = DeviceTokenRepository.get_token(db, ride.driver_id)
-            if token_record and token_record.fcm_token:
-                FCMService.send_push_notification(
-                    token=token_record.fcm_token,
+            tokens = DeviceTokenRepository.get_tokens_by_driver(db, ride.driver_id)
+            if tokens:
+                FCMService.send_multicast_notification(
+                    tokens=tokens,
                     title="Destination Updated",
                     body="The rider has changed their destination.",
                     data={"type": "destination_changed", "ride_id": str(ride.id)}

@@ -140,7 +140,9 @@ const createOptions = (pickup: string, dropoff: string, pickupCoords?: any, drop
   const distanceMiles = estimateDistance(pickup, dropoff, pickupCoords, dropoffCoords) * 0.621371;
   const etaBase = Math.max(4, Math.round(distanceMiles * 2.5));
   
-  const basePrice = Math.max(0.7, distanceMiles * 1.5);
+  // Keep in step with RideService.calculate_fare on the backend, which sets the fare charged.
+  const distanceKm = distanceMiles / 0.621371;
+  const basePrice = Math.max(4.0, 1.5 + distanceKm * 0.55 + distanceKm * 3 * 0.15 + 1.5);
 
   return (Object.keys(rideMeta) as RideClass[]).map((rideClass, index) => {
     const meta = rideMeta[rideClass];
@@ -266,7 +268,7 @@ export const useRideStore = create<RideState>()(
               dropoff_latitude: dropoffCoords?.lat,
               dropoff_longitude: dropoffCoords?.lon,
             },
-            timeout: 1500, // Short timeout so it falls back to local math instantly if backend is slow/unreachable
+            timeout: 8000, // Server routing can take a few seconds; the local fallback is only an estimate
           });
           const rideOptions = response.options;
           set({ rideOptions, selectedRideClass: rideOptions[1]?.id ?? rideOptions[0]?.id ?? "Golden RideX", appliedCoupon: null, couponDiscount: 0 });

@@ -77,7 +77,7 @@ class RideOption(BaseModel):
     subtitle: str
     eta: str
     seats: int
-    price: int
+    price: float
     distance: str
     duration: str
 

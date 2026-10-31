@@ -52,7 +52,7 @@ def save_payment_method(db: Session, user, payment_method_id: str):
     db.commit()
 
 
-def charge_for_ride(db: Session, user, ride) -> str:
+def charge_for_ride(db: Session, user, ride, idempotency_key: str = None) -> str:
     """Charge the saved card for the ride fare (money goes to the platform/admin Stripe account).
     Returns the PaymentIntent id. Raises PaymentError if the card is missing or declined."""
     if not user.stripe_payment_method_id:
@@ -72,6 +72,7 @@ def charge_for_ride(db: Session, user, ride) -> str:
             confirm=True,
             description=f"Golden Ride fare #{ride.id}",
             metadata={"ride_id": ride.id, "user_id": user.id},
+            idempotency_key=idempotency_key or f"ride-{ride.id}-charge",
         )
     except stripe.error.CardError as e:
         raise PaymentError(e.user_message or "Your card was declined.")
@@ -83,12 +84,16 @@ def charge_for_ride(db: Session, user, ride) -> str:
     return intent.id
 
 
-def refund_ride(ride) -> bool:
+def refund_ride(ride, amount: float = None) -> bool:
+    """Refund what is left on the ride's charge, or just `amount` when given."""
     pi = getattr(ride, "stripe_payment_intent_id", None)
     if not pi or pi.startswith("pi_mock") or pi == "pi_free" or is_mock():
         return True
     try:
-        stripe.Refund.create(payment_intent=pi)
+        args = {"payment_intent": pi}
+        if amount is not None:
+            args["amount"] = int(round(amount * 100))
+        stripe.Refund.create(**args)
         return True
     except Exception as e:
         logger.error(f"Refund failed for ride {ride.id}: {e}")
