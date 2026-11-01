@@ -184,7 +184,7 @@ export default function EditProfileScreen({ navigation }: any) {
               leftIcon="call-outline"
               value={phone}
               onChangeText={setPhone}
-              placeholder="+91 XXXXX XXXXX"
+              placeholder="+1 555 555 5555"
               keyboardType="phone-pad"
             />
             <AppInput
@@ -293,7 +293,7 @@ export default function EditProfileScreen({ navigation }: any) {
               leftIcon="id-card-outline"
               value={plate}
               onChangeText={setPlate}
-              placeholder="KA 00 XX 0000"
+              placeholder="ABC-1234"
               autoCapitalize="characters"
             />
           </View>

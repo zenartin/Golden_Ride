@@ -198,6 +198,14 @@ export default function ActiveRideScreen({ navigation, route }: any) {
     }
   }, [activeRide?.pickup_latitude, activeRide?.dropoff_latitude, activeRide?.driver_latitude, phaseIndex]);
 
+  // The ride ended (finished, cancelled by the rider, or expired): go back to the dashboard
+  useEffect(() => {
+    if (!activeRide) {
+      const timer = setTimeout(() => navigation.replace("DriverDashboard"), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [activeRide]);
+
   if (!activeRide) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.surface }}>

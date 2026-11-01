@@ -20,14 +20,15 @@ def list_family_coupons(
     from app.services import family_coupons
     done = family_coupons.completed_rides(db, current_user.id)
     out = []
-    for c in family_coupons.FAMILY_COUPONS:
+    from app.models.coupon import Coupon
+    for c in db.query(Coupon).filter(Coupon.is_active == True, Coupon.rides_required > 0).order_by(Coupon.rides_required).all():
         ok, reason = family_coupons.check_eligibility(db, current_user.id, c)
         out.append({
-            "code": c["code"],
-            "title": c["title"],
-            "description": c["description"],
-            "discount_percent": c["value"],
-            "rides_required": c["rides_required"],
+            "code": c.code,
+            "title": c.title,
+            "description": c.description or "",
+            "discount_percent": c.value,
+            "rides_required": c.rides_required,
             "rides_completed": done,
             "unlocked": ok,
             "locked_reason": reason,

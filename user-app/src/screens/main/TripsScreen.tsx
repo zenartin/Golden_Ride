@@ -52,7 +52,9 @@ export default function TripsScreen({ navigation }: Props) {
     loadData();
   }, []);
 
-  const allTrips = activeTrip ? [activeTrip, ...history.filter((t) => t.id !== activeTrip.id)] : history;
+  const allTrips = (activeTrip ? [activeTrip, ...history.filter((t) => t.id !== activeTrip.id)] : history).filter(
+    (trip, index, list) => list.findIndex((other) => other.id === trip.id) === index
+  );
   const rangeStart = range === "all" ? 0 : Date.now() - Number(range) * 24 * 60 * 60 * 1000;
   const filtered = (filter === "all" ? allTrips : allTrips.filter((t) => t.status === filter)).filter(
     (t) => !rangeStart || new Date(t.createdAt).getTime() >= rangeStart

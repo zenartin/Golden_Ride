@@ -57,6 +57,27 @@ const statusHeaders: Record<string, string> = {
 export default function TrackRideScreen({ navigation }: Props) {
   const activeTrip = useRideStore((state) => state.activeTrip);
   const cancelActiveTrip = useRideStore((state) => state.cancelActiveTrip);
+  const askedDropoff = useRef<string | null>(null);
+
+  // A driver's drop-off suggestion can arrive while the app is closed, so ask whenever one is waiting
+  useEffect(() => {
+    const pending = activeTrip?.pendingDropoff;
+    if (!activeTrip || !pending || askedDropoff.current === pending) return;
+    askedDropoff.current = pending;
+    const answer = (accept: boolean) =>
+      api
+        .post(`/user/rides/${activeTrip.id}/destination-response`, { accept })
+        .then(() => refreshActiveTrip())
+        .catch(() => Alert.alert("Could not update trip", "Please try again."));
+    Alert.alert(
+      "Confirm new drop-off",
+      `Your driver suggested changing the drop-off to ${pending}. Your fare will be recalculated.`,
+      [
+        { text: "Decline", style: "cancel", onPress: () => answer(false) },
+        { text: "Accept", onPress: () => answer(true) },
+      ]
+    );
+  }, [activeTrip?.pendingDropoff]);
   const refreshActiveTrip = useRideStore((state) => state.refreshActiveTrip);
   const [showDashcam, setShowDashcam] = useState(false);
   const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);

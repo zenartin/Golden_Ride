@@ -180,7 +180,7 @@ export default function ProfileScreen({ navigation }: Props) {
           </Pressable>
           <Text style={styles.name}>{user?.name || "Golden Rider"}</Text>
           <Text style={styles.metaEmail}>{user?.email || "rider@goldenride.com"}</Text>
-          <Text style={styles.metaPhone}>📞 {user?.phone || "+91 99999 88888"}</Text>
+          <Text style={styles.metaPhone}>📞 {user?.phone || ""}</Text>
           <Pressable style={styles.editProfileBtn} onPress={() => navigation.navigate("EditProfile")}>
             <Text style={styles.editProfileBtnText}>Edit Profile</Text>
           </Pressable>

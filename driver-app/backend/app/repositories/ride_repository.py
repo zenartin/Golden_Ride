@@ -117,6 +117,12 @@ class RideRepository:
     def update_status(db: Session, ride: Ride, status: str, actual_fare: float = None, cancellation_reason: str = None) -> Ride:
         ride.status = status
         ride.updated_at = datetime.utcnow()
+
+        if status in ("awaiting_payment", "completed", "cancelled", "expired", "declined"):
+            # A drop-off suggestion nobody answered no longer applies once the trip ends
+            ride.pending_dropoff = None
+            ride.pending_dropoff_latitude = None
+            ride.pending_dropoff_longitude = None
         
         if status == "started":
             ride.started_at = datetime.utcnow()

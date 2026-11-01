@@ -44,6 +44,7 @@ export interface Trip {
   verificationPin?: string;
   /** true while trip is finished but payment has not been confirmed */
   paymentPending?: boolean;
+  pendingDropoff?: string | null;
 }
 
 export interface ChatMessage {
@@ -169,6 +170,7 @@ type ApiRide = {
   duration: string;
   fare_amount: number;
   payment_method: string;
+  pending_dropoff?: string | null;
   status: RideStatus | "pending" | "accepted" | "arrived" | "started" | "declined" | "awaiting_payment";
   created_at?: string;
   driver_name?: string | null;
@@ -221,6 +223,7 @@ const mapApiRide = (ride: ApiRide): Trip => {
     paymentMethod: ride.payment_method,
     status: mapApiStatus(ride.status),
     paymentPending: ride.status === "awaiting_payment",
+    pendingDropoff: ride.pending_dropoff ?? null,
     createdAt: ride.created_at || new Date().toISOString(),
     driverPhone: ride.driver_phone || undefined,
     driverUpiId: ride.driver_upi_id || undefined,
@@ -393,7 +396,7 @@ export const useRideStore = create<RideState>()(
           // Keep local UX responsive even when the dev API is offline.
         }
         set((state) => ({
-          history: [{ ...activeTrip, status: "cancelled" }, ...state.history],
+          history: [{ ...activeTrip, status: "cancelled" }, ...state.history.filter((h) => h.id !== activeTrip.id)],
           activeTrip: null,
         }));
       },
@@ -401,7 +404,7 @@ export const useRideStore = create<RideState>()(
         const activeTrip = get().activeTrip;
         if (!activeTrip) return;
         set((state) => ({
-          history: [{ ...activeTrip, status: "completed" }, ...state.history],
+          history: [{ ...activeTrip, status: "completed" }, ...state.history.filter((h) => h.id !== activeTrip.id)],
           activeTrip: null,
         }));
       },
@@ -457,7 +460,7 @@ export const useRideStore = create<RideState>()(
           if (status === "cancelled") {
             return {
               activeTrip: null,
-              history: [updated, ...state.history]
+              history: [updated, ...state.history.filter((h) => h.id !== updated.id)]
             };
           }
           

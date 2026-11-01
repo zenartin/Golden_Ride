@@ -49,6 +49,7 @@ export const FamilyDashboardScreen = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFamilyData(response.data);
+      await fetchFamily();
     } catch (error: any) {
       if (error.response?.status === 404) {
         setFamilyData(null);

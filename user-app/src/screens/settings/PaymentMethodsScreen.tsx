@@ -95,12 +95,17 @@ export default function PaymentMethodsScreen() {
   };
 
   const savedLast4 = (user as any)?.card_last4;
+
+  // Opened as the first screen (no history) by a rider who already has a card: go on to booking
+  useEffect(() => {
+    if (savedLast4 && !navigation.canGoBack()) (navigation as any).navigate("Shell");
+  }, [savedLast4]);
   const savedBrand = ((user as any)?.card_brand || "card").toUpperCase();
 
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.canGoBack() && navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => (navigation.canGoBack() ? navigation.goBack() : (navigation as any).navigate("Shell"))} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Card Details</Text>
