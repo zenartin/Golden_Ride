@@ -44,7 +44,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
       
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Reset via Email</Text>
-        <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+        <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
         
         <View style={{ marginTop: 10 }}>
           <AppButton title="Send Reset Code" onPress={submit} loading={loading} />

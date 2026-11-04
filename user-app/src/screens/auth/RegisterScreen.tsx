@@ -55,7 +55,7 @@ export default function RegisterScreen({ navigation }: any) {
       return;
     }
     setLoading(true);
-    const ok = await register({ name, email, phone, password, home_address: homeAddress.trim(), date_of_birth: dob.trim() });
+    const ok = await register({ name, email: email.trim().toLowerCase(), phone, password, home_address: homeAddress.trim(), date_of_birth: dob.trim() });
     setLoading(false);
     if (!ok) {
       Alert.alert("Register failed", error || "Please fill every field.");
@@ -75,7 +75,7 @@ export default function RegisterScreen({ navigation }: any) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Account Details</Text>
           <AppInput label="Full Name" value={name} onChangeText={setName} placeholder="Full name" />
-          <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+          <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
           <AppInput label="Phone Number" value={phone} onChangeText={setPhone} placeholder="Phone number" />
           <AppInput label="Home Address" value={homeAddress} onChangeText={setHomeAddress} placeholder="Street, city, state, ZIP" />
           <AppInput label="Date of Birth" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" />

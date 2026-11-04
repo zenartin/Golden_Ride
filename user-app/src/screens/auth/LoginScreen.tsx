@@ -23,7 +23,7 @@ export default function LoginScreen({ navigation }: any) {
       return;
     }
     setLoading(true);
-    const ok = await login({ email, password });
+    const ok = await login({ email: email.trim().toLowerCase(), password });
     setLoading(false);
     if (!ok) {
       Alert.alert("Login failed", error || "Please try again.");
@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }: any) {
         <Text style={styles.subtitle}>Sign in to book and track your rides.</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Email login</Text>
-          <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+          <AppInput label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
           <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
           
           <TouchableOpacity 
