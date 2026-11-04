@@ -1,3 +1,4 @@
+import logging
 import json
 from datetime import datetime
 from typing import List, Optional
@@ -746,6 +747,7 @@ def create_card_setup_intent(
         )
         return {"client_secret": intent.client_secret, "mock": False}
     except Exception:
+        logging.getLogger(__name__).exception("Stripe SetupIntent creation failed for user %s", current_user.id)
         raise HTTPException(status_code=502, detail="Could not start card setup. Please try again.")
 
 
