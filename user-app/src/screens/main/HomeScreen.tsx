@@ -391,9 +391,23 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
                   <Ionicons name="flag" size={16} color="#EF4444" />
                 </View>
                 <View style={{ flex: 1, gap: 8, justifyContent: "center", overflow: "hidden" }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{pickup}</Text>
+                  <Pressable
+                    onPress={() => navigation.navigate("LocationPicker", { mode: "pickup" })}
+                    hitSlop={8}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{pickup}</Text>
+                    <Ionicons name="pencil" size={14} color={Colors.primary} />
+                  </Pressable>
                   <View style={{ height: 1, backgroundColor: Colors.border, width: "100%" }} />
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{dropoff}</Text>
+                  <Pressable
+                    onPress={() => navigation.navigate("LocationPicker", { mode: "dropoff" })}
+                    hitSlop={8}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: Colors.textPrimary, flexShrink: 1 }} numberOfLines={1} ellipsizeMode="tail">{dropoff}</Text>
+                    <Ionicons name="pencil" size={14} color={Colors.primary} />
+                  </Pressable>
                 </View>
 
               </View>
