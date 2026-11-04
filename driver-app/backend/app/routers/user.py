@@ -742,7 +742,7 @@ def create_card_setup_intent(
         customer_id = stripe_service.ensure_customer(db, current_user)
         intent = stripe.SetupIntent.create(
             customer=customer_id,
-            payment_method_types=["card"],
+            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
             usage="off_session",
         )
         return {"client_secret": intent.client_secret, "mock": False}
