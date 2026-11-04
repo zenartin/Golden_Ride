@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   RIDE_HISTORY: "/user/rides/history",
   RIDE_DETAIL: (rideId: number | string) => `/user/rides/${rideId}`,
   RIDE_CANCEL: (rideId: number | string) => `/user/rides/${rideId}/cancel`,
+  RIDE_PAY: (rideId: number | string) => `/user/rides/${rideId}/pay`,
   COUPON_VALIDATE: "/user/coupons/validate",
   UPDATE_PROFILE: "/user/profile",
   UPDATE_CARD: "/user/profile/card",

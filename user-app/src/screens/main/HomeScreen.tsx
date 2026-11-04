@@ -266,15 +266,15 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
     setBookError(null);
     try {
       // 1. Book the ride first to get the trip ID and fare
-      const trip = await bookRide(paymentMethod, undefined);
+      const trip = await bookRide("Card", undefined);
       if (!trip) throw new Error("Booking failed. Please try again.");
 
       // After booking, automatically navigate to the tracking screen
       navigation.navigate("TrackRide");
     } catch (err: any) {
-      const msg = err?.message || "Payment failed. Please try again.";
+      const msg = err?.message || "Booking failed. Please try again.";
       setBookError(msg);
-      Alert.alert("Payment Failed", msg);
+      Alert.alert("Booking Failed", msg);
     } finally {
       setBooking(false);
     }
@@ -414,20 +414,17 @@ export default function HomeScreen({ navigation, route, openTab }: Props) {
               </View>
 
               {/* Payment Method Selector Row */}
-              <Pressable onPress={() => setShowPaymentModal(true)} style={[styles.paymentSelector, { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border }]}>
+              <View style={[styles.paymentSelector, { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border }]}>
                 <View style={[styles.paymentSelectorLeft, { flex: 1 }]}>
                   <View style={[styles.paymentBadge, { backgroundColor: "#635BFF" + "1A" }]}>
-                    <Ionicons name="card" size={20} color="#635BFF" />
+                    <Ionicons name="shield-checkmark" size={20} color="#635BFF" />
                   </View>
                   <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={styles.paymentMethodTitle}>Payment Method</Text>
-                    <Text style={styles.paymentMethodValue} numberOfLines={1}>
-                      {paymentMethod === "Wallet" ? `Wallet ($${(wallet?.wallet_balance ?? 0).toFixed(2)})` : cardLabel}
-                    </Text>
+                    <Text style={styles.paymentMethodTitle}>Pay after your driver accepts</Text>
+                    <Text style={styles.paymentMethodValue}>No payment is taken when you book.</Text>
                   </View>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
-              </Pressable>
+              </View>
 
               {bookError ? <Text style={[styles.errorText, { marginTop: 12 }]}>{bookError}</Text> : null}
 

@@ -88,6 +88,28 @@ export default function TrackRideScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
 
   const fetchTripDetail = useRideStore((state) => state.fetchTripDetail);
+  const payForActiveTrip = useRideStore((state) => state.payForActiveTrip);
+  const walletBalance = useRideStore((state) => state.walletBalance);
+  const [paying, setPaying] = useState<"card" | "wallet" | null>(null);
+
+  const handlePay = async (method: "card" | "wallet") => {
+    setPaying(method);
+    try {
+      await payForActiveTrip(method);
+    } catch (err: any) {
+      const msg = err?.message || "Payment failed. Please try again.";
+      if (method === "card" && /add a credit or debit card/i.test(msg)) {
+        Alert.alert("Add a card", msg, [
+          { text: "Not now", style: "cancel" },
+          { text: "Add card", onPress: () => navigation.navigate("PaymentMethods") },
+        ]);
+      } else {
+        Alert.alert("Payment failed", msg);
+      }
+    } finally {
+      setPaying(null);
+    }
+  };
 
   // Poll for status updates every 4 seconds when trip is active
   useEffect(() => {
@@ -384,6 +406,31 @@ export default function TrackRideScreen({ navigation }: Props) {
                  </Pressable>
               )}
             </View>
+          </View>
+        )}
+
+        {/* Pay once a driver has accepted: the PIN is revealed after payment */}
+        {(activeTrip.status === "confirmed" || activeTrip.status === "arriving") &&
+          !["authorized", "paid", "wallet_paid"].includes(activeTrip.paymentStatus || "") && (
+          <View style={[styles.card, { backgroundColor: "#FFF8E6", paddingVertical: Spacing.lg }]}>
+            <Text style={{ fontSize: Typography.body, fontWeight: "800", color: Colors.textPrimary }}>
+              Pay ${activeTrip.price.toFixed(2)} to confirm your ride
+            </Text>
+            <Text style={{ fontSize: Typography.small, color: Colors.textSecondary, marginTop: 4, marginBottom: Spacing.md }}>
+              Your driver is on the way. Pay now and your ride PIN will appear. Your driver needs it to start the trip.
+            </Text>
+            <AppButton
+              title={paying === "card" ? "Processing…" : "Pay with card"}
+              onPress={() => handlePay("card")}
+              disabled={paying !== null}
+            />
+            <View style={{ height: Spacing.sm }} />
+            <AppButton
+              title={paying === "wallet" ? "Processing…" : `Pay from wallet ($${walletBalance.toFixed(2)})`}
+              onPress={() => handlePay("wallet")}
+              variant="secondary"
+              disabled={paying !== null || walletBalance < activeTrip.price}
+            />
           </View>
         )}
 

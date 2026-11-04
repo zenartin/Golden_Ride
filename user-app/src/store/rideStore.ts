@@ -45,6 +45,8 @@ export interface Trip {
   /** true while trip is finished but payment has not been confirmed */
   paymentPending?: boolean;
   pendingDropoff?: string | null;
+  /** unpaid | authorized | paid | wallet_paid | ... — the PIN and trip start unlock once paid */
+  paymentStatus?: string | null;
 }
 
 export interface ChatMessage {
@@ -104,6 +106,7 @@ interface RideState {
   advanceActiveTrip: () => void;
   completeActiveTrip: () => void;
   cancelActiveTrip: () => Promise<void>;
+  payForActiveTrip: (method: "card" | "wallet") => Promise<void>;
   topUpWallet: (amount: number) => Promise<void>;
   purchaseGiftCard: (amount: number) => Promise<GiftCard>;
   redeemGiftCard: (code: string) => Promise<void>;
@@ -171,6 +174,7 @@ type ApiRide = {
   fare_amount: number;
   payment_method: string;
   pending_dropoff?: string | null;
+  payment_status?: string | null;
   status: RideStatus | "pending" | "accepted" | "arrived" | "started" | "declined" | "awaiting_payment";
   created_at?: string;
   driver_name?: string | null;
@@ -224,6 +228,7 @@ const mapApiRide = (ride: ApiRide): Trip => {
     status: mapApiStatus(ride.status),
     paymentPending: ride.status === "awaiting_payment",
     pendingDropoff: ride.pending_dropoff ?? null,
+    paymentStatus: ride.payment_status ?? null,
     createdAt: ride.created_at || new Date().toISOString(),
     driverPhone: ride.driver_phone || undefined,
     driverUpiId: ride.driver_upi_id || undefined,
@@ -399,6 +404,20 @@ export const useRideStore = create<RideState>()(
           history: [{ ...activeTrip, status: "cancelled" }, ...state.history.filter((h) => h.id !== activeTrip.id)],
           activeTrip: null,
         }));
+      },
+      payForActiveTrip: async (method) => {
+        const activeTrip = get().activeTrip;
+        if (!activeTrip) return;
+        const ride = await apiRequest<ApiRide>(API_ENDPOINTS.RIDE_PAY(activeTrip.id), {
+          method: "POST",
+          body: { payment_method: method },
+        });
+        set((state) => ({
+          activeTrip: state.activeTrip
+            ? { ...state.activeTrip, ...mapApiRide(ride), driver: state.activeTrip.driver, car: state.activeTrip.car, plate: state.activeTrip.plate }
+            : null,
+        }));
+        if (method === "wallet") get().refreshWallet();
       },
       completeActiveTrip: () => {
         const activeTrip = get().activeTrip;

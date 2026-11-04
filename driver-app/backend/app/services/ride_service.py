@@ -104,10 +104,6 @@ class RideService:
         # Detect region/currency from pickup coordinates
         currency = cls.detect_currency(pickup_latitude, pickup_longitude)
 
-        pays_by_card = (payment_method or "").lower() not in cls.NON_CARD_METHODS
-        if pays_by_card and not user.stripe_payment_method_id:
-            raise stripe_service.PaymentError("Please add a credit or debit card before booking a ride.")
-
         from app.utils.helpers import get_osrm_route, format_duration
 
         # Get real road distance & duration via OSRM (free, no API key)
@@ -154,20 +150,7 @@ class RideService:
             else:
                 fare_str = f"${fare_amount:.2f} (Saved ${discount_amount:.2f} via {code})"
 
-        # If payment is wallet, verify user has enough balance and deduct
-        if payment_method.lower() == "wallet":
-            if user.wallet_balance < fare_amount:
-                raise Exception("Insufficient wallet balance")
-            user.wallet_balance -= fare_amount
-            tx = WalletTransaction(
-                user_id=user_id,
-                title=f"{ride_class.title()} Ride Booking" + (f" ({coupon_code.upper()})" if coupon_code else ""),
-                amount=fare_amount,
-                type="debit"
-            )
-            db.add(tx)
-            db.add(user)
-            db.commit()
+        # Payment is taken after a driver accepts the ride (see pay_for_ride), not at booking.
 
         ride = RideRepository.create_ride(
             db=db,
@@ -195,16 +178,6 @@ class RideService:
         pin = generate_ride_pin(str(ride.id))
         ride.verification_pin_hash = hash_ride_pin(str(ride.id), pin)
         db.commit()
-
-        # Hold the fare now; a declined card must never reach a driver.
-        if pays_by_card:
-            try:
-                ride.stripe_payment_intent_id = stripe_service.charge_for_ride(db, user, ride)
-                ride.payment_status = "authorized"
-                db.commit()
-            except stripe_service.PaymentError:
-                RideRepository.update_status(db, ride, "cancelled", cancellation_reason="Payment failed")
-                raise
 
         if scheduled_time:
             # We don't have celery, so we will use asyncio for the POC
@@ -278,6 +251,52 @@ class RideService:
         finally:
             db.close()
 
+    PAID_STATES = ("authorized", "paid", "wallet_paid")
+
+    @classmethod
+    def is_paid_up(cls, ride: Ride) -> bool:
+        """True once the rider has paid (or the ride is cash), which unlocks the PIN and the trip start."""
+        if ride.payment_status in cls.PAID_STATES:
+            return True
+        return (ride.payment_method or "").lower() in ("cash", "cod")
+
+    @classmethod
+    async def pay_for_ride(cls, db: Session, ride_id: int, user_id: int, method: str = "card") -> Ride:
+        """Rider pays after the driver accepts. Card places the hold (captured when the trip ends);
+        wallet debits immediately. Only then is the PIN shown and the trip allowed to start."""
+        ride = RideRepository.get_by_id(db, ride_id)
+        if not ride:
+            raise RideNotFoundError()
+        if ride.user_id != user_id:
+            raise Exception("Unauthorized user for this ride")
+        if ride.status not in ("accepted", "arrived"):
+            raise Exception("You can pay once a driver has accepted your ride.")
+        if cls.is_paid_up(ride):
+            return ride
+        user = UserRepository.get_by_id(db, user_id)
+        method = (method or "card").lower()
+        if method == "wallet":
+            if (user.wallet_balance or 0.0) < ride.fare_amount:
+                raise Exception("Insufficient wallet balance")
+            user.wallet_balance -= ride.fare_amount
+            db.add(WalletTransaction(
+                user_id=user_id, title=f"Ride #{ride.id} payment", amount=ride.fare_amount, type="debit"
+            ))
+            db.add(user)
+            ride.payment_method = "wallet"
+            ride.payment_status = "wallet_paid"
+        else:
+            if not user.stripe_payment_method_id:
+                raise stripe_service.PaymentError("Please add a credit or debit card to pay for this ride.")
+            ride.payment_method = "card"
+            ride.stripe_payment_intent_id = stripe_service.charge_for_ride(db, user, ride)
+            ride.payment_status = "authorized"
+        db.add(ride)
+        db.commit()
+        db.refresh(ride)
+        await DispatchService.notify_ride_status_update(db, ride)
+        return ride
+
     @classmethod
     async def accept_ride(cls, db: Session, ride_id: int, driver_id: int) -> Ride:
         driver = DriverRepository.get_by_id(db, driver_id)
@@ -342,6 +361,8 @@ class RideService:
             raise Exception("Unauthorized driver for this ride")
         if ride.status != "arrived":
             raise Exception(f"Cannot start ride from status: {ride.status}")
+        if not cls.is_paid_up(ride):
+            raise Exception("The rider has not paid yet. The trip can start once payment is made.")
         if ride.verification_pin_hash and not ride.verification_verified_at:
             raise Exception("Please verify the rider's PIN before starting the trip")
 
@@ -361,7 +382,7 @@ class RideService:
 
         # Trip finished -> wait for payment. Wallet rides are prepaid at booking.
         updated_ride = RideRepository.update_status(db, ride, "awaiting_payment", actual_fare=ride.fare_amount)
-        if (ride.payment_method or "").lower() == "wallet" or ride.payment_status == "paid":
+        if ride.payment_status in ("wallet_paid", "paid"):
             updated_ride = cls.mark_ride_paid(db, updated_ride)
         elif ride.payment_status == "authorized":
             # If capture fails the ride stays 'awaiting_payment' so the rider can pay manually.
@@ -496,8 +517,8 @@ class RideService:
         if ride.status in ["completed", "cancelled", "awaiting_payment"]:
             raise Exception("Ride is already finalized")
 
-        # Refund user wallet if booked via Wallet
-        if ride.payment_method.lower() == "wallet":
+        # Refund user wallet if the fare was already taken from it
+        if ride.payment_status == "wallet_paid":
             user = UserRepository.get_by_id(db, user_id)
             if user:
                 user.wallet_balance += ride.fare_amount
@@ -509,6 +530,7 @@ class RideService:
                 )
                 db.add(tx)
                 db.add(user)
+                ride.payment_status = "refunded"
                 db.commit()
 
         cls._refund_card_payment(db, ride)
@@ -526,8 +548,8 @@ class RideService:
         if ride.status in ["completed", "cancelled", "awaiting_payment"]:
             raise Exception("Ride is already finalized")
 
-        # Refund user wallet if booked via Wallet
-        if ride.payment_method.lower() == "wallet":
+        # Refund user wallet if the fare was already taken from it
+        if ride.payment_status == "wallet_paid":
             user = UserRepository.get_by_id(db, ride.user_id)
             if user:
                 user.wallet_balance += ride.fare_amount
@@ -539,6 +561,7 @@ class RideService:
                 )
                 db.add(tx)
                 db.add(user)
+                ride.payment_status = "refunded"
                 db.commit()
 
         cls._refund_card_payment(db, ride)

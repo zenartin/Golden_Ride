@@ -99,7 +99,8 @@ def _serialize_ride(ride) -> dict:
     """
     verification_pin = None
     pin_hash = getattr(ride, "verification_pin_hash", None)
-    if pin_hash:
+    from app.services.ride_service import RideService as _RS
+    if pin_hash and _RS.is_paid_up(ride):
         try:
             from app.utils.pin import generate_ride_pin
             verification_pin = generate_ride_pin(str(ride.id))
@@ -457,6 +458,25 @@ def get_ride(ride_id: int, current_user: User = Depends(get_current_user), db: S
     )
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+    return _serialize_ride(ride)
+
+
+class PayRideRequest(BaseModel):
+    payment_method: str = "card"
+
+
+@router.post("/rides/{ride_id}/pay", response_model=RideResponse)
+async def pay_for_ride(
+    ride_id: int,
+    payload: PayRideRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Pay for an accepted ride; the PIN is revealed and the trip can start once this succeeds."""
+    try:
+        ride = await RideService.pay_for_ride(db, ride_id, current_user.id, payload.payment_method)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return _serialize_ride(ride)
 
 

@@ -117,6 +117,10 @@ async def verify_pin(
     if ride.status != "arrived":
         raise HTTPException(status_code=400, detail="Can only verify PIN when driver has arrived")
 
+    from app.services.ride_service import RideService
+    if not RideService.is_paid_up(ride):
+        raise HTTPException(status_code=400, detail="The rider has not paid yet")
+
     if not ride.verification_pin_hash:
         raise HTTPException(status_code=400, detail="No verification PIN was generated for this ride")
 

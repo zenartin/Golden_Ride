@@ -138,6 +138,25 @@ export default function ActiveRideScreen({ navigation, route }: any) {
     return () => clearInterval(interval);
   }, [phaseIndex, paymentPaid, activeRide?.id]);
 
+  // The rider pays after accepting; the trip can only start once they have.
+  const [riderPaid, setRiderPaid] = useState(false);
+  useEffect(() => {
+    const method = activeRide?.payment_method?.toLowerCase();
+    if (method === "cash" || method === "cod") { setRiderPaid(true); return; }
+    if (riderPaid || phaseIndex > 1 || !activeRide?.id) return;
+    const rideId = activeRide.id;
+    const check = async () => {
+      try {
+        const res = await apiClient.get(`/rider/rides/${rideId}/payment-status`);
+        if (["authorized", "paid", "wallet_paid"].includes(res.data?.payment_status)) setRiderPaid(true);
+      } catch (e) {}
+    };
+    check();
+    const interval = setInterval(check, 3000);
+    return () => clearInterval(interval);
+  }, [phaseIndex, riderPaid, activeRide?.id]);
+  useEffect(() => { setRiderPaid(false); }, [activeRide?.id]);
+
   // Fetch route when phase changes
   useEffect(() => {
     const fetchRoute = async () => {
@@ -475,7 +494,15 @@ export default function ActiveRideScreen({ navigation, route }: any) {
           </View>
 
           {/* PIN Input during Arrived Phase */}
-          {phaseIndex === 1 && (
+          {phaseIndex === 1 && !riderPaid && (
+            <View style={styles.pinContainer}>
+              <Text style={styles.pinLabel}>Waiting for the rider to pay…</Text>
+              <Text style={{ color: Colors.textSecondary, textAlign: "center", marginTop: 6 }}>
+                The rider's PIN appears once payment is made. You can start the trip right after.
+              </Text>
+            </View>
+          )}
+          {phaseIndex === 1 && riderPaid && (
             <View style={styles.pinContainer}>
               <Text style={styles.pinLabel}>Enter Passenger PIN to Start Ride</Text>
               <TouchableOpacity 
@@ -564,14 +591,14 @@ export default function ActiveRideScreen({ navigation, route }: any) {
           <TouchableOpacity 
             style={[
               styles.ctaBtn, 
-              { backgroundColor: phaseIndex === 1 && pin.length < 4 ? Colors.textMuted : config.color }
+              { backgroundColor: phaseIndex === 1 && (!riderPaid || pin.length < 4) ? Colors.textMuted : config.color }
             ]} 
             onPress={handleCTA}
-            disabled={(phaseIndex === 1 && pin.length < 4) || (phaseIndex === 3 && !paymentPaid && RIDE.payment_method?.toLowerCase() !== "cash")}
+            disabled={(phaseIndex === 1 && (!riderPaid || pin.length < 4)) || (phaseIndex === 3 && !paymentPaid && RIDE.payment_method?.toLowerCase() !== "cash")}
           >
             <Text style={styles.ctaText}>
               {phaseIndex === 1
-                ? "Verify & Start Ride"
+                ? riderPaid ? "Verify & Start Ride" : "Waiting for Rider Payment…"
                 : phaseIndex === 3
                 ? paymentPaid
                   ? "Complete & Return to Home"
