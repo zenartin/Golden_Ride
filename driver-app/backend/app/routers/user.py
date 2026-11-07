@@ -771,6 +771,25 @@ def create_card_setup_intent(
         raise HTTPException(status_code=502, detail="Could not start card setup. Please try again.")
 
 
+@router.post("/card/demo")
+def add_demo_card(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Test phase: save a dummy Visa debit card that is never charged. Off unless ALLOW_DEMO_CARD is set."""
+    from app.core.config import settings
+    from app.services import stripe_service
+    if not settings.ALLOW_DEMO_CARD:
+        raise HTTPException(status_code=403, detail="Demo card is not enabled.")
+    current_user.stripe_payment_method_id = stripe_service.DEMO_PM_ID
+    current_user.card_brand = "visa"
+    current_user.card_last4 = "4242"
+    db.add(current_user)
+    db.commit()
+    _remember_card(db, current_user)
+    return {"status": "success", "has_payment_method": True, "card_brand": "visa", "card_last4": "4242", "demo": True}
+
+
 class SaveCardRequest(BaseModel):
     payment_method_id: str
 

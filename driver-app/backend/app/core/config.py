@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_replace_me")
     STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_replace_me")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    # Test phase only: lets riders add a demo card that is never charged. Keep OFF in production.
+    ALLOW_DEMO_CARD: bool = os.getenv("ALLOW_DEMO_CARD", "").lower() in ("1", "true", "yes")
 
     # Razorpay Payment Configurations
     RAZORPAY_KEY_ID: str = "rzp_test_YOUR_KEY_HERE"

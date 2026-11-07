@@ -30,7 +30,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 @router.get("/config")
 def stripe_config():
     """Public Stripe config. Only the publishable key is ever returned."""
-    return {"publishable_key": settings.STRIPE_PUBLISHABLE_KEY}
+    return {"publishable_key": settings.STRIPE_PUBLISHABLE_KEY, "demo_card_enabled": bool(settings.ALLOW_DEMO_CARD)}
 
 
 @router.post("/create-customer", response_model=CustomerResponse)

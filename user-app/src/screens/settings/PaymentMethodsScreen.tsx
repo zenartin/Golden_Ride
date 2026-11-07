@@ -30,10 +30,32 @@ export default function PaymentMethodsScreen() {
   const [cards, setCards] = useState<SavedCard[]>([]);
   const loadCards = () => apiRequest<SavedCard[]>("/user/cards").then(setCards).catch(() => undefined);
 
+  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [addingDemo, setAddingDemo] = useState(false);
+
   useEffect(() => {
     fetchProfile();
     loadCards();
+    apiRequest<{ demo_card_enabled?: boolean }>("/payments/config")
+      .then((c) => setDemoEnabled(!!c?.demo_card_enabled))
+      .catch(() => undefined);
   }, []);
+
+  // Test phase only: the server decides whether this is offered. The demo card is never charged.
+  const addDemoCard = async () => {
+    setAddingDemo(true);
+    try {
+      await apiRequest("/user/card/demo", { method: "POST" });
+      await Promise.all([fetchProfile(), loadCards()]);
+      Alert.alert("Demo card added", "Visa debit •••• 4242 is saved. Rides paid with it are not charged.");
+      if (navigation.canGoBack()) navigation.goBack();
+      else (navigation as any).navigate("Shell");
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Could not add the demo card.");
+    } finally {
+      setAddingDemo(false);
+    }
+  };
 
   const makeDefault = async (card: SavedCard) => {
     try {
@@ -163,6 +185,16 @@ export default function PaymentMethodsScreen() {
             <Ionicons name="lock-closed" size={12} /> Secured by Stripe. Card details never touch our servers.
           </Text>
           <AppButton title={saving ? "Saving..." : "Save Card"} onPress={handleSave} disabled={saving} />
+          {demoEnabled && (
+            <View style={{ marginTop: Spacing.md }}>
+              <AppButton
+                title={addingDemo ? "Adding..." : "Use demo test card (no real charge)"}
+                onPress={addDemoCard}
+                variant="secondary"
+                disabled={addingDemo}
+              />
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

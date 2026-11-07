@@ -10,8 +10,16 @@ logger = logging.getLogger("app")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", settings.STRIPE_SECRET_KEY)
 
 
+DEMO_PM_ID = "pm_mock_demo"
+
+
 class PaymentError(Exception):
     pass
+
+
+def is_demo_method(pm_id) -> bool:
+    """The demo card is only honoured while ALLOW_DEMO_CARD is on, so a leftover id can never skip a real charge."""
+    return bool(pm_id) and str(pm_id).startswith("pm_mock") and (settings.ALLOW_DEMO_CARD or is_mock())
 
 
 def is_mock() -> bool:
@@ -35,7 +43,7 @@ def ensure_customer(db: Session, user) -> str:
 
 def save_payment_method(db: Session, user, payment_method_id: str):
     """Attach a payment method to the customer, set as default and remember brand/last4."""
-    if is_mock() or payment_method_id.startswith("pm_mock"):
+    if is_mock() or is_demo_method(payment_method_id):
         user.stripe_payment_method_id = payment_method_id
         user.card_brand = "visa"
         user.card_last4 = "4242"
@@ -56,7 +64,7 @@ def charge_amount(db: Session, user, amount_usd: float, description: str, idempo
     """Charge the saved card straight away (gift cards). Raises PaymentError if declined."""
     if not user.stripe_payment_method_id:
         raise PaymentError("Please add a credit or debit card first.")
-    if is_mock():
+    if is_mock() or is_demo_method(user.stripe_payment_method_id):
         return f"pi_mock_{idempotency_key}"
     try:
         intent = stripe.PaymentIntent.create(
@@ -114,7 +122,7 @@ def charge_for_ride(db: Session, user, ride, idempotency_key: str = None) -> str
     amount = int(round(float(ride.fare_amount) * 100))
     if amount <= 0:
         return "pi_free"
-    if is_mock():
+    if is_mock() or is_demo_method(user.stripe_payment_method_id):
         return f"pi_mock_{ride.id}"
     try:
         intent = stripe.PaymentIntent.create(
