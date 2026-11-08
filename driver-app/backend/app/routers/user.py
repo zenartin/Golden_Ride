@@ -70,10 +70,12 @@ def _token_response(user: User) -> dict:
 
 def _build_options_from_route(distance_km: float, duration_min: float, currency: str) -> List[RideOption]:
     """Build ride options from real route data with correct currency."""
+    from app.services import fare_settings
+    cfg = fare_settings.get_fare_config()
     eta_base = max(3, round(distance_km / 6))  # rough driver ETA in minutes
     options = []
     for index, (ride_class, meta) in enumerate(RIDE_META.items()):
-        fare_amount, _ = RideService.calculate_fare(distance_km, duration_min, ride_class, currency)
+        fare_amount, _ = RideService.calculate_fare(distance_km, duration_min, ride_class, currency, config=cfg)
         # Format price as integer (INR) or 2-decimal (USD)
         price_display = int(fare_amount) if currency == "INR" else fare_amount
         options.append(
@@ -86,6 +88,7 @@ def _build_options_from_route(distance_km: float, duration_min: float, currency:
                 price=int(round(fare_amount)) if currency == "INR" else round(fare_amount, 2),
                 distance=f"{distance_km:.1f} km",
                 duration=format_duration(duration_min),
+                breakdown=fare_settings.breakdown(cfg, ride_class),
             )
         )
     return options

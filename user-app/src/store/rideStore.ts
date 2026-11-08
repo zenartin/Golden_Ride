@@ -15,6 +15,15 @@ export interface RideOption {
   seats: number;
   price: number;
   distance?: string;
+  /** Rates the admin has set, as the server used them for this quote */
+  breakdown?: {
+    base_fare: number;
+    per_mile: number;
+    per_minute: number;
+    booking_fee: number;
+    minimum_fare: number;
+    ride_type_multiplier: number;
+  } | null;
 }
 
 export interface Trip {

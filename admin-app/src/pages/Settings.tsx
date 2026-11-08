@@ -5,9 +5,16 @@ import { getSettings, updateSettings } from '../api/client';
 type S = {
   commission_percent: number;
   base_fare: number;
-  per_mile_economy: number;
-  per_mile_comfort: number;
-  per_mile_premium: number;
+  per_mile: number;
+  per_minute: number;
+  booking_fee: number;
+  minimum_fare: number;
+  mult_sedan: number;
+  mult_suv: number;
+  mult_van: number;
+  mult_x: number;
+  mult_xl: number;
+  mult_pet: number;
   ride_request_timeout_seconds: number;
   support_phone: string;
   support_email: string;
@@ -100,11 +107,26 @@ export default function SettingsPage() {
 
       <div style={styles.panel}>
         <h3 style={styles.panelTitle}>Fare Rates (USD)</h3>
+        <p style={styles.hint}>Fare = (base + miles x per-mile + minutes x per-minute + booking fee), at least the minimum fare, then multiplied by the ride type. Changes apply to new quotes and bookings in the rider app straight away.</p>
         <div style={styles.grid}>
           {field('Base fare', 'base_fare', undefined, '$')}
-          {field('Golden Ride Economy / mile', 'per_mile_economy', undefined, '$')}
-          {field('Golden Ride Comfort / mile', 'per_mile_comfort', undefined, '$')}
-          {field('Golden Ride Premium / mile', 'per_mile_premium', undefined, '$')}
+          {field('Per mile', 'per_mile', undefined, '$', '0.001')}
+          {field('Per minute', 'per_minute', undefined, '$')}
+          {field('Booking fee', 'booking_fee', undefined, '$')}
+          {field('Minimum fare', 'minimum_fare', undefined, '$')}
+        </div>
+      </div>
+
+      <div style={styles.panel}>
+        <h3 style={styles.panelTitle}>Ride type multipliers</h3>
+        <p style={styles.hint}>1.0 = the rates above. 1.5 = 50% more.</p>
+        <div style={styles.grid}>
+          {field('Golden Ride Sedan', 'mult_sedan', undefined, 'x')}
+          {field('Golden RideX', 'mult_x', undefined, 'x')}
+          {field('Golden Ride SUV', 'mult_suv', undefined, 'x')}
+          {field('Golden Ride Van', 'mult_van', undefined, 'x')}
+          {field('Golden RideXL', 'mult_xl', undefined, 'x')}
+          {field('Golden Ride Pet', 'mult_pet', undefined, 'x')}
         </div>
       </div>
 

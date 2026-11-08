@@ -176,12 +176,11 @@ from app.models.app_setting import AppSetting
 
 AppSetting.__table__.create(bind=engine, checkfirst=True)
 
+from app.services.fare_settings import FARE_DEFAULTS
+
 DEFAULT_SETTINGS: Dict[str, Any] = {
     "commission_percent": 20.0,
-    "base_fare": 3.0,
-    "per_mile_economy": 1.2,
-    "per_mile_comfort": 1.6,
-    "per_mile_premium": 2.2,
+    **FARE_DEFAULTS,
     "ride_request_timeout_seconds": 60,
     "support_phone": "",
     "support_email": "",
@@ -203,9 +202,16 @@ def _load_settings(db: Session) -> Dict[str, Any]:
 class SettingsUpdate(BaseModel):
     commission_percent: float | None = None
     base_fare: float | None = None
-    per_mile_economy: float | None = None
-    per_mile_comfort: float | None = None
-    per_mile_premium: float | None = None
+    per_mile: float | None = None
+    per_minute: float | None = None
+    booking_fee: float | None = None
+    minimum_fare: float | None = None
+    mult_sedan: float | None = None
+    mult_suv: float | None = None
+    mult_van: float | None = None
+    mult_x: float | None = None
+    mult_xl: float | None = None
+    mult_pet: float | None = None
     ride_request_timeout_seconds: int | None = None
     support_phone: str | None = None
     support_email: str | None = None
@@ -222,6 +228,11 @@ def update_settings(payload: SettingsUpdate, current_admin: Admin = Depends(get_
     data = payload.dict(exclude_none=True)
     if "commission_percent" in data and not (0 <= data["commission_percent"] <= 100):
         raise HTTPException(status_code=400, detail="Commission must be between 0 and 100")
+    for k, v in data.items():
+        if k in FARE_DEFAULTS and v < 0:
+            raise HTTPException(status_code=400, detail="Fare values cannot be negative")
+        if k.startswith("mult_") and v <= 0:
+            raise HTTPException(status_code=400, detail="Ride type multipliers must be above 0")
     for k, v in data.items():
         if k not in DEFAULT_SETTINGS:
             continue

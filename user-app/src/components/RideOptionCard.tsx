@@ -171,9 +171,13 @@ export default function RideOptionCard({
         <Pressable 
           style={styles.priceContainer}
           onPress={() => {
+            const b = option.breakdown;
+            const rates = b
+              ? `Base fare: ${symbol}${b.base_fare.toFixed(2)}\nDistance: ${symbol}${b.per_mile.toFixed(2)} per mile\nTime: ${symbol}${b.per_minute.toFixed(2)} per minute\nBooking fee: ${symbol}${b.booking_fee.toFixed(2)}\nMinimum fare: ${symbol}${b.minimum_fare.toFixed(2)}\nRide type: x${b.ride_type_multiplier}`
+              : "Fare is based on distance, time, a booking fee and your ride type.";
             Alert.alert(
               "Fare Breakdown",
-              `Estimated total: ${symbol}${Number(option.price).toFixed(2)}\n\nBase fare: $1.50\nDistance: $0.55 per km\nTime: $0.15 per minute\nBooking fee: $1.50\nMinimum fare: $4.00\n\nRide type adjusts these rates. A hold is placed on your card at booking and charged when the trip ends.`,
+              `Estimated total: ${symbol}${Number(option.price).toFixed(2)}\n\n${rates}\n\nYou pay after a driver accepts your ride.`,
               [{ text: "OK" }]
             );
           }}

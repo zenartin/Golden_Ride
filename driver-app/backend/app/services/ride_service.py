@@ -64,8 +64,8 @@ class RideService:
         return "USD"
 
     @classmethod
-    def calculate_fare(cls, distance_km: float, duration_min: float, ride_class: str, currency: str = "INR") -> tuple:
-        """Returns (fare_amount: float, fare_str: str)"""
+    def calculate_fare(cls, distance_km: float, duration_min: float, ride_class: str, currency: str = "INR", config: dict = None) -> tuple:
+        """Returns (fare_amount: float, fare_str: str). USD rates come from the admin's fare settings."""
         multiplier = cls.CLASS_MULTIPLIERS.get(ride_class.lower(), 1.0)
         
         if currency == "INR":
@@ -75,10 +75,12 @@ class RideService:
             amount = round(amount * multiplier, 2)
             return amount, f"₹{int(amount)}"
         else:
-            rates = cls.USD_BASE_RATES
-            calc_price = rates["base"] + (distance_km * rates["per_km"]) + (duration_min * rates["per_min"]) + rates["booking_fee"]
-            amount = max(rates["min_fare"], calc_price)
-            amount = round(amount * multiplier, 2)
+            from app.services import fare_settings
+            cfg = config or fare_settings.get_fare_config()
+            miles = distance_km / fare_settings.MILE_KM
+            calc_price = cfg["base_fare"] + (miles * cfg["per_mile"]) + (duration_min * cfg["per_minute"]) + cfg["booking_fee"]
+            amount = max(cfg["minimum_fare"], calc_price)
+            amount = round(amount * fare_settings.class_multiplier(cfg, ride_class), 2)
             return amount, f"${amount:.2f}"
 
     @classmethod

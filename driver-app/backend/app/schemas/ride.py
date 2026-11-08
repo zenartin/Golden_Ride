@@ -82,6 +82,7 @@ class RideOption(BaseModel):
     price: float
     distance: str
     duration: str
+    breakdown: Optional[dict] = None
 
 
 class RideEstimateResponse(BaseModel):
