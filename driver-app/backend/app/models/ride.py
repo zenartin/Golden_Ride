@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from typing import Optional
@@ -112,6 +112,10 @@ class Withdrawal(Base):
     status = Column(String, default="pending")  # pending, completed, failed
     method = Column(String, default="standard")  # standard, instant
     stripe_payout_id = Column(String, nullable=True)
+    account_snapshot = Column(Text, nullable=True)   # JSON: driver's payout account when they asked
+    admin_note = Column(String, nullable=True)
+    reference = Column(String, nullable=True)         # bank transfer reference entered by the admin
+    processed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     driver = relationship("Driver", back_populates="withdrawals")

@@ -10,6 +10,7 @@ const THEMES: Record<string, { accent: string; soft: string; grad: string }> = {
   '/drivers': { accent: '#10b981', soft: 'rgba(16,185,129,0.12)', grad: 'linear-gradient(90deg,#059669,#0d9488)' },
   '/rides': { accent: '#f43f5e', soft: 'rgba(244,63,94,0.1)', grad: 'linear-gradient(90deg,#e11d48,#f97316)' },
   '/payouts': { accent: '#7c3aed', soft: 'rgba(124,58,237,0.1)', grad: 'linear-gradient(90deg,#7c3aed,#c026d3)' },
+  '/withdrawals': { accent: '#059669', soft: 'rgba(5,150,105,0.12)', grad: 'linear-gradient(90deg,#059669,#14b8a6)' },
   '/stripe': { accent: '#0891b2', soft: 'rgba(8,145,178,0.1)', grad: 'linear-gradient(90deg,#0891b2,#2563eb)' },
   '/coupons': { accent: '#eab308', soft: 'rgba(234,179,8,0.1)', grad: 'linear-gradient(90deg,#eab308,#f97316)' },
   '/reports': { accent: '#d97706', soft: 'rgba(217,119,6,0.12)', grad: 'linear-gradient(90deg,#d97706,#dc2626)' },

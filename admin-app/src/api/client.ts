@@ -172,3 +172,28 @@ export const getRecordings = async () => {
   const { data } = await apiClient.get('/recordings/admin');
   return data;
 };
+
+export const getWithdrawals = async (status?: string) => {
+  const { data } = await apiClient.get('/admin/withdrawals', { params: status ? { status } : {} });
+  return data;
+};
+
+export const approveWithdrawal = async (id: number, body: { reference?: string; note?: string }) => {
+  const { data } = await apiClient.post(`/admin/withdrawals/${id}/approve`, body);
+  return data;
+};
+
+export const rejectWithdrawal = async (id: number, body: { note: string }) => {
+  const { data } = await apiClient.post(`/admin/withdrawals/${id}/reject`, body);
+  return data;
+};
+
+export const getNotifications = async () => {
+  const { data } = await apiClient.get('/admin/notifications');
+  return data;
+};
+
+export const readAllNotifications = async () => {
+  const { data } = await apiClient.post('/admin/notifications/read-all');
+  return data;
+};

@@ -10,4 +10,5 @@ from app.models.payment import Payment
 from app.models.family import FamilyGroup, FamilyMember, FamilyInvitation
 from app.models.recording import TripRecording
 from app.models.coupon import Coupon
+from app.models.admin_notification import AdminNotification
 from app.models.rider_features import SavedAddress, SavedCard, RiderNotification, GiftCard, SupportTicket, SafetyAlert

@@ -82,6 +82,7 @@ class DriverDocument(Base):
     identity_verification_status = Column(String, default="pending")
 
     # Banking
+    account_holder_name = Column(String, nullable=True)
     bank_name = Column(String, nullable=True)
     account_number = Column(String, nullable=True)
     routing_number = Column(String, nullable=True)

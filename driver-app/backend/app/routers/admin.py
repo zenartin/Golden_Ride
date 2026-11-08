@@ -512,6 +512,119 @@ def payout_history(limit: int = 100, current_admin: Admin = Depends(get_current_
         "paid_by": r.paid_by, "created_at": r.created_at,
     } for r in rows]
 
+# ─── Withdrawal requests (driver asks, admin pays by bank transfer) ──────────
+from app.models.admin_notification import AdminNotification
+
+AdminNotification.__table__.create(bind=engine, checkfirst=True)
+
+
+def _withdrawal_row(w: Withdrawal, driver: Driver | None) -> Dict[str, Any]:
+    try:
+        account = json.loads(w.account_snapshot) if w.account_snapshot else {}
+    except Exception:
+        account = {}
+    return {
+        "id": w.id,
+        "driver_id": w.driver_id,
+        "driver_name": driver.name if driver else f"Driver #{w.driver_id}",
+        "driver_phone": driver.phone if driver else None,
+        "driver_email": driver.email if driver else None,
+        "amount": w.amount,
+        "status": w.status,
+        "method": w.method,
+        "account_holder_name": account.get("account_holder_name"),
+        "bank_name": account.get("bank_name"),
+        "routing_number": account.get("routing_number"),
+        "account_number": account.get("account_number"),
+        "reference": w.reference,
+        "admin_note": w.admin_note,
+        "processed_at": w.processed_at,
+        "created_at": w.created_at,
+    }
+
+
+@router.get("/withdrawals")
+def list_withdrawals(status: str | None = None, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    q = db.query(Withdrawal)
+    if status:
+        q = q.filter(Withdrawal.status == status)
+    rows = q.order_by(Withdrawal.created_at.desc()).limit(300).all()
+    drivers = {d.id: d for d in db.query(Driver).filter(Driver.id.in_([w.driver_id for w in rows] or [0])).all()}
+    pending = db.query(Withdrawal).filter(Withdrawal.status == "pending").all()
+    return {
+        "pending_count": len(pending),
+        "pending_total": round(sum(w.amount for w in pending), 2),
+        "withdrawals": [_withdrawal_row(w, drivers.get(w.driver_id)) for w in rows],
+    }
+
+
+class WithdrawalDecision(BaseModel):
+    reference: str | None = None
+    note: str | None = None
+
+
+def _pending_withdrawal(db: Session, withdrawal_id: int) -> Withdrawal:
+    w = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
+    if not w:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    if w.status != "pending":
+        raise HTTPException(status_code=400, detail=f"This request is already {w.status}")
+    return w
+
+
+@router.post("/withdrawals/{withdrawal_id}/approve")
+def approve_withdrawal(withdrawal_id: int, payload: WithdrawalDecision, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    """Admin has sent the bank transfer: mark it paid and record it in the driver's payout history."""
+    w = _pending_withdrawal(db, withdrawal_id)
+    w.status = "completed"
+    w.reference = (payload.reference or "").strip() or None
+    w.admin_note = (payload.note or "").strip() or None
+    w.processed_at = datetime.utcnow()
+    db.add(DriverPayout(driver_id=w.driver_id, amount=w.amount, method="bank_transfer", reference=w.reference,
+                        note=f"Withdrawal request #{w.id}", paid_by=current_admin.name))
+    db.query(AdminNotification).filter(AdminNotification.kind == "withdrawal_request", AdminNotification.ref_id == w.id).update({"is_read": True})
+    db.commit()
+    return {"id": w.id, "status": w.status}
+
+
+@router.post("/withdrawals/{withdrawal_id}/reject")
+def reject_withdrawal(withdrawal_id: int, payload: WithdrawalDecision, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    """Turn the request down and give the amount back to the driver's available balance."""
+    w = _pending_withdrawal(db, withdrawal_id)
+    if not (payload.note or "").strip():
+        raise HTTPException(status_code=400, detail="Add a reason so the driver knows why")
+    driver = db.query(Driver).filter(Driver.id == w.driver_id).first()
+    if driver:
+        driver.balance = (driver.balance or 0.0) + w.amount
+        db.add(driver)
+    w.status = "rejected"
+    w.admin_note = payload.note.strip()
+    w.processed_at = datetime.utcnow()
+    db.query(AdminNotification).filter(AdminNotification.kind == "withdrawal_request", AdminNotification.ref_id == w.id).update({"is_read": True})
+    db.commit()
+    return {"id": w.id, "status": w.status}
+
+
+@router.get("/notifications")
+def admin_notifications(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    rows = db.query(AdminNotification).order_by(AdminNotification.created_at.desc()).limit(30).all()
+    unread = db.query(AdminNotification).filter(AdminNotification.is_read == False).count()  # noqa: E712
+    return {
+        "unread": unread,
+        "notifications": [{
+            "id": n.id, "kind": n.kind, "title": n.title, "body": n.body,
+            "ref_id": n.ref_id, "is_read": bool(n.is_read), "created_at": n.created_at,
+        } for n in rows],
+    }
+
+
+@router.post("/notifications/read-all")
+def read_all_notifications(current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
+    db.query(AdminNotification).filter(AdminNotification.is_read == False).update({"is_read": True})  # noqa: E712
+    db.commit()
+    return {"unread": 0}
+
+
 # ─── Coupons ─────────────────────────────────────────────────────────────────
 from app.models.coupon import Coupon
 from app.schemas.coupon import CouponCreate, CouponUpdate, CouponOut

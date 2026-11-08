@@ -368,28 +368,103 @@ def get_earnings(
         withdrawals=withdrawals_db
     )
 
+def _mask(value: Optional[str]) -> Optional[str]:
+    v = (value or "").strip()
+    return None if not v else ("•" * max(len(v) - 4, 0)) + v[-4:]
+
+
+def _docs(db: Session, driver: Driver, create: bool = False):
+    docs = db.query(DriverDocument).filter(DriverDocument.driver_id == driver.id).first()
+    if not docs and create:
+        docs = DriverDocument(driver_id=driver.id)
+        db.add(docs)
+        db.flush()
+    return docs
+
+
+def _payout_account(docs) -> dict:
+    holder, bank = getattr(docs, "account_holder_name", None), getattr(docs, "bank_name", None)
+    routing, number = getattr(docs, "routing_number", None), getattr(docs, "account_number", None)
+    return {
+        "account_holder_name": holder or "",
+        "bank_name": bank or "",
+        "routing_number": routing or "",
+        "account_number_masked": _mask(number),
+        "complete": bool(holder and bank and routing and number),
+    }
+
+
+class PayoutAccountIn(BaseModel):
+    account_holder_name: str
+    bank_name: str
+    routing_number: str
+    account_number: str
+
+
+@router.get("/payout-account")
+def get_payout_account(current_driver: Driver = Depends(get_current_driver), db: Session = Depends(get_db)):
+    return _payout_account(_docs(db, current_driver))
+
+
+@router.put("/payout-account")
+def save_payout_account(payload: PayoutAccountIn, current_driver: Driver = Depends(get_current_driver), db: Session = Depends(get_db)):
+    holder, bank = payload.account_holder_name.strip(), payload.bank_name.strip()
+    routing, number = payload.routing_number.strip(), payload.account_number.strip()
+    if not holder or not bank:
+        raise HTTPException(status_code=400, detail="Enter the account holder name and bank name")
+    if not (routing.isdigit() and len(routing) == 9):
+        raise HTTPException(status_code=400, detail="A US routing number has 9 digits")
+    if not (number.isdigit() and 4 <= len(number) <= 17):
+        raise HTTPException(status_code=400, detail="Enter a valid account number (4 to 17 digits)")
+    docs = _docs(db, current_driver, create=True)
+    docs.account_holder_name, docs.bank_name = holder, bank
+    docs.routing_number, docs.account_number = routing, number
+    db.add(docs)
+    db.commit()
+    return _payout_account(docs)
+
+
 @router.post("/withdraw", response_model=WithdrawalOut)
 def request_withdrawal(
     amount: float = Form(...),
     current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Withdrawal amount must be greater than zero")
-    if current_driver.balance < amount:
+    import json
+    from app.models.admin_notification import AdminNotification
+    amount = round(amount, 2)
+    if amount < 1:
+        raise HTTPException(status_code=400, detail="The minimum withdrawal is $1.00")
+    docs = _docs(db, current_driver)
+    if not _payout_account(docs)["complete"]:
+        raise HTTPException(status_code=400, detail="Add your bank account details before requesting a withdrawal")
+    if (current_driver.balance or 0.0) + 0.001 < amount:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient wallet balance")
 
-    # Deduct wallet balance
+    # Take it out of the available balance now; it is returned if the admin rejects the request
     current_driver.balance -= amount
-    
-    # Log withdrawal
+
     withdraw_req = Withdrawal(
         driver_id=current_driver.id,
         amount=amount,
-        status="pending"
+        status="pending",
+        method="standard",
+        account_snapshot=json.dumps({
+            "account_holder_name": docs.account_holder_name,
+            "bank_name": docs.bank_name,
+            "routing_number": docs.routing_number,
+            "account_number": docs.account_number,
+        }),
     )
     db.add(withdraw_req)
     db.add(current_driver)
+    db.flush()
+    db.add(AdminNotification(
+        kind="withdrawal_request",
+        title=f"Withdrawal request: ${amount:.2f}",
+        body=f"{current_driver.name} asked to withdraw ${amount:.2f}",
+        ref_id=withdraw_req.id,
+    ))
     db.commit()
     db.refresh(withdraw_req)
     return withdraw_req

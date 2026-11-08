@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import SettingsPage from './pages/Settings';
 import SafetyPage from './pages/Safety';
 import Payouts from './pages/Payouts';
+import Withdrawals from './pages/Withdrawals';
 import Login from './pages/Login';
 import CouponsList from './pages/CouponsList';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -34,6 +35,7 @@ function App() {
             <Route path="rides" element={<RidesList />} />
             <Route path="stripe" element={<StripeDashboard />} />
             <Route path="payouts" element={<Payouts />} />
+            <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<Reports />} />
             <Route path="coupons" element={<CouponsList />} />
             <Route path="settings" element={<SettingsPage />} />

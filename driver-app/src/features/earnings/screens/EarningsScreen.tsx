@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
   Alert,
   Linking,
   Modal,
-  TouchableWithoutFeedback,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,53 +24,157 @@ import { API_ENDPOINTS } from "../../../api/endpoints";
 
 interface WeeklyBar { day: string; amount: number; trips: number; }
 interface BreakdownItem { label: string; amount: string; icon: string; color: string; }
-interface PaymentRow { label: string; value: string; bold?: boolean; color?: string; }
-interface Withdrawal { id: number; amount: number; status: string; created_at: string; }
+interface Withdrawal {
+  id: number;
+  amount: number;
+  status: string;
+  method?: string;
+  reference?: string | null;
+  admin_note?: string | null;
+  created_at: string;
+}
 interface EarningsData {
   weekly_total: string;
   statistics: WeeklyBar[];
   daily_breakdown: BreakdownItem[];
-  payment_summary: PaymentRow[];
   available_balance: number;
   withdrawals: Withdrawal[];
 }
+interface PayoutAccount {
+  account_holder_name: string;
+  bank_name: string;
+  routing_number: string;
+  account_number_masked: string | null;
+  complete: boolean;
+}
 
-const formatAmount = (value: number) => {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `$${Math.round(value)}`;
-  }
+const money = (v: number) => `$${(v || 0).toFixed(2)}`;
+
+const STATUS: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+  pending: { label: "Pending review", color: "#B45309", bg: "#FEF3C7", icon: "time-outline" },
+  completed: { label: "Paid", color: "#047857", bg: "#D1FAE5", icon: "checkmark-circle-outline" },
+  rejected: { label: "Rejected", color: "#B91C1C", bg: "#FEE2E2", icon: "close-circle-outline" },
+  failed: { label: "Failed", color: "#B91C1C", bg: "#FEE2E2", icon: "alert-circle-outline" },
+};
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
 export default function EarningsScreen() {
   const [data, setData] = useState<EarningsData | null>(null);
+  const [account, setAccount] = useState<PayoutAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeFilter, setTimeFilter] = useState<"daily" | "weekly">("weekly");
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [range, setRange] = useState<"daily" | "weekly">("weekly");
 
-  useEffect(() => {
-    fetchEarnings();
-  }, []);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [amountText, setAmountText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const fetchEarnings = async (silent = false) => {
+  const [showAccount, setShowAccount] = useState(false);
+  const [holder, setHolder] = useState("");
+  const [bank, setBank] = useState("");
+  const [routing, setRouting] = useState("");
+  const [number, setNumber] = useState("");
+  const [savingAccount, setSavingAccount] = useState(false);
+
+  const load = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       setError(null);
-      const response = await apiClient.get(API_ENDPOINTS.DRIVER_EARNINGS);
-      setData(response.data);
+      const [earn, acct] = await Promise.all([
+        apiClient.get(API_ENDPOINTS.DRIVER_EARNINGS),
+        apiClient.get("/driver/payout-account").catch(() => ({ data: null })),
+      ]);
+      setData(earn.data);
+      setAccount(acct.data);
     } catch (err) {
-      console.log("Fetch earnings error:", err);
-      setError("We couldn't load earnings right now.");
+      setError("We couldn't load your earnings right now.");
     } finally {
       setRefreshing(false);
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    // Pick up the admin's decision on a withdrawal without leaving the screen
+    const t = setInterval(() => load(true), 20000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const balance = data?.available_balance ?? 0;
+  const bars = data?.statistics ?? [];
+  const maxBar = Math.max(...bars.map((b) => b.amount), 1);
+  const weekTrips = bars.reduce((n, b) => n + b.trips, 0);
+  const todayTrips = bars[bars.length - 1]?.trips ?? 0;
+  const pendingTotal = (data?.withdrawals ?? []).filter((w) => w.status === "pending").reduce((n, w) => n + w.amount, 0);
+
+  const openWithdraw = () => {
+    if (!account?.complete) {
+      openAccount();
+      return;
+    }
+    if (balance < 1) {
+      Alert.alert("Nothing to withdraw", "You need at least $1.00 available to request a withdrawal.");
+      return;
+    }
+    setAmountText(balance.toFixed(2));
+    setShowWithdraw(true);
+  };
+
+  const openAccount = () => {
+    setHolder(account?.account_holder_name || "");
+    setBank(account?.bank_name || "");
+    setRouting(account?.routing_number || "");
+    setNumber("");
+    setShowAccount(true);
+  };
+
+  const saveAccount = async () => {
+    setSavingAccount(true);
+    try {
+      const res = await apiClient.put("/driver/payout-account", {
+        account_holder_name: holder,
+        bank_name: bank,
+        routing_number: routing,
+        account_number: number,
+      });
+      setAccount(res.data);
+      setShowAccount(false);
+      Alert.alert("Bank account saved", "You can now request withdrawals to this account.");
+    } catch (err: any) {
+      Alert.alert("Could not save", err.response?.data?.detail || "Please check the details and try again.");
+    } finally {
+      setSavingAccount(false);
+    }
+  };
+
+  const submitWithdraw = async () => {
+    const amount = parseFloat(amountText);
+    if (!amount || amount < 1) {
+      Alert.alert("Enter an amount", "The minimum withdrawal is $1.00.");
+      return;
+    }
+    if (amount > balance + 0.001) {
+      Alert.alert("Too much", `You have ${money(balance)} available.`);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append("amount", amount.toFixed(2));
+      await apiClient.post(API_ENDPOINTS.DRIVER_WITHDRAW, form, { headers: { "Content-Type": "multipart/form-data" } });
+      setShowWithdraw(false);
+      await load(true);
+      Alert.alert("Request sent", "The Golden Ride team has been notified and will send the money to your bank account.");
+    } catch (err: any) {
+      Alert.alert("Could not send request", err.response?.data?.detail || "Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -81,20 +188,19 @@ export default function EarningsScreen() {
           return;
         }
       }
-      const amount = data?.available_balance ?? 0;
-      if (amount <= 0) {
+      if (balance <= 0) {
         Alert.alert("Nothing to cash out", "Your balance is $0.00.");
         return;
       }
-      Alert.alert("Instant Cash Out", `Send $${amount.toFixed(2)} to your debit card now?`, [
+      Alert.alert("Instant cash out", `Send ${money(balance)} to your debit card now?`, [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Cash Out",
+          text: "Cash out",
           onPress: async () => {
             try {
               await apiClient.post("/driver/payout/instant", {});
               Alert.alert("Cash out sent", "Your money is on its way to your debit card.");
-              await fetchEarnings(true);
+              await load(true);
             } catch (err: any) {
               Alert.alert("Cash out failed", err.response?.data?.detail || "Please try again.");
             }
@@ -106,224 +212,271 @@ export default function EarningsScreen() {
     }
   };
 
-  const handleSettle = async () => {
-    if (!data) return;
-    const amount = data.available_balance;
-    if (!amount || amount === 0) {
-      Alert.alert("All Settled", "Your balance is fully settled.");
-      return;
-    }
-    try {
-      const formData = new FormData();
-      formData.append("amount", String(amount));
-      await apiClient.post(API_ENDPOINTS.DRIVER_WITHDRAW, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      Alert.alert("Success", "Settlement request submitted successfully!");
-      await fetchEarnings(true);
-    } catch (err: any) {
-      Alert.alert("Error", err.response?.data?.detail || "Settlement failed");
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-        <View style={styles.centerLoader}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>
       </SafeAreaView>
     );
   }
 
-  const statistics = data?.statistics ?? [];
-  const maxBar = Math.max(...statistics.map((b) => b.amount), 1);
-  const withdrawableAmount = data?.available_balance ?? 0;
-
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <StatusBar backgroundColor={Colors.background} barStyle="dark-content" />
-
-      {error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => fetchEarnings()}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} />}
+      >
+        {error && (
+          <TouchableOpacity style={styles.errorBanner} onPress={() => load()}>
+            <Text style={styles.errorText}>{error}</Text>
             <Text style={styles.errorAction}>Retry</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
-        {/* Header */}
-        <View style={[styles.header, { zIndex: 10 }]}>
-          <View>
-            <TouchableOpacity 
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.background, borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: Colors.border }}
-              onPress={() => setShowDropdown(true)}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "700", color: Colors.textPrimary, marginRight: 6 }}>
-                {timeFilter === "daily" ? "Daily Earnings" : "Weekly Earnings"}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            
-            <Modal visible={showDropdown} transparent animationType="fade">
-              <TouchableWithoutFeedback onPress={() => setShowDropdown(false)}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', alignItems: 'flex-start', paddingTop: 90, paddingLeft: Spacing.lg }}>
-                  <TouchableWithoutFeedback>
-                    <View style={{ backgroundColor: '#fff', borderRadius: 12, width: 220, overflow: 'hidden' }}>
-                      <TouchableOpacity 
-                        style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: timeFilter === "daily" ? Colors.primary + "15" : "#fff" }}
-                        onPress={() => { setTimeFilter("daily"); setShowDropdown(false); }}
-                      >
-                        <Text style={{ fontSize: 16, fontWeight: "600", color: timeFilter === "daily" ? Colors.primary : Colors.textPrimary }}>Daily Earnings</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={{ padding: 16, backgroundColor: timeFilter === "weekly" ? Colors.primary + "15" : "#fff" }}
-                        onPress={() => { setTimeFilter("weekly"); setShowDropdown(false); }}
-                      >
-                        <Text style={{ fontSize: 16, fontWeight: "600", color: timeFilter === "weekly" ? Colors.primary : Colors.textPrimary }}>Weekly Earnings</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableWithoutFeedback>
-                </View>
-              </TouchableWithoutFeedback>
-            </Modal>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Earnings</Text>
+          <View style={styles.segment}>
+            {(["daily", "weekly"] as const).map((r) => (
+              <TouchableOpacity key={r} style={[styles.segBtn, range === r && styles.segBtnOn]} onPress={() => setRange(r)}>
+                <Text style={[styles.segText, range === r && styles.segTextOn]}>{r === "daily" ? "Today" : "This week"}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          
-          <TouchableOpacity style={[styles.withdrawBtn, { backgroundColor: Colors.success }]} onPress={handleCashOut}>
-            <Ionicons name="flash" size={16} color={Colors.white} />
-            <Text style={styles.withdrawText}>Instant Cash Out</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.withdrawBtn} onPress={handleSettle}>
-            <Ionicons name="cash-outline" size={16} color={Colors.white} />
-            <Text style={styles.withdrawText}>Settle Balance</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Total Card */}
-        <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.totalCard}>
-          <Text style={styles.totalLabel}>{timeFilter === "daily" ? "Total Today (Driver Cut)" : "Total This Week"}</Text>
-          <Text style={styles.totalAmount}>
-            {timeFilter === "daily" ? (data?.daily_breakdown?.[1]?.amount ?? formatAmount(0)) : (data?.weekly_total ?? formatAmount(0))}
+        {/* Balance */}
+        <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>Available balance</Text>
+          <Text style={styles.balanceAmount}>{money(balance)}</Text>
+          <Text style={styles.balanceSub}>
+            {range === "daily"
+              ? `Today ${data?.daily_breakdown?.[1]?.amount ?? "$0.00"} · ${todayTrips} trip${todayTrips === 1 ? "" : "s"}`
+              : `This week ${data?.weekly_total ?? "$0.00"} · ${weekTrips} trip${weekTrips === 1 ? "" : "s"}`}
           </Text>
-          <View style={styles.totalRow}>
-            <View style={styles.totalStat}>
-              <Ionicons name="car-sport-outline" size={14} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.totalStatText}>
-                {timeFilter === "daily" 
-                  ? (statistics[statistics.length - 1]?.trips ?? 0)
-                  : statistics.reduce((acc, b) => acc + b.trips, 0)} Trips
-              </Text>
+          {pendingTotal > 0 && (
+            <View style={styles.pendingPill}>
+              <Ionicons name="time-outline" size={13} color="#fff" />
+              <Text style={styles.pendingPillText}>{money(pendingTotal)} withdrawal pending</Text>
             </View>
-            <View style={styles.totalStat}>
-              <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.totalStatText}>Live Data</Text>
-            </View>
-            <View style={styles.totalStat}>
-              <Ionicons name="star-outline" size={14} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.totalStatText}>4.9 Avg</Text>
-            </View>
+          )}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.primaryAction} onPress={openWithdraw}>
+              <Ionicons name="arrow-down-circle-outline" size={18} color={Colors.primaryDark} />
+              <Text style={styles.primaryActionText}>Withdraw</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.ghostAction} onPress={handleCashOut}>
+              <Ionicons name="flash" size={16} color="#fff" />
+              <Text style={styles.ghostActionText}>Instant cash out</Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 
+        {/* Payout account */}
+        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={openAccount}>
+          <View style={styles.accountRow}>
+            <View style={[styles.iconBubble, { backgroundColor: Colors.primary + "1A" }]}>
+              <Ionicons name="business-outline" size={20} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitleSmall}>Bank account for withdrawals</Text>
+              {account?.complete ? (
+                <Text style={styles.accountText}>{account.bank_name} · {account.account_number_masked}</Text>
+              ) : (
+                <Text style={[styles.accountText, { color: Colors.warning }]}>Add your bank details to withdraw</Text>
+              )}
+            </View>
+            <Text style={styles.linkText}>{account?.complete ? "Edit" : "Add"}</Text>
+          </View>
+        </TouchableOpacity>
 
+        {/* Chart */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Last 7 days</Text>
+          <View style={styles.chart}>
+            {bars.map((b, i) => (
+              <View key={b.day + i} style={styles.barCol}>
+                <Text style={styles.barAmount}>{b.amount > 0 ? `$${Math.round(b.amount)}` : ""}</Text>
+                <View style={styles.barBg}>
+                  <View style={[styles.barFill, i === bars.length - 1 && styles.barToday, { height: `${Math.max((b.amount / maxBar) * 100, b.amount > 0 ? 6 : 0)}%` }]} />
+                </View>
+                <Text style={[styles.barDay, i === bars.length - 1 && styles.barDayToday]}>{b.day}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
-        {/* Withdrawal History */}
-        {data?.withdrawals && data.withdrawals.length > 0 && (
+        {/* Today */}
+        {data?.daily_breakdown && data.daily_breakdown.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Withdrawal History</Text>
-            {data.withdrawals.map((w) => (
-              <View key={w.id} style={styles.payRow}>
-                <View>
-                  <Text style={styles.payLabel}>Withdrawal</Text>
-                  <Text style={{ fontSize: 12, color: Colors.textSecondary, marginTop: 2 }}>
-                    {new Date(w.created_at + 'Z').toLocaleDateString()}
-                  </Text>
+            <Text style={styles.cardTitle}>Today</Text>
+            {data.daily_breakdown.map((item, i) => (
+              <View key={item.label} style={[styles.row, i > 0 && styles.rowBorder]}>
+                <View style={[styles.iconBubble, { backgroundColor: item.color + "1A" }]}>
+                  <Ionicons name={item.icon as any} size={18} color={item.color} />
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={[styles.payValue, { fontWeight: "700" }]}>${w.amount.toFixed(2)}</Text>
-                  <Text style={{ fontSize: 12, color: w.status === "completed" ? Colors.success : Colors.warning, fontWeight: "600", marginTop: 2 }}>
-                    {w.status === "completed" ? "Payment Done" : "Pending"}
-                  </Text>
-                </View>
+                <Text style={styles.rowLabel}>{item.label}</Text>
+                <Text style={[styles.rowValue, { color: item.color }]}>{item.amount}</Text>
               </View>
             ))}
           </View>
         )}
 
+        {/* History */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Withdrawal history</Text>
+          {(data?.withdrawals ?? []).length === 0 ? (
+            <Text style={styles.empty}>No withdrawals yet. Request one when you have a balance.</Text>
+          ) : (
+            data!.withdrawals.map((w, i) => {
+              const s = STATUS[w.status] ?? STATUS.pending;
+              return (
+                <View key={w.id} style={[styles.historyRow, i > 0 && styles.rowBorder]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.historyAmount}>{money(w.amount)}</Text>
+                    <Text style={styles.historyMeta}>
+                      {formatDate(w.created_at)} · {w.method === "instant" ? "Instant" : "Bank transfer"}
+                    </Text>
+                    {w.status === "completed" && w.reference ? <Text style={styles.historyMeta}>Ref: {w.reference}</Text> : null}
+                    {w.status === "rejected" && w.admin_note ? <Text style={[styles.historyMeta, { color: "#B91C1C" }]}>{w.admin_note}</Text> : null}
+                  </View>
+                  <View style={[styles.chip, { backgroundColor: s.bg }]}>
+                    <Ionicons name={s.icon as any} size={13} color={s.color} />
+                    <Text style={[styles.chipText, { color: s.color }]}>{s.label}</Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
       </ScrollView>
+
+      {/* Withdraw modal */}
+      <Modal visible={showWithdraw} transparent animationType="slide" onRequestClose={() => setShowWithdraw(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalWrap}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowWithdraw(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Withdraw money</Text>
+              <TouchableOpacity onPress={() => setShowWithdraw(false)}><Ionicons name="close" size={24} color={Colors.textPrimary} /></TouchableOpacity>
+            </View>
+            <Text style={styles.fieldLabel}>Amount (available {money(balance)})</Text>
+            <View style={styles.amountBox}>
+              <Text style={styles.amountPrefix}>$</Text>
+              <TextInput
+                style={styles.amountInput}
+                keyboardType="decimal-pad"
+                value={amountText}
+                onChangeText={(t) => setAmountText(t.replace(/[^0-9.]/g, ""))}
+                placeholder="0.00"
+                placeholderTextColor={Colors.textMuted}
+              />
+              <TouchableOpacity onPress={() => setAmountText(balance.toFixed(2))}>
+                <Text style={styles.linkText}>Max</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.sendTo}>
+              <Ionicons name="business-outline" size={18} color={Colors.textSecondary} />
+              <Text style={styles.sendToText}>To {account?.bank_name} · {account?.account_number_masked}</Text>
+            </View>
+            <Text style={styles.note}>The Golden Ride team reviews every request and sends the money to this account by bank transfer. You can follow its status under Withdrawal history.</Text>
+            <TouchableOpacity style={[styles.submit, submitting && { opacity: 0.6 }]} disabled={submitting} onPress={submitWithdraw}>
+              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Request withdrawal</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Bank account modal */}
+      <Modal visible={showAccount} transparent animationType="slide" onRequestClose={() => setShowAccount(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalWrap}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowAccount(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Bank account</Text>
+              <TouchableOpacity onPress={() => setShowAccount(false)}><Ionicons name="close" size={24} color={Colors.textPrimary} /></TouchableOpacity>
+            </View>
+            <Text style={styles.fieldLabel}>Account holder name</Text>
+            <TextInput style={styles.input} value={holder} onChangeText={setHolder} placeholder="Name on the account" placeholderTextColor={Colors.textMuted} autoCapitalize="words" />
+            <Text style={styles.fieldLabel}>Bank name</Text>
+            <TextInput style={styles.input} value={bank} onChangeText={setBank} placeholder="e.g. Chase" placeholderTextColor={Colors.textMuted} autoCapitalize="words" />
+            <Text style={styles.fieldLabel}>Routing number (9 digits)</Text>
+            <TextInput style={styles.input} value={routing} onChangeText={(t) => setRouting(t.replace(/\D/g, "").slice(0, 9))} keyboardType="number-pad" placeholder="021000021" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.fieldLabel}>Account number</Text>
+            <TextInput style={styles.input} value={number} onChangeText={(t) => setNumber(t.replace(/\D/g, "").slice(0, 17))} keyboardType="number-pad" secureTextEntry placeholder={account?.complete ? "Enter again to change" : "Account number"} placeholderTextColor={Colors.textMuted} />
+            <TouchableOpacity style={[styles.submit, savingAccount && { opacity: 0.6 }]} disabled={savingAccount} onPress={saveAccount}>
+              {savingAccount ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Save bank account</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  centerLoader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FEF2F2",
-    borderColor: "#FECACA",
-    borderWidth: 1,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: 16,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-  },
-  errorText: { flex: 1, color: "#B91C1C", fontSize: Typography.caption, fontWeight: "600" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  scroll: { paddingHorizontal: Spacing.lg, paddingBottom: 110, gap: 14 },
+  errorBanner: { flexDirection: "row", justifyContent: "space-between", backgroundColor: "#FEF2F2", borderColor: "#FECACA", borderWidth: 1, borderRadius: 14, padding: 12, marginTop: 8 },
+  errorText: { flex: 1, color: "#B91C1C", fontWeight: "600", fontSize: Typography.caption },
   errorAction: { color: Colors.primary, fontWeight: "700", marginLeft: 12 },
-  scroll: { paddingHorizontal: Spacing.lg, paddingBottom: 100, gap: 16 },
-  header: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingTop: Spacing.md, paddingBottom: Spacing.sm,
-  },
-  pageTitle: { fontSize: Typography.heading, fontWeight: "800", color: Colors.textPrimary },
-  withdrawBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.primary, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20,
-  },
-  withdrawText: { color: Colors.white, fontSize: Typography.caption, fontWeight: "700" },
-  totalCard: { borderRadius: 24, padding: Spacing.lg },
-  totalLabel: { color: "rgba(255,255,255,0.8)", fontSize: Typography.caption, fontWeight: "600" },
-  totalAmount: { color: Colors.white, fontSize: 40, fontWeight: "800", marginVertical: 4 },
-  totalRow: { flexDirection: "row", gap: 20, marginTop: 8 },
-  totalStat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  totalStatText: { color: "rgba(255,255,255,0.9)", fontSize: Typography.caption },
-  card: {
-    backgroundColor: Colors.surface, borderRadius: 24, padding: Spacing.lg,
-    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
-  },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: Spacing.md },
-  cardTitle: { fontSize: Typography.body, fontWeight: "700", color: Colors.textPrimary, marginBottom: Spacing.md },
-  cardSub: { color: Colors.textSecondary, fontSize: Typography.caption },
-  chart: { flexDirection: "row", gap: 8, height: 140, alignItems: "flex-end" },
-  barCol: { flex: 1, alignItems: "center", gap: 4 },
-  barAmount: { fontSize: 9, color: Colors.textMuted, textAlign: "center" },
-  barBg: { flex: 1, width: "100%", backgroundColor: Colors.divider, borderRadius: 6, justifyContent: "flex-end" },
-  barFill: { backgroundColor: Colors.border, borderRadius: 6, width: "100%" },
+  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: Spacing.md },
+  title: { fontSize: 26, fontWeight: "800", color: Colors.textPrimary },
+  segment: { flexDirection: "row", backgroundColor: Colors.divider, borderRadius: 18, padding: 3 },
+  segBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 15 },
+  segBtnOn: { backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+  segText: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
+  segTextOn: { color: Colors.textPrimary },
+  balanceCard: { borderRadius: 24, padding: Spacing.lg },
+  balanceLabel: { color: "rgba(255,255,255,0.85)", fontSize: Typography.caption, fontWeight: "600" },
+  balanceAmount: { color: "#fff", fontSize: 44, fontWeight: "800", marginTop: 2 },
+  balanceSub: { color: "rgba(255,255,255,0.9)", fontSize: Typography.caption, marginTop: 2 },
+  pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 4, paddingHorizontal: 10, marginTop: 10 },
+  pendingPillText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  actionRow: { flexDirection: "row", gap: 10, marginTop: 18 },
+  primaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderRadius: 16, paddingVertical: 13 },
+  primaryActionText: { color: Colors.primaryDark, fontWeight: "800", fontSize: 15 },
+  ghostAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderColor: "rgba(255,255,255,0.7)", borderWidth: 1.5, borderRadius: 16, paddingVertical: 12 },
+  ghostActionText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  card: { backgroundColor: Colors.surface, borderRadius: 22, padding: Spacing.lg, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  cardTitle: { fontSize: Typography.body, fontWeight: "800", color: Colors.textPrimary, marginBottom: 10 },
+  cardTitleSmall: { fontSize: 13, fontWeight: "700", color: Colors.textPrimary },
+  accountRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  accountText: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  linkText: { color: Colors.primary, fontWeight: "700", fontSize: 14 },
+  iconBubble: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  chart: { flexDirection: "row", gap: 8, height: 130, alignItems: "flex-end" },
+  barCol: { flex: 1, alignItems: "center", gap: 4, height: "100%" },
+  barAmount: { fontSize: 9, color: Colors.textMuted, height: 12 },
+  barBg: { flex: 1, width: "100%", backgroundColor: Colors.divider, borderRadius: 8, justifyContent: "flex-end", overflow: "hidden" },
+  barFill: { backgroundColor: Colors.border, width: "100%", borderRadius: 8 },
   barToday: { backgroundColor: Colors.primary },
-  barDay: { fontSize: Typography.small, color: Colors.textSecondary },
+  barDay: { fontSize: 11, color: Colors.textSecondary },
   barDayToday: { color: Colors.primary, fontWeight: "700" },
-  breakdownRow: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.divider,
-  },
-  breakdownIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  breakdownLabel: { flex: 1, fontSize: Typography.body, color: Colors.textPrimary, fontWeight: "500" },
-  breakdownAmount: { fontSize: Typography.body, fontWeight: "700" },
-  payRow: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingVertical: 10, borderTopWidth: 1, borderTopColor: Colors.divider,
-  },
-  payLabel: { fontSize: Typography.caption, color: Colors.textSecondary },
-  payValue: { fontSize: Typography.caption, color: Colors.textPrimary },
-  withdrawFullBtn: {
-    marginTop: Spacing.md, height: 52, backgroundColor: Colors.success, borderRadius: 14,
-    alignItems: "center", justifyContent: "center",
-  },
-  withdrawFullText: { color: Colors.white, fontWeight: "700", fontSize: Typography.body },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  rowBorder: { borderTopWidth: 1, borderTopColor: Colors.divider },
+  rowLabel: { flex: 1, fontSize: Typography.caption, color: Colors.textPrimary, fontWeight: "500" },
+  rowValue: { fontSize: Typography.body, fontWeight: "700" },
+  empty: { color: Colors.textSecondary, fontSize: Typography.caption, lineHeight: 20 },
+  historyRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 10 },
+  historyAmount: { fontSize: 17, fontWeight: "800", color: Colors.textPrimary },
+  historyMeta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 14, paddingVertical: 5, paddingHorizontal: 9 },
+  chipText: { fontSize: 12, fontWeight: "700" },
+  modalWrap: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: Spacing.lg, paddingBottom: 34 },
+  sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  sheetTitle: { fontSize: 20, fontWeight: "800", color: Colors.textPrimary },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary, marginTop: 12, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: Colors.textPrimary, backgroundColor: Colors.background },
+  amountBox: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: Colors.border, borderRadius: 14, paddingHorizontal: 14, backgroundColor: Colors.background },
+  amountPrefix: { fontSize: 24, fontWeight: "800", color: Colors.textPrimary, marginRight: 4 },
+  amountInput: { flex: 1, fontSize: 26, fontWeight: "800", color: Colors.textPrimary, paddingVertical: 12 },
+  sendTo: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 14 },
+  sendToText: { fontSize: 14, color: Colors.textPrimary, fontWeight: "600" },
+  note: { fontSize: 12, color: Colors.textSecondary, lineHeight: 18, marginTop: 10 },
+  submit: { marginTop: 18, backgroundColor: Colors.primary, borderRadius: 16, alignItems: "center", justifyContent: "center", height: 54 },
+  submitText: { color: "#fff", fontWeight: "800", fontSize: 16 },
 });

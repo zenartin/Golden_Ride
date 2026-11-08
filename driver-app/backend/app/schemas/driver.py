@@ -183,6 +183,9 @@ class WithdrawalOut(BaseModel):
     amount: float
     status: str
     method: Optional[str] = "standard"
+    reference: Optional[str] = None
+    admin_note: Optional[str] = None
+    processed_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:

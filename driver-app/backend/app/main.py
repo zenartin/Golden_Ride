@@ -106,7 +106,7 @@ def ensure_local_schema_compatibility():
     if "withdrawals" in table_names:
         existing_withdrawals = {column["name"] for column in inspector.get_columns("withdrawals")}
         with engine.begin() as connection:
-            for name, sql_type in {"method": "VARCHAR DEFAULT 'standard'", "stripe_payout_id": "VARCHAR"}.items():
+            for name, sql_type in {"method": "VARCHAR DEFAULT 'standard'", "stripe_payout_id": "VARCHAR", "account_snapshot": "TEXT", "admin_note": "VARCHAR", "reference": "VARCHAR", "processed_at": "TIMESTAMP"}.items():
                 if name not in existing_withdrawals:
                     connection.execute(text(f"ALTER TABLE withdrawals ADD COLUMN {name} {sql_type}"))
 
@@ -167,6 +167,7 @@ def ensure_local_schema_compatibility():
             "criminal_bg_status": "VARCHAR DEFAULT 'pending'",
             "driving_record_status": "VARCHAR DEFAULT 'pending'",
             "identity_verification_status": "VARCHAR DEFAULT 'pending'",
+            "account_holder_name": "VARCHAR",
             "bank_name": "VARCHAR",
             "account_number": "VARCHAR",
             "routing_number": "VARCHAR",
