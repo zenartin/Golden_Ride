@@ -483,10 +483,15 @@ def payout_status(current_driver: Driver = Depends(get_current_driver)):
 def payout_connect(current_driver: Driver = Depends(get_current_driver), db: Session = Depends(get_db)):
     """Start Stripe-hosted onboarding where the driver adds a US debit card."""
     from app.services import stripe_service
+    import logging
     try:
         url = stripe_service.connect_account_link(db, current_driver, "https://www.golden-ride.com")
-    except Exception:
-        raise HTTPException(status_code=502, detail="Could not start debit card setup. Please try again.")
+    except Exception as e:
+        reason = str(getattr(e, "user_message", None) or e)
+        logging.getLogger(__name__).error(f"Stripe Connect setup failed for driver {current_driver.id}: {reason}")
+        if "signed up for connect" in reason.lower() or "connect" in reason.lower() and "not" in reason.lower():
+            raise HTTPException(status_code=503, detail="Instant cash out is not available yet. Please use Withdraw to bank instead.")
+        raise HTTPException(status_code=502, detail="Could not start debit card setup. Please try again, or use Withdraw to bank.")
     return {"url": url}
 
 
