@@ -225,6 +225,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setDestinationMode: async (active, lat, lng, address) => {
+    const previous = get().driver;
     try {
       // Optimistic Update so the UI reflects it immediately
       set((state) => {
@@ -251,8 +252,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         driver: state.driver ? { ...state.driver, ...response.data } : null
       }));
     } catch (err) {
-      console.log("Set destination mode error (Backend not deployed?):", err);
-      // We keep the optimistic update so you can test the UI locally!
+      console.log("Set destination mode error:", err);
+      // Put the screen back to what the server still has, then tell the caller it failed
+      set({ driver: previous });
+      throw err;
     }
   },
 

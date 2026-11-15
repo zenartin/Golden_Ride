@@ -180,7 +180,11 @@ export default function DriverDashboard({
   };
 
   const handleClearDestination = async () => {
-    await setDestinationMode(false);
+    try {
+      await setDestinationMode(false);
+    } catch {
+      Alert.alert("Could not turn off destination", "Please check your connection and try again.");
+    }
   };
 
   // Dashboard renders immediately — stats load in background

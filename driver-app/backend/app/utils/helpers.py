@@ -135,6 +135,13 @@ def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str, accep
     return False  # If it doesn't match the families and strict filter wasn't met, deny.
 
 
+# Destination mode tuning (km)
+DEST_NEAR_KM = 10.0          # a trip ending this close to the driver's destination always qualifies
+DEST_MIN_PROGRESS_KM = 1.0   # an "on the way" trip must end at least this much closer to the destination than it starts
+DEST_PICKUP_NEAR_KM = 6.0    # a trip starting this close to the destination also qualifies when it ends near it
+DEST_MAX_DETOUR_KM = 15.0
+
+
 def is_ride_eligible_for_destination_mode(
     driver_lat: Optional[float],
     driver_lng: Optional[float],
@@ -144,43 +151,41 @@ def is_ride_eligible_for_destination_mode(
     pickup_lng: float,
     dropoff_lat: float,
     dropoff_lng: float,
-    max_detour_km: float = 15.0
+    max_detour_km: float = DEST_MAX_DETOUR_KM
 ) -> bool:
     """
-    Evaluates if a ride request brings the driver closer to their specified destination mode target.
+    Decide whether a ride suits a driver who has set a destination.
+
+    A ride qualifies when either:
+      1. It ends at or near the driver's destination (within DEST_NEAR_KM), wherever it starts; or
+      2. It is on the way: it ends clearly closer to the destination than it started, and,
+         when the driver's position is known and plausible, picking it up does not add much detour.
     """
-    if dest_lat is None or dest_lng is None or pickup_lat is None or pickup_lng is None or dropoff_lat is None or dropoff_lng is None:
+    if None in (dest_lat, dest_lng, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng):
+        return True  # cannot judge a ride without coordinates, so do not hide it
+
+    dist_dropoff_to_dest = calculate_distance(dropoff_lat, dropoff_lng, dest_lat, dest_lng)
+    dist_pickup_to_dest = calculate_distance(pickup_lat, pickup_lng, dest_lat, dest_lng)
+
+    # 1. Ends at / near the destination: always a match
+    if dist_dropoff_to_dest <= DEST_NEAR_KM:
         return True
 
-    # Fallback driver position to pickup if missing
-    if driver_lat is None or driver_lng is None:
-        driver_lat = pickup_lat
-        driver_lng = pickup_lng
-
-    dist_driver_to_dest = calculate_distance(driver_lat, driver_lng, dest_lat, dest_lng)
-    dist_pickup_to_dest = calculate_distance(pickup_lat, pickup_lng, dest_lat, dest_lng)
-    dist_dropoff_to_dest = calculate_distance(dropoff_lat, dropoff_lng, dest_lat, dest_lng)
-    dist_pickup_to_dropoff = calculate_distance(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
-    dist_driver_to_pickup = calculate_distance(driver_lat, driver_lng, pickup_lat, pickup_lng)
-
-    # 1. Dropoff must bring driver closer to destination than where they started (with 3.0 km urban tolerance)
-    if dist_dropoff_to_dest > (dist_driver_to_dest + 3.0):
+    # 2. On the way: must make real progress towards the destination
+    if dist_dropoff_to_dest > dist_pickup_to_dest - DEST_MIN_PROGRESS_KM:
         return False
 
-    # 2. Dropoff must not be significantly further from destination than pickup (allow 2.0 km tolerance for winding roads)
-    if dist_dropoff_to_dest > (dist_pickup_to_dest + 2.0):
-        return False
-
-    # 3. Detour check (total path vs direct distance to destination)
-    base_distance = dist_driver_to_dest
-    ride_path_distance = dist_driver_to_pickup + dist_pickup_to_dropoff + dist_dropoff_to_dest
-    detour = ride_path_distance - base_distance
-
-    # Allow a dynamic max detour for long trips (e.g. 20% of base distance)
-    dynamic_max_detour = max(max_detour_km, base_distance * 0.2)
-    
-    if detour > dynamic_max_detour:
-        return False
+    # Detour check only when we have a believable driver position (a stale or default
+    # position far from the pickup says nothing about where the driver is heading)
+    if driver_lat is not None and driver_lng is not None:
+        dist_driver_to_pickup = calculate_distance(driver_lat, driver_lng, pickup_lat, pickup_lng)
+        dist_driver_to_dest = calculate_distance(driver_lat, driver_lng, dest_lat, dest_lng)
+        dist_pickup_to_dropoff = calculate_distance(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+        # driver far from the pickup (>50 km) = unreliable position, skip the detour check
+        if 0 < dist_driver_to_pickup <= 50:
+            detour = dist_driver_to_pickup + dist_pickup_to_dropoff + dist_dropoff_to_dest - dist_driver_to_dest
+            if detour > max(max_detour_km, dist_driver_to_dest * 0.25):
+                return False
 
     return True
 

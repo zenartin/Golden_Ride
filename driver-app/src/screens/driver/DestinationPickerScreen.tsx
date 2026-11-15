@@ -125,9 +125,14 @@ export default function DestinationPickerScreen({ navigation }: Props) {
   const confirm = async () => {
     if (!selected) return;
     setSaving(true);
-    await setDestinationMode(true, selected.lat, selected.lon, selected.shortName);
-    setSaving(false);
-    navigation.goBack();
+    try {
+      await setDestinationMode(true, selected.lat, selected.lon, selected.shortName);
+      navigation.goBack();
+    } catch (e: any) {
+      Alert.alert("Could not set destination", e?.response?.data?.detail || "Please check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const pinColor = Colors.primary;
