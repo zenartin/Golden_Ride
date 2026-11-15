@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import axios from 'axios';
 import { BASE_URL } from '../api/client';
 import { useAuthStore } from '../store/authStore';
@@ -8,7 +8,8 @@ export class RecordingService {
     try {
       const token = useAuthStore.getState().token;
       const response = await axios.post(`${BASE_URL}/recordings/start?ride_id=${rideId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 20000,
       });
       return response.data.recording_id;
     } catch (e) {

@@ -318,7 +318,7 @@ export default function TrackRideScreen({ navigation }: Props) {
           onPress={() => setShowDashcam(true)}
         >
           <Ionicons name="videocam-outline" size={20} color="#FFF" />
-          <Text style={styles.sosOverlayText}>Record</Text>
+          <Text style={styles.sosOverlayText}>Record my ride</Text>
         </Pressable>
       </View>
 

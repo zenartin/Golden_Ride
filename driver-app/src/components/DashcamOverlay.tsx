@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Alert, Linking, ActivityIndicator } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { RecordingService } from '../services/RecordingService';
@@ -15,8 +15,12 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
   const [type, setType] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingId, setRecordingId] = useState<number | null>(null);
-  
+  const [starting, setStarting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
   const cameraRef = useRef<CameraView>(null);
+  const finishPromiseRef = useRef<Promise<void> | null>(null);
+  const isRecordingRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -33,15 +37,38 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
     }
   }, [isRecording]);
 
+  useEffect(() => { isRecordingRef.current = isRecording; }, [isRecording]);
+
+  // Stop the camera cleanly if the screen goes away mid-recording
+  useEffect(() => {
+    return () => {
+      if (isRecordingRef.current) {
+        try { cameraRef.current?.stopRecording(); } catch (e) {}
+      }
+    };
+  }, []);
+
+  const askPermissions = async () => {
+    const cam = cameraPermission?.granted ? cameraPermission : await requestCameraPermission();
+    const mic = micPermission?.granted ? micPermission : await requestMicPermission();
+    if (!cam?.granted || !mic?.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow camera and microphone access in Settings to record your ride.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
+    }
+  };
+
   if (!cameraPermission || !micPermission) {
-    return <View />;
+    return <View style={styles.container}><ActivityIndicator color="#fff" /></View>;
   }
 
   if (!cameraPermission.granted || !micPermission.granted) {
     return (
       <View style={styles.container}>
         <Text style={styles.text}>Camera and Microphone permissions are required for Dashcam.</Text>
-        <TouchableOpacity style={styles.btn} onPress={() => { requestCameraPermission(); requestMicPermission(); }}>
+        <TouchableOpacity style={styles.btn} onPress={askPermissions}>
           <Text style={styles.btnText}>Grant Permissions</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.btnSecondary} onPress={onClose}>
@@ -50,8 +77,6 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
       </View>
     );
   }
-
-  const finishPromiseRef = useRef<Promise<void> | null>(null);
 
   const handleClose = async () => {
     if (isRecording) {
@@ -68,35 +93,42 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
   };
 
   const handleRecord = async () => {
+    if (starting || uploading) return;
     if (isRecording) {
       setIsRecording(false);
-      cameraRef.current?.stopRecording();
-    } else {
-      if (!cameraRef.current) return;
-      
-      const recId = await RecordingService.startRecordingSession(rideId);
-      if (!recId) {
-        alert("Could not start recording session on server.");
-        return;
-      }
-      setRecordingId(recId);
-      setIsRecording(true);
-      
-      finishPromiseRef.current = (async () => {
-        try {
-          const video = await cameraRef.current!.recordAsync({ maxDuration: 60 * 60 });
-          // When recording stops naturally or programmatically, upload it
-          if (video?.uri) {
-            const ok = await RecordingService.uploadRecording(recId, video.uri);
-            if (!ok) alert("Recording saved on device but upload failed. It will stay on your phone.");
-          }
-        } catch (e) {
-          console.error("Recording failed", e);
-          setIsRecording(false);
-          alert("Video recording failed. Please try again.");
-        }
-      })();
+      try { cameraRef.current?.stopRecording(); } catch (e) {}
+      return;
     }
+    if (!cameraRef.current) return;
+
+    setStarting(true);
+    const recId = await RecordingService.startRecordingSession(rideId);
+    setStarting(false);
+    if (!recId) {
+      Alert.alert('Could not start recording', 'Please check your connection and try again.');
+      return;
+    }
+    setRecordingId(recId);
+    setIsRecording(true);
+
+    finishPromiseRef.current = (async () => {
+      try {
+        const video = await cameraRef.current!.recordAsync({ maxDuration: 60 * 60 });
+        setIsRecording(false);
+        if (video?.uri) {
+          setUploading(true);
+          const ok = await RecordingService.uploadRecording(recId, video.uri);
+          setUploading(false);
+          if (ok) Alert.alert('Ride recording saved', 'Your recording was uploaded securely. It is kept for 24 hours.');
+          else Alert.alert('Upload failed', 'The recording is saved on your phone. Please try again with a better connection.');
+        }
+      } catch (e) {
+        console.error('Recording failed', e);
+        setIsRecording(false);
+        setUploading(false);
+        Alert.alert('Recording failed', 'Video recording stopped unexpectedly. Please try again.');
+      }
+    })();
   };
 
   return (
@@ -121,8 +153,11 @@ export const DashcamOverlay: React.FC<Props> = ({ rideId, onClose }) => {
           <TouchableOpacity 
             style={[styles.recordBtn, isRecording && styles.recordingActive]} 
             onPress={handleRecord}
+            disabled={starting || uploading}
           >
-            <View style={isRecording ? styles.recordBtnSquare : styles.recordBtnCircle} />
+            {starting || uploading
+              ? <ActivityIndicator color="#fff" />
+              : <View style={isRecording ? styles.recordBtnSquare : styles.recordBtnCircle} />}
           </TouchableOpacity>
         </View>
       </CameraView>
