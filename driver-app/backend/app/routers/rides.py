@@ -9,7 +9,7 @@ from app.models.driver import Driver
 from app.models.ride import Ride
 from app.schemas.ride import RideResponse, RideUpdateStatus, LocationUpdate, VerifyPinRequest
 from app.utils.security import get_current_driver
-from app.utils.helpers import is_ride_eligible_for_destination_mode, is_vehicle_class_compatible
+from app.utils.helpers import is_ride_eligible_for_destination_mode, is_vehicle_class_compatible, is_pickup_within_driver_radius
 from app.services.ride_service import RideService
 from app.repositories.ride_assignment_repository import RideAssignmentRepository
 
@@ -17,12 +17,22 @@ router = APIRouter(prefix="/rides", tags=["rides"])
 
 @router.get("/requests", response_model=List[RideResponse])
 def get_incoming_requests(
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
     current_driver: Driver = Depends(get_current_driver),
     db: Session = Depends(get_db)
 ):
     # Driver must be online to receive requests
     if not current_driver.is_online:
         return []
+
+    # The app sends its current position with each poll so the radius filter uses where the driver is now
+    if lat is not None and lng is not None:
+        current_driver.latitude = lat
+        current_driver.longitude = lng
+        current_driver.location_updated_at = datetime.utcnow()
+        db.add(current_driver)
+        db.commit()
 
     # Get driver's vehicle type to filter rides
     from app.models.driver import DriverDocument
@@ -43,6 +53,9 @@ def get_incoming_requests(
 
         assignment = RideAssignmentRepository.get_by_ride_and_driver(db, ride.id, current_driver.id)
         if assignment and assignment.status == "rejected":
+            continue
+
+        if not is_pickup_within_driver_radius(current_driver, ride):
             continue
 
         if current_driver.destination_mode_active and current_driver.destination_lat and current_driver.destination_lng:
@@ -150,6 +163,7 @@ def update_coordinates(
 ):
     current_driver.latitude = payload.latitude
     current_driver.longitude = payload.longitude
+    current_driver.location_updated_at = datetime.utcnow()
     db.add(current_driver)
     
     # Check for active ride to record route history

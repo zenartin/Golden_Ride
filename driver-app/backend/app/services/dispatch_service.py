@@ -9,7 +9,7 @@ from app.notifications.fcm import FCMService
 from app.repositories.device_token_repository import DeviceTokenRepository
 from app.repositories.notification_repository import NotificationRepository
 from app.repositories.ride_assignment_repository import RideAssignmentRepository
-from app.utils.helpers import calculate_distance, is_ride_eligible_for_destination_mode, is_vehicle_class_compatible
+from app.utils.helpers import calculate_distance, is_ride_eligible_for_destination_mode, is_vehicle_class_compatible, is_pickup_within_driver_radius
 
 logger = logging.getLogger("app")
 
@@ -82,11 +82,9 @@ class DispatchService:
                 logger.info(f"Skipping driver {driver.id}: vehicle type {driver_vtype} not compatible with ride class {ride.ride_class}")
                 continue
 
-            if driver.radius_filter and driver.radius_filter > 0 and driver.latitude and driver.longitude and ride.pickup_latitude and ride.pickup_longitude:
-                distance = calculate_distance(driver.latitude, driver.longitude, ride.pickup_latitude, ride.pickup_longitude)
-                if distance > driver.radius_filter:
-                    logger.info(f"Skipping driver {driver.id}: ride distance {distance:.2f}km exceeds radius filter {driver.radius_filter}km")
-                    continue
+            if not is_pickup_within_driver_radius(driver, ride):
+                logger.info(f"Skipping driver {driver.id}: pickup is outside their {driver.radius_filter} km radius filter (or their location is unknown)")
+                continue
 
             if driver.destination_mode_active and driver.destination_lat and driver.destination_lng:
                 is_eligible = is_ride_eligible_for_destination_mode(
@@ -312,6 +310,9 @@ class DispatchService:
         
         for ride in pending_rides:
             if not is_vehicle_class_compatible(driver_vtype, ride.ride_class, driver.accepted_ride_classes):
+                continue
+
+            if not is_pickup_within_driver_radius(driver, ride):
                 continue
                 
             if driver.destination_mode_active and driver.destination_lat and driver.destination_lng:

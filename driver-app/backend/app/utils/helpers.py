@@ -135,6 +135,31 @@ def is_vehicle_class_compatible(driver_vehicle_type: str, ride_class: str, accep
     return False  # If it doesn't match the families and strict filter wasn't met, deny.
 
 
+# Driver radius filter (5 km / 10 km / all): the pickup must be within the chosen distance of the
+# driver's CURRENT location. The location must be recent, otherwise we cannot tell where the driver is.
+LOCATION_MAX_AGE_SECONDS = 600
+
+
+def driver_location_is_fresh(driver) -> bool:
+    ts = getattr(driver, "location_updated_at", None)
+    if ts is None or driver.latitude is None or driver.longitude is None:
+        return False
+    from datetime import datetime
+    return (datetime.utcnow() - ts).total_seconds() <= LOCATION_MAX_AGE_SECONDS
+
+
+def is_pickup_within_driver_radius(driver, ride) -> bool:
+    """True when the driver has no radius filter, or the ride's pickup is within it."""
+    radius = getattr(driver, "radius_filter", 0) or 0
+    if radius <= 0:
+        return True
+    if ride.pickup_latitude is None or ride.pickup_longitude is None:
+        return True  # nothing to measure against
+    if not driver_location_is_fresh(driver):
+        return False  # cannot confirm the pickup is close, so do not offer it
+    return calculate_distance(driver.latitude, driver.longitude, ride.pickup_latitude, ride.pickup_longitude) <= radius
+
+
 # Destination mode tuning (km)
 DEST_NEAR_KM = 10.0          # a trip ending this close to the driver's destination always qualifies
 DEST_MIN_PROGRESS_KM = 1.0   # an "on the way" trip must end at least this much closer to the destination than it starts

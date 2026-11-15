@@ -31,6 +31,7 @@ class Driver(Base):
     destination_address = Column(String, nullable=True)
     accepted_ride_classes = Column(String, nullable=True)  # Comma-separated list of accepted ride classes
     radius_filter = Column(Integer, default=0) # 0 means all requests, otherwise radius in km
+    location_updated_at = Column(DateTime, nullable=True)  # when latitude/longitude were last reported by the app
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

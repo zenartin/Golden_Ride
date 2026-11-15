@@ -304,6 +304,10 @@ class RideService:
         driver = DriverRepository.get_by_id(db, driver_id)
         if not driver or not driver.is_approved:
             raise Exception("Your account has not been approved by an administrator yet.")
+        from app.utils.helpers import is_pickup_within_driver_radius
+        candidate = db.query(Ride).filter(Ride.id == ride_id).first()
+        if candidate and not is_pickup_within_driver_radius(driver, candidate):
+            raise Exception(f"This pickup is outside your {driver.radius_filter} km request radius.")
         # Row-level locking accept operation
         ride = RideRepository.accept_ride(db, ride_id, driver_id)
         

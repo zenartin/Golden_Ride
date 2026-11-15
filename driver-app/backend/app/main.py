@@ -140,6 +140,7 @@ def ensure_local_schema_compatibility():
             "residential_address": "VARCHAR",
             "stripe_account_id": "VARCHAR",
             "external_dashcam": "VARCHAR",
+            "location_updated_at": "TIMESTAMP",
         }
         missing_drivers = [(name, sql_type) for name, sql_type in required_driver_columns.items() if name not in existing_drivers]
         if missing_drivers:

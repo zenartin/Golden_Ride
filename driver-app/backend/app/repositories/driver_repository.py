@@ -52,6 +52,8 @@ class DriverRepository:
     def update_location(db: Session, driver: Driver, latitude: float, longitude: float) -> Driver:
         driver.latitude = latitude
         driver.longitude = longitude
+        from datetime import datetime
+        driver.location_updated_at = datetime.utcnow()
         db.add(driver)
         db.commit()
         db.refresh(driver)

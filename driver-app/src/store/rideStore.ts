@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "../api/axios";
+import { getCurrentDeviceLocation } from "../utils/deviceLocation";
 import { API_ENDPOINTS } from "../api/endpoints";
 
 export function matchesDriverPreferences(ride: { ride_class?: string }): boolean {
@@ -114,7 +115,13 @@ export const useRideStore = create<RideState>()(
 
   fetchIncomingRequests: async () => {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.RIDES_REQUESTS);
+      // Send where the driver is right now so the 5 km / 10 km filter measures from the real position
+      let params: { lat: number; lng: number } | undefined;
+      try {
+        const here = await getCurrentDeviceLocation();
+        if (here) params = { lat: here.latitude, lng: here.longitude };
+      } catch {}
+      const response = await apiClient.get(API_ENDPOINTS.RIDES_REQUESTS, params ? { params } : undefined);
       const requests = (response.data as Ride[]).filter(matchesDriverPreferences);
       const prevIds = get().incomingRequests.map((r) => r.id).sort().join(",");
       const nextIds = requests.map((r) => r.id).sort().join(",");
