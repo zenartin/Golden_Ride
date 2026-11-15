@@ -563,6 +563,12 @@ class WithdrawalDecision(BaseModel):
     note: str | None = None
 
 
+def _tell_driver(db: Session, driver_id: int, title: str, message: str):
+    """Show the decision in the driver's in-app notification list."""
+    from app.models.message import Notification
+    db.add(Notification(driver_id=driver_id, title=title, message=message, type="earning"))
+
+
 def _pending_withdrawal(db: Session, withdrawal_id: int) -> Withdrawal:
     w = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
     if not w:
@@ -583,6 +589,8 @@ def approve_withdrawal(withdrawal_id: int, payload: WithdrawalDecision, current_
     db.add(DriverPayout(driver_id=w.driver_id, amount=w.amount, method="bank_transfer", reference=w.reference,
                         note=f"Withdrawal request #{w.id}", paid_by=current_admin.name))
     db.query(AdminNotification).filter(AdminNotification.kind == "withdrawal_request", AdminNotification.ref_id == w.id).update({"is_read": True})
+    _tell_driver(db, w.driver_id, "Withdrawal paid \u2705",
+                 f"Your ${w.amount:.2f} withdrawal has been sent to your bank account." + (f" Reference: {w.reference}" if w.reference else ""))
     db.commit()
     return {"id": w.id, "status": w.status}
 
@@ -601,6 +609,8 @@ def reject_withdrawal(withdrawal_id: int, payload: WithdrawalDecision, current_a
     w.admin_note = payload.note.strip()
     w.processed_at = datetime.utcnow()
     db.query(AdminNotification).filter(AdminNotification.kind == "withdrawal_request", AdminNotification.ref_id == w.id).update({"is_read": True})
+    _tell_driver(db, w.driver_id, "Withdrawal rejected",
+                 f"Your ${w.amount:.2f} withdrawal was not processed: {w.admin_note}. The amount is back in your balance.")
     db.commit()
     return {"id": w.id, "status": w.status}
 
