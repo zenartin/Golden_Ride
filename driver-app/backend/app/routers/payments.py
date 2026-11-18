@@ -284,8 +284,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Invalid signature.")
 
     # Handle the event
+    from app.utils.stripe_compat import as_dict
+    event = as_dict(event) or {}
     event_type = event.get("type")
-    data_object = event.get("data", {}).get("object", {})
+    data_object = (event.get("data") or {}).get("object") or {}
 
     logger.info(f"Received Stripe Webhook Event: {event_type}")
 
@@ -295,7 +297,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if payment:
             payment.payment_status = "succeeded"
             payment.payment_method = data_object.get("payment_method")
-            payment.receipt_url = data_object.get("charges", {}).get("data", [{}])[0].get("receipt_url")
+            payment.receipt_url = ((((data_object.get("charges") or {}).get("data")) or [{}])[0]).get("receipt_url")
             payment.updated_at = datetime.utcnow()
 
             # Mark ride as completed/paid

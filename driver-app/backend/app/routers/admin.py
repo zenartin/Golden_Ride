@@ -340,12 +340,13 @@ def get_stripe_dashboard(current_admin: Admin = Depends(get_current_admin), db: 
     stripe_info: Dict[str, Any] = {"connected": False, "error": None, "balance": {"available": 0.0, "pending": 0.0}, "recent_charges": []}
     try:
         _stripe.api_key = STRIPE_SECRET_KEY
-        bal = _stripe.Balance.retrieve()
+        from app.utils.stripe_compat import as_dict
+        bal = as_dict(_stripe.Balance.retrieve())
         stripe_info["balance"] = {
-            "available": sum(b["amount"] for b in bal["available"] if b["currency"] == "usd") / 100.0,
-            "pending": sum(b["amount"] for b in bal["pending"] if b["currency"] == "usd") / 100.0,
+            "available": sum(b["amount"] for b in bal.get("available", []) if b["currency"] == "usd") / 100.0,
+            "pending": sum(b["amount"] for b in bal.get("pending", []) if b["currency"] == "usd") / 100.0,
         }
-        charges = _stripe.Charge.list(limit=20)
+        charges = as_dict(_stripe.Charge.list(limit=20))
         stripe_info["recent_charges"] = [{
             "id": c["id"],
             "amount": c["amount"] / 100.0,
@@ -353,7 +354,7 @@ def get_stripe_dashboard(current_admin: Admin = Depends(get_current_admin), db: 
             "status": c["status"],
             "created": c["created"],
             "receipt_url": c.get("receipt_url"),
-        } for c in charges["data"]]
+        } for c in charges.get("data", [])]
         stripe_info["connected"] = True
     except Exception as e:  # noqa: BLE001
         stripe_info["error"] = str(getattr(e, "user_message", None) or e)[:200]
