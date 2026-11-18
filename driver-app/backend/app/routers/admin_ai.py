@@ -33,13 +33,13 @@ class ChatRequest(BaseModel):
 
 @router.get("/status")
 def status(current_admin: Admin = Depends(get_current_admin)):
-    return {"configured": admin_assistant.is_configured(), "model": settings.ADMIN_AI_MODEL}
+    return {"configured": admin_assistant.is_configured(), "model": admin_assistant.current_model(), "provider": admin_assistant.provider()}
 
 
 @router.post("/chat")
 def chat(payload: ChatRequest, current_admin: Admin = Depends(get_current_admin), db: Session = Depends(get_db)):
     if not admin_assistant.is_configured():
-        raise HTTPException(status_code=503, detail="The AI assistant is not set up yet. Ask your developer to add the Anthropic API key on the server.")
+        raise HTTPException(status_code=503, detail="The AI assistant is not set up yet. Ask your developer to add an AI API key (a free Groq or Google Gemini key works) on the server.")
     msgs = payload.messages[-MAX_MESSAGES:]
     if not msgs or msgs[-1].role != "user" or any(m.role not in ("user", "assistant") for m in msgs):
         raise HTTPException(status_code=400, detail="Send the conversation so far, ending with your question.")
@@ -62,8 +62,8 @@ def chat(payload: ChatRequest, current_admin: Admin = Depends(get_current_admin)
         # Never leak keys or provider details to the browser
         logger.error(f"Admin assistant failed: {type(e).__name__}: {e}")
         name = type(e).__name__
-        if name == "AuthenticationError":
+        if name in ("AuthenticationError", "AssistantAuthError"):
             raise HTTPException(status_code=502, detail="The AI assistant's API key was rejected. Ask your developer to check it.")
-        if name == "RateLimitError":
-            raise HTTPException(status_code=429, detail="The AI service is busy. Please try again in a moment.")
+        if name in ("RateLimitError", "AssistantRateLimited"):
+            raise HTTPException(status_code=429, detail="The AI service is busy or you hit its free limit. Please try again in a minute.")
         raise HTTPException(status_code=502, detail="The AI assistant could not answer right now. Please try again.")

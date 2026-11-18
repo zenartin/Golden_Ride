@@ -7,6 +7,7 @@ Safety design:
 """
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, or_
@@ -284,8 +285,65 @@ class AssistantNotConfigured(Exception):
     pass
 
 
+class AssistantAuthError(Exception):
+    """The AI service rejected our key."""
+
+
+class AssistantRateLimited(Exception):
+    """The AI service says we are going too fast (common on free plans)."""
+
+
+PRESETS = {
+    # provider: (OpenAI-compatible base URL, default model). Models change often, so AI_MODEL always wins.
+    "groq": ("https://api.groq.com/openai/v1", "openai/gpt-oss-120b"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"),
+    "openrouter": ("https://openrouter.ai/api/v1", "openrouter/free"),
+}
+
+
+def provider() -> str | None:
+    """'anthropic', 'compat' (any OpenAI-style service such as a free Groq or Gemini key), or None when nothing is set up."""
+    if (settings.ANTHROPIC_API_KEY or "").strip():
+        return "anthropic"
+    if (settings.AI_API_KEY or "").strip():
+        return "compat"
+    return None
+
+
 def is_configured() -> bool:
-    return bool((settings.ANTHROPIC_API_KEY or "").strip())
+    return provider() is not None
+
+
+def _compat_endpoint():
+    name = (settings.AI_PROVIDER or "").strip().lower()
+    base, model = PRESETS.get(name, ("", ""))
+    base = (settings.AI_BASE_URL or base).strip().rstrip("/")
+    model = (settings.AI_MODEL or model).strip()
+    if not base or not model:
+        raise AssistantNotConfigured()
+    return base, model
+
+
+def current_model() -> str:
+    p = provider()
+    if p == "anthropic":
+        return settings.ADMIN_AI_MODEL
+    if p == "compat":
+        try:
+            return _compat_endpoint()[1]
+        except AssistantNotConfigured:
+            return ""
+    return ""
+
+
+_EMAIL = re.compile(r"([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+_PHONE = re.compile(r"\+\d[\d\s().-]{7,}\d|\(\d{3}\)\s?\d{3}[\s.-]?\d{4}|(?<![\d-])\d{3}[\s.-]?\d{3}[\s.-]?\d{4}(?![\d-])")
+
+
+def redact(text: str) -> str:
+    """Hide emails and phone numbers before data is sent to a third-party AI service. Names, IDs and amounts stay."""
+    text = _EMAIL.sub(lambda m: f"{m.group(1)}***@{m.group(2)}", text)
+    return _PHONE.sub(lambda m: "***" + re.sub(r"\D", "", m.group(0))[-2:], text)
 
 
 def _client():
@@ -311,10 +369,7 @@ def _create(client, messages):
     return client.messages.create(**base)
 
 
-def chat(db: Session, history: list) -> dict:
-    """history: [{role: 'user'|'assistant', content: str}, ...] ending with a user message."""
-    if not is_configured():
-        raise AssistantNotConfigured()
+def _chat_anthropic(db: Session, history: list) -> dict:
     import anthropic
     client = _client()
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
@@ -340,3 +395,86 @@ def chat(db: Session, history: list) -> dict:
                 results.append({"type": "tool_result", "tool_use_id": block.id, "content": run_tool(db, block.name, block.input)})
         messages.append({"role": "user", "content": results})
     return {"reply": "That question needed too many lookups. Please ask something more specific.", "tools_used": used, "usage": tokens}
+
+
+# --------------------------------------------------------------------------- OpenAI-compatible services (free plans)
+
+def _openai_tools():
+    out = []
+    for t in TOOLS:
+        fn = {"name": t["name"], "description": t["description"]}
+        props = t["input_schema"].get("properties") or {}
+        if props:  # some services reject an empty parameters object, so leave it out for no-argument tools
+            fn["parameters"] = {"type": "object", "properties": props}
+        out.append({"type": "function", "function": fn})
+    return out
+
+
+def _compat_post(base: str, model: str, messages: list) -> dict:
+    import requests
+    try:
+        r = requests.post(
+            f"{base}/chat/completions",
+            headers={"Authorization": f"Bearer {settings.AI_API_KEY}", "Content-Type": "application/json"},
+            json={"model": model, "messages": messages, "tools": _openai_tools(), "tool_choice": "auto", "max_tokens": 2048, "temperature": 0.2},
+            timeout=90,
+        )
+    except requests.RequestException as e:
+        raise RuntimeError(f"network error talking to the AI service: {type(e).__name__}")
+    if r.status_code in (401, 403):
+        raise AssistantAuthError()
+    if r.status_code == 429:
+        raise AssistantRateLimited()
+    if r.status_code >= 400:
+        logger.warning(f"AI service error {r.status_code}: {r.text[:300]}")
+        raise RuntimeError(f"AI service returned {r.status_code}")
+    return r.json()
+
+
+def _chat_compat(db: Session, history: list) -> dict:
+    base, model = _compat_endpoint()
+    redact_on = settings.AI_REDACT_PII
+    system = f"{SYSTEM_PROMPT}\n\nCurrent date and time (UTC): {datetime.utcnow():%Y-%m-%d %H:%M}."
+    messages = [{"role": "system", "content": system}] + [{"role": m["role"], "content": m["content"]} for m in history]
+    used = []
+    tokens = {"input": 0, "output": 0}
+    for _ in range(MAX_TOOL_TURNS):
+        data = _compat_post(base, model, messages)
+        usage = data.get("usage") or {}
+        tokens["input"] += usage.get("prompt_tokens", 0) or 0
+        tokens["output"] += usage.get("completion_tokens", 0) or 0
+        choice = (data.get("choices") or [{}])[0]
+        msg = choice.get("message") or {}
+        calls = msg.get("tool_calls") or []
+        if not calls:
+            text = (msg.get("content") or "").strip()
+            if choice.get("finish_reason") == "length":
+                text = (text + "\n\n(The answer was cut short. Ask me to continue or narrow the question.)").strip()
+            return {"reply": text or "I could not produce an answer. Please try rephrasing.", "tools_used": used, "usage": tokens}
+        messages.append({"role": "assistant", "content": msg.get("content") or "", "tool_calls": calls})
+        for call in calls:
+            fn = call.get("function") or {}
+            name = fn.get("name", "")
+            used.append(name)
+            try:
+                args = json.loads(fn.get("arguments") or "{}")
+                if not isinstance(args, dict):
+                    args = {}
+            except ValueError:
+                result = json.dumps({"error": "The tool arguments were not valid JSON. Try again."})
+            else:
+                result = run_tool(db, name, args)
+            if redact_on:
+                result = redact(result)
+            messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": result[:6000]})
+    return {"reply": "That question needed too many lookups. Please ask something more specific.", "tools_used": used, "usage": tokens}
+
+
+def chat(db: Session, history: list) -> dict:
+    """history: [{role: 'user'|'assistant', content: str}, ...] ending with a user message."""
+    p = provider()
+    if p is None:
+        raise AssistantNotConfigured()
+    if p == "anthropic":
+        return _chat_anthropic(db, history)
+    return _chat_compat(db, history)

@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     # Admin website AI assistant (leave the key empty to switch the assistant off)
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     ADMIN_AI_MODEL: str = os.getenv("ADMIN_AI_MODEL", "claude-opus-5-5")
+    # Free / other providers that speak the OpenAI chat API (Groq, Google Gemini, OpenRouter, ...)
+    #   AI_PROVIDER = groq | gemini | openrouter | custom (custom needs AI_BASE_URL and AI_MODEL)
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "")
+    AI_API_KEY: str = os.getenv("AI_API_KEY", "")
+    AI_BASE_URL: str = os.getenv("AI_BASE_URL", "")
+    AI_MODEL: str = os.getenv("AI_MODEL", "")
+    AI_REDACT_PII: bool = os.getenv("AI_REDACT_PII", "true").lower() not in ("0", "false", "no")
     ALLOW_DEMO_CARD: bool = os.getenv("ALLOW_DEMO_CARD", "").lower() in ("1", "true", "yes")
 
     # Razorpay Payment Configurations

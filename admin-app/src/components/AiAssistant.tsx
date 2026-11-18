@@ -147,7 +147,7 @@ export default function AiAssistant() {
           <div style={st.body}>
             {off && (
               <div style={st.notice}><AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span>The AI assistant is not switched on yet. Ask your developer to add the Anthropic API key on the server.</span></div>
+                <span>The AI assistant is not switched on yet. Ask your developer to add an AI API key on the server (a free Google Gemini or Groq key works).</span></div>
             )}
             {msgs.length === 0 && !off && (
               <div>
