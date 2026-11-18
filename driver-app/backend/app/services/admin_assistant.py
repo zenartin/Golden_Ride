@@ -296,7 +296,7 @@ class AssistantRateLimited(Exception):
 PRESETS = {
     # provider: (OpenAI-compatible base URL, default model). Models change often, so AI_MODEL always wins.
     "groq": ("https://api.groq.com/openai/v1", "openai/gpt-oss-120b"),
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.1-flash-lite"),
     "openrouter": ("https://openrouter.ai/api/v1", "openrouter/free"),
 }
 
@@ -411,16 +411,24 @@ def _openai_tools():
 
 
 def _compat_post(base: str, model: str, messages: list) -> dict:
+    import time
     import requests
-    try:
-        r = requests.post(
-            f"{base}/chat/completions",
-            headers={"Authorization": f"Bearer {settings.AI_API_KEY}", "Content-Type": "application/json"},
-            json={"model": model, "messages": messages, "tools": _openai_tools(), "tool_choice": "auto", "max_tokens": 2048, "temperature": 0.2},
-            timeout=90,
-        )
-    except requests.RequestException as e:
-        raise RuntimeError(f"network error talking to the AI service: {type(e).__name__}")
+    r = None
+    for attempt in range(3):
+        try:
+            r = requests.post(
+                f"{base}/chat/completions",
+                headers={"Authorization": f"Bearer {settings.AI_API_KEY}", "Content-Type": "application/json"},
+                json={"model": model, "messages": messages, "tools": _openai_tools(), "tool_choice": "auto", "max_tokens": 2048, "temperature": 0.2},
+                timeout=90,
+            )
+        except requests.RequestException as e:
+            raise RuntimeError(f"network error talking to the AI service: {type(e).__name__}")
+        # free plans are often overloaded for a moment (HTTP 500/502/503/504): wait and try again
+        if r.status_code in (500, 502, 503, 504) and attempt < 2:
+            time.sleep(2 * (attempt + 1))
+            continue
+        break
     if r.status_code in (401, 403):
         raise AssistantAuthError()
     if r.status_code == 429:

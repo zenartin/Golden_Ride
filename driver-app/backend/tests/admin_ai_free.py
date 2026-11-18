@@ -50,7 +50,7 @@ def setp(**k):
 
 setp(); r=c.get(A+"/admin/ai/status",headers=h(at)); ok("nothing set -> not configured",r.json()["configured"] is False and r.json()["provider"] is None,r.text)
 setp(AI_API_KEY="free-key-123"); r=c.get(A+"/admin/ai/status",headers=h(at)); ok("a key with no provider or URL is not enough",r.json()["configured"] is True and r.json()["model"]=="" and c.post(A+"/admin/ai/chat",headers=h(at),json={"messages":[{"role":"user","content":"hi"}]}).status_code==503,r.text)
-for name,url,model in (("groq","https://api.groq.com/openai/v1","openai/gpt-oss-120b"),("gemini","https://generativelanguage.googleapis.com/v1beta/openai","gemini-3.8-flash"),("openrouter","https://openrouter.ai/api/v1","openrouter/free")):
+for name,url,model in (("groq","https://api.groq.com/openai/v1","openai/gpt-oss-120b"),("gemini","https://generativelanguage.googleapis.com/v1beta/openai","gemini-3.1-flash-lite"),("openrouter","https://openrouter.ai/api/v1","openrouter/free")):
     setp(AI_API_KEY="free-key-123",AI_PROVIDER=name)
     r=c.get(A+"/admin/ai/status",headers=h(at)); ok(f"{name} preset is recognised",r.json()=={"configured":True,"model":model,"provider":"compat"},r.text)
     net=Net([chat_msg("hello")]); r=ask(net)
@@ -83,6 +83,15 @@ net=Net([chat_msg(calls=[call(str(i),"platform_overview",{})]) for i in range(AA
 ok("endless tool use is stopped",r.status_code==200 and "too many lookups" in r.json()["reply"] and len(net.calls)==AA.MAX_TOOL_TURNS)
 net=Net([chat_msg("partial",finish="length")]); r=ask(net); ok("a cut-off answer is flagged","cut short" in r.json()["reply"])
 net=Net([chat_msg(None)]); r=ask(net); ok("an empty answer gets a friendly fallback",r.status_code==200 and "rephrasing" in r.json()["reply"])
+
+# overload retry
+setp(AI_API_KEY="k",AI_PROVIDER="gemini")
+with mock.patch("time.sleep") as sl:
+    net=Net([Resp(503,{"error":"busy"}),Resp(503,{"error":"busy"}),chat_msg("worked on the third try")]); r=ask(net)
+    ok("a briefly overloaded service is retried",r.status_code==200 and r.json()["reply"]=="worked on the third try" and len(net.calls)==3 and sl.call_count==2,(r.text,len(net.calls)))
+    net=Net([Resp(503,{"error":"busy"})]*3); r=ask(net)
+    ok("gives up after three overloads with a safe message",r.status_code==502 and "busy" not in r.text and len(net.calls)==3,(r.text,len(net.calls)))
+    net=Net([Resp(401,{"error":"bad"})]); r=ask(net); ok("a bad key is not retried",len(net.calls)==1)
 
 # failures
 net=Net([Resp(401,{"error":"bad key"})]); r=ask(net); ok("a rejected key gives a safe message",r.status_code==502 and "key was rejected" in r.text and "free-key" not in r.text,r.text)
