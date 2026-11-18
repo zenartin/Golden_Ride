@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_replace_me")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
     # Test phase only: lets riders add a demo card that is never charged. Keep OFF in production.
+    # Admin website AI assistant (leave the key empty to switch the assistant off)
+    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+    ADMIN_AI_MODEL: str = os.getenv("ADMIN_AI_MODEL", "claude-opus-5-5")
     ALLOW_DEMO_CARD: bool = os.getenv("ALLOW_DEMO_CARD", "").lower() in ("1", "true", "yes")
 
     # Razorpay Payment Configurations

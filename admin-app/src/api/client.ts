@@ -197,3 +197,17 @@ export const readAllNotifications = async () => {
   const { data } = await apiClient.post('/admin/notifications/read-all');
   return data;
 };
+
+// ─── AI assistant ────────────────────────────────────────────────────────────
+export type AiMessage = { role: 'user' | 'assistant'; content: string };
+
+export const getAiStatus = async (): Promise<{ configured: boolean; model: string }> => {
+  const { data } = await apiClient.get('/admin/ai/status');
+  return data;
+};
+
+// The assistant looks things up before answering, so it needs longer than the usual 15 seconds
+export const sendAiChat = async (messages: AiMessage[]): Promise<{ reply: string; tools_used: string[] }> => {
+  const { data } = await apiClient.post('/admin/ai/chat', { messages }, { timeout: 120000 });
+  return data;
+};

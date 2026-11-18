@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import AiAssistant from '../AiAssistant';
 
 // Each section gets its own accent so every page feels distinct.
 const THEMES: Record<string, { accent: string; soft: string; grad: string }> = {
@@ -37,6 +38,7 @@ export default function AdminLayout() {
           </div>
         </main>
       </div>
+      <AiAssistant />
     </div>
   );
 }

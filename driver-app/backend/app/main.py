@@ -9,6 +9,7 @@ from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.database import engine, Base, SessionLocal
+from app.routers import admin_ai
 from app.routers import auth, driver, rides, messages, notifications, user, content, stripe_router, admin, admin_auth, payments, razorpay, rider, safety, share, family, recordings
 from app.websocket.manager import manager
 from app.repositories.driver_repository import DriverRepository
@@ -265,6 +266,7 @@ app.include_router(razorpay.router, prefix="/api")
 app.include_router(stripe_router.router, prefix="/api")
 app.include_router(admin_auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(admin_ai.router, prefix="/api")
 app.include_router(safety.router, prefix="/api")
 app.include_router(share.router, prefix="/api")
 app.include_router(family.router, prefix="/api")
