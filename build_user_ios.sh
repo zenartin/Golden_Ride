@@ -2,8 +2,8 @@
 set -e
 
 ROOT_DIR="/Users/nandagopal/.gemini/antigravity/scratch/Golden_Ride"
-KEY_ID="NV742T4CVU"
-KEY_ISSUER="cb62a969-b3c7-4722-ba8b-bda7e3118a01"
+KEY_ID="C47QH2NY7D"
+KEY_ISSUER="bd5ef985-e632-4dfc-baed-9513cc5cc2e6"
 KEY_PATH="$ROOT_DIR/AuthKey_$KEY_ID.p8"
 export PATH="$ROOT_DIR/node-v22.12.0-darwin-x64/bin:$PATH"
 
@@ -25,10 +25,10 @@ xcodebuild -workspace "$ROOT_DIR/user-app/ios/GoldenRide.xcworkspace" \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ROOT_DIR/builds/GoldenRide_User.xcarchive" \
-  DEVELOPMENT_TEAM="5X8DU7KFPK" \
+  DEVELOPMENT_TEAM="RH88DBS9BM" \
   CODE_SIGN_STYLE="Manual" \
-  CODE_SIGN_IDENTITY="Apple Distribution" \
-  PROVISIONING_PROFILE_SPECIFIER="Golden Ride User AppStore 2026" \
+  CODE_SIGN_IDENTITY="iPhone Distribution: Golden Ride Technology LLC (RH88DBS9BM)" \
+  PROVISIONING_PROFILE_SPECIFIER="Golden Ride User AppStore RH" \
   OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
   archive
 

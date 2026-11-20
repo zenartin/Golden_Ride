@@ -176,7 +176,7 @@ export default function PaymentMethodsScreen() {
           <Text style={styles.label}>{savedLast4 ? "Add a card" : "Card"}</Text>
           <CardField
             postalCodeEnabled={false}
-            placeholders={{ number: "4242 4242 4242 4242" }}
+            placeholders={{ number: "Card number" }}
             cardStyle={{ backgroundColor: "#FFFFFF", textColor: "#111827", borderRadius: 12 }}
             style={{ width: "100%", height: 52, marginVertical: 8 }}
             onCardChange={(d: any) => setComplete(!!d?.complete)}
@@ -185,7 +185,7 @@ export default function PaymentMethodsScreen() {
             <Ionicons name="lock-closed" size={12} /> Secured by Stripe. Card details never touch our servers.
           </Text>
           <AppButton title={saving ? "Saving..." : "Save Card"} onPress={handleSave} disabled={saving} />
-          {demoEnabled && (
+          {__DEV__ && demoEnabled && (
             <View style={{ marginTop: Spacing.md }}>
               <AppButton
                 title={addingDemo ? "Adding..." : "Use demo test card (no real charge)"}
